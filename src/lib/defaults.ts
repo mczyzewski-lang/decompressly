@@ -201,5 +201,10 @@ export function createDefaultState(): AppState {
     audio: { defaultBackground: "nature", sessions: {} },
     trip: { active: false, startDate: "", days: structuredClone(DEFAULT_TRIP_DAYS) },
     privacy: { elevenLogging: false },
+    thoughtFavorites: [],
+    thoughtHidden: [],
+    thoughtEdits: {},
+    customThoughts: [],
+    questionNotes: [],
   };
 }

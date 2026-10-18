@@ -7,6 +7,7 @@ import { toISODate } from "@/lib/dates";
 import { back, navigate } from "@/lib/router";
 import { playRef, stopRitualSound, unlockAudio } from "@/lib/audio/engine";
 import { Button, IconButton, cn } from "../ui";
+import { ThoughtCard } from "../ThoughtCard";
 
 export default function CloseDay() {
   const name = useApp((s) => s.name);
@@ -100,6 +101,7 @@ export default function CloseDay() {
               Wróć do dnia
             </Button>
             <p className="mt-3 text-[13px] text-ink-3">Jeśli coś naprawdę trzeba, zawsze możesz wznowić pracę z ekranu Dziś.</p>
+            <ThoughtCard context="close" variant="plain" className="mt-10" />
           </div>
         </div>
       )}

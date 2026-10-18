@@ -20,6 +20,7 @@ import {
   Sunrise,
   Sunset,
   Feather,
+  BookOpen,
 } from "lucide-react";
 import { ensureDay, setDayMode, update, useApp } from "@/lib/store";
 import { formatLong, formatTime, greeting, toISODate, weekKey, daysBetween } from "@/lib/dates";
@@ -31,6 +32,7 @@ import type { DayMode } from "@/lib/types";
 import { Card, CardButton, IconButton, Screen, SectionTitle, Segmented, cn } from "../ui";
 import { RhythmList } from "../today/RhythmList";
 import { CalendarView } from "../today/CalendarView";
+import { ThoughtCard } from "../ThoughtCard";
 
 function useToday() {
   const [date, setDate] = useState(() => toISODate());
@@ -61,7 +63,6 @@ export default function Today() {
   useEffect(() => ensureDay(date), [date]);
 
   const mantra = useMemo(() => mantraForDate(date, { custom, pinned, override }), [date, custom, pinned, override]);
-  const footer = useMemo(() => mantraForDate(date, { custom, salt: "footer" }), [date, custom]);
   const phase = goalPhase(goal, date);
 
   if (!day) return <Screen tabbed>{null}</Screen>;
@@ -268,6 +269,7 @@ export default function Today() {
           { label: "Kalendarz i historia", hint: "Co już się wydarzyło", Icon: CalendarDays, to: "history" },
           { label: "Moje rytuały", hint: "START, CLOSE i stały rytm", Icon: Repeat, to: "rituals" },
           { label: "Mantry", hint: "Ulubione i mantra dnia", Icon: Quote, to: "mantras" },
+          { label: "Biblioteka myśli", hint: "130 myśli i 18 pytań do refleksji", Icon: BookOpen, to: "thoughts" },
           { label: "Tryb wyjazdu", hint: "Minimum aplikacji", Icon: Plane, to: "trip" },
           { label: "Ustawienia", hint: "Dźwięki, głos, dane, wygląd", Icon: SettingsIcon, to: "settings" },
         ].map((m, i) => (
@@ -282,7 +284,7 @@ export default function Today() {
         ))}
       </div>
 
-      <p className="mx-auto mt-12 max-w-xs text-center font-display text-[18px] leading-snug text-ink-2">{footer.text}</p>
+      <ThoughtCard context={day.mode === "work" ? "today" : "rest"} variant="plain" className="mt-12" />
       <p className="mt-3 text-center text-[12px] tracking-wide text-ink-3">Enjoy what you&apos;ve built.</p>
     </Screen>
   );

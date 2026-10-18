@@ -31,6 +31,7 @@ import ElevenSettings from "./screens/ElevenSettings";
 import DataSettings from "./screens/DataSettings";
 import Nothing from "./screens/Nothing";
 import InstallGuide from "./screens/InstallGuide";
+import Thoughts from "./screens/Thoughts";
 
 const FULLSCREEN = new Set(["start", "close", "nothing"]);
 
@@ -107,6 +108,8 @@ function RouteView() {
       return <Rituals />;
     case "mantras":
       return <Mantras />;
+    case "thoughts":
+      return <Thoughts />;
     case "trip":
       return <Trip />;
     case "settings":

@@ -145,3 +145,35 @@ describe("content & helpers", () => {
     expect(weekKey("2026-10-18")).toBe("2026-W42");
   });
 });
+
+import { THOUGHTS, THOUGHT_CATEGORIES, REFLECTION_QUESTIONS, pickThought } from "@/lib/thoughts";
+
+describe("thought library", () => {
+  it("has 130 thoughts, 18 questions, 12 categories, unique ids", () => {
+    expect(THOUGHTS.length).toBe(130);
+    expect(REFLECTION_QUESTIONS.length).toBe(18);
+    expect(THOUGHT_CATEGORIES.length).toBe(12);
+    expect(new Set(THOUGHTS.map((t) => t.id)).size).toBe(130);
+    expect(THOUGHTS.filter((t) => t.star).length).toBe(12);
+    for (const t of THOUGHTS) expect(t.text).not.toMatch(/^(★|~)/);
+  });
+  it("shows one stable thought per context and skips hidden ones", () => {
+    const prefs = { hidden: [], edits: {}, custom: [] };
+    const a = pickThought("idea", "2026-11-03", prefs)!;
+    expect(pickThought("idea", "2026-11-03", prefs)!.id).toBe(a.id);
+    expect(["fomo", "create"]).toContain(a.category);
+    const b = pickThought("idea", "2026-11-03", { ...prefs, hidden: [a.id] })!;
+    expect(b.id).not.toBe(a.id);
+  });
+  it("never shows gentle reminders about childhood in decision contexts", () => {
+    const gentle = THOUGHTS.filter((t) => t.gentle).map((t) => t.id);
+    expect(gentle.length).toBe(2);
+    for (let d = 1; d <= 28; d++) {
+      const date = `2026-11-${String(d).padStart(2, "0")}`;
+      for (const ctx of ["today", "close", "idea", "start"] as const) {
+        const t = pickThought(ctx, date, { hidden: [], edits: {}, custom: [] });
+        expect(gentle).not.toContain(t?.id);
+      }
+    }
+  });
+});

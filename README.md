@@ -22,6 +22,7 @@ Prywatna aplikacja PWA (iPhone-first) wspierająca świadome kończenie pracy, o
 | **Keep Your Nervous System Healthy** | Sleep, Movement, Breath, Downshift, Mindset, Connection, Stimulation — opis, wskazówki, konkretna akcja z linkiem |
 | **Cel osobisty** | 18.10–31.12.2026, trzy etapy (wszystko edytowalne), bez procentów; historia refleksji |
 | **Mantry** | 64 mantry w 8 kategoriach (wszystkie obowiązkowe), ulubione, przypinanie, mantra na dziś, nagrania ElevenLabs, własne mantry |
+| **Biblioteka myśli** | 130 osobistych myśli (parafrazy z rozmów) w 12 kategoriach + 18 pytań do refleksji; ulubione, edycja każdego zdania, „To nie moje / nie pokazuj ponownie” z możliwością przywrócenia, własne myśli, opcjonalne notatki do pytań. W aplikacji pojawia się najwyżej jedna myśl naraz, w pasującym kontekście (Dziś, po CLOSE, „Mam nowy pomysł” — w listopadzie z naciskiem na demobilizację, „Czuję napięcie”); myśli o przemijaniu dzieciństwa nigdy nie pojawiają się w momentach decyzji. Cotygodniowa refleksja proponuje jedno dodatkowe pytanie z biblioteki |
 | **Tryb wyjazdu** | 5-dniowy plan; ekran Dziś pokazuje tylko mantrę, jedno ćwiczenie i opcjonalne audio |
 | **Ustawienia** | Imię, motyw jasny/ciemny, rytuały i godziny, zestawy dźwięków, głos i model ElevenLabs, biblioteka audio, domyślny oddech, ulubiona sesja jogi, parking, refleksje, import/eksport, prywatność |
 

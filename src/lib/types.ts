@@ -1,3 +1,5 @@
+import type { Thought } from "./thoughts";
+
 export type DayMode = "work" | "rest" | "trip" | "sick";
 
 export type ItemStatus = "open" | "done" | "skipped";
@@ -76,6 +78,17 @@ export interface Reflection {
   calm: string;
   pulled: string;
   choose: string;
+  /** optional question from the thought library offered that week */
+  extraQuestion?: string;
+  extra?: string;
+}
+
+export interface QuestionNote {
+  id: string;
+  questionId: string;
+  date: string;
+  createdAt: number;
+  text: string;
 }
 
 export interface Mantra {
@@ -216,4 +229,9 @@ export interface AppState {
   audio: { defaultBackground: Background; sessions: Record<string, AudioSessionOverride> };
   trip: TripState;
   privacy: { elevenLogging: boolean };
+  thoughtFavorites: string[];
+  thoughtHidden: string[];
+  thoughtEdits: Record<string, string>;
+  customThoughts: Thought[];
+  questionNotes: QuestionNote[];
 }

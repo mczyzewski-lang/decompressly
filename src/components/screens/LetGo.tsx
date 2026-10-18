@@ -9,6 +9,7 @@ import { isDemobilization } from "@/lib/goal";
 import { navigate } from "@/lib/router";
 import { toast } from "@/lib/ui-store";
 import { Button, Card, CardButton, Screen, ScreenHeader, TextField, cn } from "../ui";
+import { ThoughtCard } from "../ThoughtCard";
 
 type Flow = "menu" | "idea" | "tension" | "rest";
 
@@ -63,6 +64,7 @@ function IdeaFlow() {
   return (
     <div className="animate-fade-in">
       <h1 className="font-display text-[28px] leading-snug tracking-tight text-ink">Czy chcę świadomie tworzyć, czy automatycznie wypełniam wolny czas kolejnym projektem?</h1>
+      {(choice === "rest" || choice === "park") && <ThoughtCard context={november ? "idea-november" : "idea"} className="mt-5" />}
       <div className="mt-8 space-y-2">
         {[
           { id: "create" as const, label: "Chcę świadomie tworzyć." },
@@ -172,6 +174,7 @@ function TensionFlow() {
           </li>
         ))}
       </ol>
+      {last && <ThoughtCard context="tension" className="mt-6" />}
       <div className="mt-6 flex gap-3">
         {step === 3 && (
           <Button variant="secondary" size="lg" onClick={() => navigate("breath?min=2&mode=calm")}>

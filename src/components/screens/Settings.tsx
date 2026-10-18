@@ -103,6 +103,7 @@ export default function Settings() {
         <LinkRow label="Historia refleksji" hint={`${s.reflections.length} zapisanych`} to="goal" />
         <LinkRow label="Biblioteka audio" hint="Wygenerowane i zaimportowane pliki" to="settings/eleven" />
         <LinkRow label="Mantry" to="mantras" />
+        <LinkRow label="Biblioteka myśli" hint={`${s.thoughtFavorites.length} ulubionych · ${s.thoughtHidden.length} odłożonych`} to="thoughts" />
       </Card>
 
       <SectionTitle>Prywatność i dane</SectionTitle>

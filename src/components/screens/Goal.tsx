@@ -78,6 +78,7 @@ export default function GoalScreen() {
               {r.calm && <QA q="Kiedy czułem autentyczny spokój?" a={r.calm} />}
               {r.pulled && <QA q="Kiedy ekscytacja pociągnęła mnie do działania?" a={r.pulled} />}
               {r.choose && <QA q="Co chciałbym częściej wybierać?" a={r.choose} />}
+              {r.extra && r.extraQuestion && <QA q={r.extraQuestion} a={r.extra} />}
             </Card>
           ))}
         </div>
