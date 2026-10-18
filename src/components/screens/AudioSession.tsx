@@ -128,11 +128,11 @@ export default function AudioSession({ id }: { id: string }) {
           onChange={(v) => setOv((o) => void (o.motif = v))}
           options={[
             { value: "none", label: "Brak" },
-            { value: "start", label: "START na początku" },
-            { value: "close", label: "CLOSE na końcu" },
+            { value: "start", label: "START" },
+            { value: "close", label: "CLOSE" },
           ]}
         />
-        <p className="mt-3 text-[12px] text-ink-3">Motyw w zapisanym pliku pochodzi z aktywnego zestawu dźwięków. Tła są subtelne i zawsze cichsze niż głos.</p>
+        <p className="mt-3 text-[12px] text-ink-3">START gra na początku, CLOSE na końcu sesji. Motyw w zapisanym pliku pochodzi z aktywnego zestawu dźwięków. Tła są subtelne i zawsze cichsze niż głos.</p>
       </Card>
 
       <SectionTitle>Narracja ElevenLabs</SectionTitle>

@@ -93,7 +93,7 @@ export default function Breath({ params }: { params: URLSearchParams }) {
           onChange={setCue}
           options={[
             { value: "silent", label: "Cisza" },
-            { value: "tone", label: "Delikatny sygnał" },
+            { value: "tone", label: "Sygnał" },
             { value: "voice", label: "Głos" },
           ]}
         />
@@ -103,7 +103,7 @@ export default function Breath({ params }: { params: URLSearchParams }) {
         <Button variant="primary" size="xl" block onClick={() => begin(false)}>
           Zacznij
         </Button>
-        <Button variant="secondary" size="lg" block onClick={() => begin(true)}>
+        <Button variant="secondary" size="lg" block className="h-auto min-h-[52px] whitespace-normal py-3" onClick={() => begin(true)}>
           <EyeOff className="h-5 w-5" /> Zamknij oczy — prowadzenie głosem
         </Button>
       </div>

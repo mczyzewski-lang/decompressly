@@ -50,7 +50,6 @@ export default function Today() {
   const date = useToday();
   const name = useApp((s) => s.name);
   const day = useApp((s) => s.days[date]);
-  const trip = useApp((s) => s.trip);
   const goal = useApp((s) => s.goal);
   const custom = useApp((s) => s.customMantras);
   const pinned = useApp((s) => s.mantraPinned);

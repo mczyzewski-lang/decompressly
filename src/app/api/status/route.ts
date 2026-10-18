@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { accessRequired, elevenKey } from "@/lib/server/eleven";
+import { accessRequired, elevenKey, safeEqual } from "@/lib/server/eleven";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +12,7 @@ export function GET(req: Request) {
       elevenConfigured: Boolean(elevenKey()),
       accessRequired: required,
       accessConfigured: Boolean(configuredKey),
-      accessOk: !required || (Boolean(configuredKey) && provided === configuredKey),
+      accessOk: !required || (Boolean(configuredKey) && safeEqual(provided, configuredKey!)),
     },
     { headers: { "Cache-Control": "no-store" } },
   );

@@ -8,7 +8,7 @@ export function elevenKey(): string | null {
   return process.env.ELEVENLABS_API_KEY?.trim() || null;
 }
 
-function safeEqual(a: string, b: string): boolean {
+export function safeEqual(a: string, b: string): boolean {
   const ab = Buffer.from(a);
   const bb = Buffer.from(b);
   if (ab.length !== bb.length) return false;

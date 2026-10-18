@@ -2,7 +2,7 @@
   "name": "decompressly",
   "version": "1.0.0",
   "private": true,
-  "description": "Decompressly — prywatna aplikacja do świadomego odpoczynku i kończenia pracy.",
+  "description": "Decompressly \u2014 prywatna aplikacja do \u015bwiadomego odpoczynku i ko\u0144czenia pracy.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -12,7 +12,6 @@
     "test:e2e": "playwright test",
     "generate:sounds": "node scripts/generate-sounds.mjs",
     "generate:icons": "node scripts/generate-icons.mjs",
-    "generate:yoga": "node scripts/generate-yoga-images.mjs",
     "fetch:yoga-photos": "node scripts/fetch-yoga-photos.mjs"
   },
   "dependencies": {
@@ -43,5 +42,8 @@
     "tailwindcss": "^3.4.19",
     "typescript": "^5.9.3",
     "vitest": "^3.2.7"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }
