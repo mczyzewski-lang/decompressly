@@ -1,0 +1,4 @@
+{
+  "_comment": "Zdjęcia pozycji jogi. Wpis jest używany w aplikacji tylko gdy approved=true (po ręcznej weryfikacji poprawności pozycji i licencji). Generowane przez: npm run fetch:yoga-photos. Bez zatwierdzonych zdjęć aplikacja pokazuje własne ilustracje SVG.",
+  "photos": {}
+}
