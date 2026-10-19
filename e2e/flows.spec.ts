@@ -162,19 +162,32 @@ test("works offline after the first visit", async ({ page, context }) => {
   await context.setOffline(false);
 });
 
-test("thought library: browse, favourite, edit, hide and restore", async ({ page }) => {
+test("Moje myśli: search, favourite, edit, moments, hide/restore, questions on demand", async ({ page }) => {
   await onboard(page);
   await go(page, "#/thoughts");
-  await expect(page.getByText("130 myśli · 18 pytań do refleksji · 12 kategorii")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Moje myśli" })).toBeVisible();
+  await expect(page.getByText("130 myśli")).toBeVisible();
+  await page.getByLabel("Szukaj w myślach").fill("estepon");
+  await expect(page.getByText(/z 130/)).toBeVisible();
+  await page.getByLabel("Szukaj w myślach").fill("");
   await page.getByRole("button", { name: /Wojna się skończyła. Nie muszę od razu budować kolejnego miasta./ }).click();
   await page.getByRole("button", { name: "Do ulubionych" }).click();
+  await page.getByRole("button", { name: "Wyjazd", exact: true }).click(); // add a moment
   await page.getByRole("button", { name: "Edytuj" }).click();
   await page.getByLabel("Treść myśli").fill("Wojna się skończyła. Dziś wracam do domu.");
   await page.getByRole("button", { name: "Zapisz", exact: true }).click();
+  await expect(page.getByText(/Twoja wersja/)).toBeVisible();
   await page.getByRole("button", { name: /To nie moje/ }).click();
   await expect(page.getByRole("button", { name: /Dziś wracam do domu/ })).toHaveCount(0);
-  await page.getByRole("button", { name: /Odłożone/ }).click();
+  await page.getByRole("button", { name: /Ukryte/ }).click();
   await page.getByRole("button", { name: "Przywróć" }).click();
+  await page.waitForTimeout(400);
+  await page.reload();
+  await go(page, "#/thoughts");
+  await expect(page.getByRole("button", { name: /Dziś wracam do domu/ })).toBeVisible(); // edits persist
+  await page.getByRole("button", { name: "Posłuchaj spokojnie" }).click();
+  await expect(page.getByRole("heading", { name: "Posłuchaj spokojnie" })).toBeVisible();
+  await page.keyboard.press("Escape");
   await page.getByRole("radio", { name: "Pytania" }).click();
   await page.getByRole("button", { name: /Na co chcę wydać dzisiaj swoją energię/ }).click();
   await page.getByLabel("Notatka (opcjonalnie)").fill("Na spacer z Leonem.");
@@ -182,5 +195,5 @@ test("thought library: browse, favourite, edit, hide and restore", async ({ page
   await expect(page.getByText("Na spacer z Leonem.")).toBeVisible();
   await page.keyboard.press("Escape");
   await go(page, "#/today");
-  await expect(page.getByRole("button", { name: "Biblioteka myśli" }).first()).toBeVisible();
+  await expect(page.getByRole("figure", { name: "Myśl na tę chwilę" })).toHaveCount(1);
 });

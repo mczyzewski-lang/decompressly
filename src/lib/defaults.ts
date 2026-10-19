@@ -204,6 +204,7 @@ export function createDefaultState(): AppState {
     thoughtFavorites: [],
     thoughtHidden: [],
     thoughtEdits: {},
+    thoughtContexts: {},
     customThoughts: [],
     questionNotes: [],
   };

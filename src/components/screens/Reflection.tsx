@@ -18,6 +18,7 @@ const QUESTIONS = [
 export default function Reflection() {
   const [a, setA] = useState({ calm: "", pulled: "", choose: "" });
   const [extra, setExtra] = useState("");
+  const [showExtra, setShowExtra] = useState(false);
   // one extra question from the thought library, the same for the whole week
   const extraQ = REFLECTION_QUESTIONS[hashString(weekKey(toISODate())) % REFLECTION_QUESTIONS.length];
   const empty = !a.calm.trim() && !a.pulled.trim() && !a.choose.trim() && !extra.trim();
@@ -28,10 +29,16 @@ export default function Reflection() {
         {QUESTIONS.map(({ key, q }) => (
           <TextArea key={key} label={q} rows={3} value={a[key]} onChange={(e) => setA({ ...a, [key]: e.target.value })} />
         ))}
-        <div>
-          <p className="mb-1.5 text-[12px] font-semibold uppercase tracking-[0.08em] text-ink-3">Z biblioteki myśli · opcjonalnie</p>
-          <TextArea label={extraQ.text} rows={3} value={extra} onChange={(e) => setExtra(e.target.value)} />
-        </div>
+        {showExtra ? (
+          <div>
+            <p className="mb-1.5 text-[12px] font-semibold uppercase tracking-[0.08em] text-ink-3">Z „Moich myśli”</p>
+            <TextArea label={extraQ.text} rows={3} value={extra} onChange={(e) => setExtra(e.target.value)} />
+          </div>
+        ) : (
+          <button className="px-1 text-left text-[14px] text-sage-deep" onClick={() => setShowExtra(true)}>
+            Chcę jeszcze jedno pytanie z „Moich myśli”
+          </button>
+        )}
       </div>
       <Button
         className="mt-8"

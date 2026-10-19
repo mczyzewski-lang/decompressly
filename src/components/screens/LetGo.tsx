@@ -64,7 +64,7 @@ function IdeaFlow() {
   return (
     <div className="animate-fade-in">
       <h1 className="font-display text-[28px] leading-snug tracking-tight text-ink">Czy chcę świadomie tworzyć, czy automatycznie wypełniam wolny czas kolejnym projektem?</h1>
-      {(choice === "rest" || choice === "park") && <ThoughtCard context={november ? "idea-november" : "idea"} className="mt-5" />}
+      {(choice === "rest" || choice === "park") && <ThoughtCard context="idea" className="mt-5" />}
       <div className="mt-8 space-y-2">
         {[
           { id: "create" as const, label: "Chcę świadomie tworzyć." },

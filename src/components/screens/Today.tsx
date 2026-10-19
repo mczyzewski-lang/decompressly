@@ -33,11 +33,16 @@ import { Card, CardButton, IconButton, Screen, SectionTitle, Segmented, cn } fro
 import { RhythmList } from "../today/RhythmList";
 import { CalendarView } from "../today/CalendarView";
 import { ThoughtCard } from "../ThoughtCard";
+import { homeContext } from "@/lib/thoughts";
 
 function useToday() {
   const [date, setDate] = useState(() => toISODate());
+  const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
-    const tick = () => setDate(toISODate());
+    const tick = () => {
+      setDate(toISODate());
+      setNow(Date.now());
+    };
     const id = setInterval(tick, 60_000);
     document.addEventListener("visibilitychange", tick);
     return () => {
@@ -45,11 +50,11 @@ function useToday() {
       document.removeEventListener("visibilitychange", tick);
     };
   }, []);
-  return date;
+  return { date, now };
 }
 
 export default function Today() {
-  const date = useToday();
+  const { date, now } = useToday();
   const name = useApp((s) => s.name);
   const day = useApp((s) => s.days[date]);
   const goal = useApp((s) => s.goal);
@@ -190,6 +195,11 @@ export default function Today() {
         </div>
       )}
 
+      <ThoughtCard
+        className="mt-4"
+        context={homeContext({ hour: new Date(now).getHours(), mode: day.mode, workState: day.workState, closedAt: day.closedAt, now })}
+      />
+
       {reflectionDue && (
         <Card className="mt-4">
           <p className="font-display text-[19px] text-ink">Chwila refleksji?</p>
@@ -269,7 +279,7 @@ export default function Today() {
           { label: "Kalendarz i historia", hint: "Co już się wydarzyło", Icon: CalendarDays, to: "history" },
           { label: "Moje rytuały", hint: "START, CLOSE i stały rytm", Icon: Repeat, to: "rituals" },
           { label: "Mantry", hint: "Ulubione i mantra dnia", Icon: Quote, to: "mantras" },
-          { label: "Biblioteka myśli", hint: "130 myśli i 18 pytań do refleksji", Icon: BookOpen, to: "thoughts" },
+          { label: "Moje myśli", hint: "Prywatna biblioteka myśli i refleksji", Icon: BookOpen, to: "thoughts" },
           { label: "Tryb wyjazdu", hint: "Minimum aplikacji", Icon: Plane, to: "trip" },
           { label: "Ustawienia", hint: "Dźwięki, głos, dane, wygląd", Icon: SettingsIcon, to: "settings" },
         ].map((m, i) => (
@@ -284,8 +294,7 @@ export default function Today() {
         ))}
       </div>
 
-      <ThoughtCard context={day.mode === "work" ? "today" : "rest"} variant="plain" className="mt-12" />
-      <p className="mt-3 text-center text-[12px] tracking-wide text-ink-3">Enjoy what you&apos;ve built.</p>
+      <p className="mt-12 text-center text-[12px] tracking-wide text-ink-3">Enjoy what you&apos;ve built.</p>
     </Screen>
   );
 }
@@ -321,6 +330,7 @@ function TripToday({ date, mantra }: { date: string; mantra: string }) {
           )}
         </div>
       </div>
+      <ThoughtCard context="trip" variant="plain" className="mt-8" />
       <p className="mt-6 text-center text-[13px] text-ink-3">Celem jest korzystanie z wyjazdu, nie z aplikacji. Możesz ją teraz zamknąć.</p>
     </Screen>
   );

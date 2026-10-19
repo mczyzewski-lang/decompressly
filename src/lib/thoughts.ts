@@ -246,27 +246,67 @@ const Q: [ThoughtCategory, string][] = [
 
 export const REFLECTION_QUESTIONS: ReflectionQuestion[] = Q.map(([category, text], i) => ({ id: `q${String(i + 1).padStart(2, "0")}`, category, text }));
 
-/** Where a single thought may appear. Each context shows at most one thought. */
-export type ThoughtContext = "today" | "start" | "close" | "idea" | "idea-november" | "tension" | "rest" | "trip";
+/** Moments in which a single thought may appear. */
+export type ThoughtContext = "morning" | "workend" | "idea" | "tension" | "family" | "rest" | "trip";
 
-const CONTEXT_CATEGORIES: Record<ThoughtContext, ThoughtCategory[]> = {
-  today: ["identity", "energy", "freedom", "estepona", "family", "business"],
-  start: ["energy", "business", "create"],
-  close: ["rituals", "demob", "family", "identity"],
-  idea: ["fomo", "create"],
-  "idea-november": ["demob", "fomo"],
-  tension: ["body"],
-  rest: ["estepona", "family", "parenting", "identity"],
-  trip: ["estepona", "family"],
+export const CONTEXTS: { id: ThoughtContext; label: string }[] = [
+  { id: "morning", label: "Poranek" },
+  { id: "workend", label: "Koniec pracy" },
+  { id: "idea", label: "Nowy pomysł" },
+  { id: "tension", label: "Napięcie" },
+  { id: "family", label: "Rodzina" },
+  { id: "rest", label: "Odpoczynek" },
+  { id: "trip", label: "Wyjazd" },
+];
+
+export const CONTEXT_LABEL = Object.fromEntries(CONTEXTS.map((c) => [c.id, c.label])) as Record<ThoughtContext, string>;
+
+const CATEGORY_CONTEXTS: Record<ThoughtCategory, ThoughtContext[]> = {
+  demob: ["workend", "rest", "idea"],
+  create: ["idea", "morning"],
+  fomo: ["idea"],
+  family: ["family"],
+  parenting: ["family"],
+  estepona: ["rest", "trip"],
+  energy: ["morning"],
+  freedom: ["rest", "morning"],
+  business: ["morning", "workend"],
+  body: ["tension"],
+  identity: ["rest", "workend", "morning"],
+  rituals: ["workend"],
 };
 
-/** Contexts tied to a decision (work vs rest) — gentle reminders about time passing never appear here. */
-const PRESSURE_CONTEXTS = new Set<ThoughtContext>(["start", "close", "idea", "idea-november", "tension", "today"]);
+/** Per-thought exceptions to the category defaults. */
+const CONTEXT_OVERRIDES: Record<string, ThoughtContext[]> = {
+  "rituals-01": ["morning", "workend"],
+  "rituals-07": ["tension", "rest"],
+  "rituals-09": ["rest", "trip"],
+  "estepona-04": ["rest", "trip", "family"],
+  "body-07": ["rest", "tension"],
+  "create-11": ["rest", "idea"],
+  "energy-07": ["rest", "morning"],
+};
+
+/** Moments tied to a decision — warm reminders about time passing never appear here. */
+export const PRESSURE_CONTEXTS: ThoughtContext[] = ["morning", "workend", "idea", "tension"];
+
+export function defaultContexts(t: Thought): ThoughtContext[] {
+  const base = CONTEXT_OVERRIDES[t.id] ?? CATEGORY_CONTEXTS[t.category];
+  return t.gentle ? base.filter((c) => !PRESSURE_CONTEXTS.includes(c)) : base;
+}
 
 export interface ThoughtPrefs {
   hidden: string[];
   edits: Record<string, string>;
   custom: Thought[];
+  /** user's own choice of moments for a thought (overrides defaults) */
+  contexts?: Record<string, ThoughtContext[]>;
+}
+
+export function contextsOf(t: Thought, prefs: Pick<ThoughtPrefs, "contexts">): ThoughtContext[] {
+  const own = prefs.contexts?.[t.id];
+  const list = own ?? defaultContexts(t);
+  return t.gentle ? list.filter((c) => !PRESSURE_CONTEXTS.includes(c)) : list;
 }
 
 export function allThoughts(prefs: Pick<ThoughtPrefs, "custom">): Thought[] {
@@ -277,11 +317,51 @@ export function thoughtText(t: Thought, edits: Record<string, string>): string {
   return edits[t.id]?.trim() || t.text;
 }
 
-/** One stable thought per day and context, skipping hidden ones. */
-export function pickThought(context: ThoughtContext, date: string, prefs: ThoughtPrefs): Thought | null {
-  const cats = new Set(CONTEXT_CATEGORIES[context]);
+/**
+ * One stable thought per day and moment, skipping hidden ones. During the November
+ * demobilisation, new-idea moments lean on "Demobilizacja" and "Odpuszczanie".
+ */
+export function pickThought(context: ThoughtContext, date: string, prefs: ThoughtPrefs, opts: { november?: boolean } = {}): Thought | null {
   const hidden = new Set(prefs.hidden);
-  const pool = allThoughts(prefs).filter((t) => cats.has(t.category) && !hidden.has(t.id) && !(t.gentle && PRESSURE_CONTEXTS.has(context)));
+  let pool = allThoughts(prefs).filter((t) => !hidden.has(t.id) && contextsOf(t, prefs).includes(context));
+  if (context === "idea") {
+    const lean = pool.filter((t) => (opts.november ? ["demob", "fomo"] : ["fomo", "create"]).includes(t.category) || t.custom);
+    if (lean.length) pool = lean;
+  }
   if (!pool.length) return null;
   return pool[hashString(`${date}|${context}`) % pool.length];
+}
+
+/** Which moment the home screen is in right now. Pure, so it can be tested. */
+export function homeContext(input: {
+  hour: number;
+  mode: "work" | "rest" | "trip" | "sick";
+  workState?: "idle" | "working" | "after";
+  closedAt?: number;
+  now?: number;
+}): ThoughtContext {
+  const { hour, mode, workState } = input;
+  if (mode === "trip") return "trip";
+  if (mode === "rest" || mode === "sick") return hour >= 17 && hour < 21 ? "family" : "rest";
+  if (workState === "after") {
+    const sinceClose = input.closedAt && input.now ? (input.now - input.closedAt) / 60_000 : 999;
+    if (sinceClose < 60) return "workend";
+    return hour >= 21 ? "rest" : "family";
+  }
+  if (hour < 11) return "morning";
+  if (hour >= 15 && hour < 19) return "workend";
+  if (hour >= 19) return workState === "working" ? "workend" : "family";
+  return "idea";
+}
+
+/** Plain-text search that ignores case and Polish diacritics. */
+export function normalizeSearch(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/ł/g, "l")
+    .replace(/[^a-z0-9 ]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }

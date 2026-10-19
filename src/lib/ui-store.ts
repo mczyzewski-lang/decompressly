@@ -16,6 +16,13 @@ interface UIStore {
 
 export const useUI = create<UIStore>(() => ({ confirm: null, toast: null }));
 
+let confirmClosedAt = 0;
+
+/** True while a confirmation is open or was just closed (focus is still returning to the sheet underneath). */
+export function confirmGuardActive(): boolean {
+  return !!useUI.getState().confirm || Date.now() - confirmClosedAt < 800;
+}
+
 export function askConfirm(title: string, body: string, confirmLabel = "Potwierdzam"): Promise<boolean> {
   return new Promise((resolve) => {
     useUI.setState({
@@ -24,6 +31,7 @@ export function askConfirm(title: string, body: string, confirmLabel = "Potwierd
         body,
         confirmLabel,
         resolve: (ok) => {
+          confirmClosedAt = Date.now();
           useUI.setState({ confirm: null });
           resolve(ok);
         },

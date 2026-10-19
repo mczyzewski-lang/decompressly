@@ -146,10 +146,13 @@ describe("content & helpers", () => {
   });
 });
 
-import { THOUGHTS, THOUGHT_CATEGORIES, REFLECTION_QUESTIONS, pickThought } from "@/lib/thoughts";
+import { THOUGHTS, THOUGHT_CATEGORIES, REFLECTION_QUESTIONS, pickThought, homeContext, contextsOf, normalizeSearch, PRESSURE_CONTEXTS, CONTEXTS } from "@/lib/thoughts";
+import thoughtSnapshot from "./fixtures/thought-ids.json";
 
-describe("thought library", () => {
-  it("has 130 thoughts, 18 questions, 12 categories, unique ids", () => {
+const noPrefs = { hidden: [] as string[], edits: {}, custom: [] };
+
+describe("Moje myśli", () => {
+  it("keeps all 130 thoughts, 18 questions and 12 categories with unique ids", () => {
     expect(THOUGHTS.length).toBe(130);
     expect(REFLECTION_QUESTIONS.length).toBe(18);
     expect(THOUGHT_CATEGORIES.length).toBe(12);
@@ -157,23 +160,44 @@ describe("thought library", () => {
     expect(THOUGHTS.filter((t) => t.star).length).toBe(12);
     for (const t of THOUGHTS) expect(t.text).not.toMatch(/^(★|~)/);
   });
-  it("shows one stable thought per context and skips hidden ones", () => {
-    const prefs = { hidden: [], edits: {}, custom: [] };
-    const a = pickThought("idea", "2026-11-03", prefs)!;
-    expect(pickThought("idea", "2026-11-03", prefs)!.id).toBe(a.id);
-    expect(["fomo", "create"]).toContain(a.category);
-    const b = pickThought("idea", "2026-11-03", { ...prefs, hidden: [a.id] })!;
-    expect(b.id).not.toBe(a.id);
+  it("ids never move to a different thought — user edits survive app updates", () => {
+    const snap = thoughtSnapshot as Record<string, string>;
+    for (const [id, text] of Object.entries(snap)) expect(THOUGHTS.find((t) => t.id === id)?.text, id).toBe(text);
   });
-  it("never shows gentle reminders about childhood in decision contexts", () => {
-    const gentle = THOUGHTS.filter((t) => t.gentle).map((t) => t.id);
+  it("every thought has display contexts; every context has thoughts", () => {
+    for (const t of THOUGHTS) expect(contextsOf(t, {}).length, t.id).toBeGreaterThan(0);
+    for (const c of CONTEXTS) expect(pickThought(c.id, "2026-10-20", noPrefs), c.id).not.toBeNull();
+  });
+  it("one stable thought per day and moment, skipping hidden ones", () => {
+    const a = pickThought("idea", "2026-10-20", noPrefs)!;
+    expect(pickThought("idea", "2026-10-20", noPrefs)!.id).toBe(a.id);
+    expect(["fomo", "create"]).toContain(a.category);
+    expect(pickThought("idea", "2026-10-20", { ...noPrefs, hidden: [a.id] })!.id).not.toBe(a.id);
+    expect(["demob", "fomo"]).toContain(pickThought("idea", "2026-11-03", noPrefs, { november: true })!.category);
+  });
+  it("respects the user's own choice of moments", () => {
+    const t = THOUGHTS.find((x) => x.id === "energy-01")!;
+    expect(contextsOf(t, { contexts: { "energy-01": ["trip"] } })).toEqual(["trip"]);
+  });
+  it("never shows gentle reminders about childhood in decision moments", () => {
+    const gentle = THOUGHTS.filter((t) => t.gentle);
     expect(gentle.length).toBe(2);
-    for (let d = 1; d <= 28; d++) {
-      const date = `2026-11-${String(d).padStart(2, "0")}`;
-      for (const ctx of ["today", "close", "idea", "start"] as const) {
-        const t = pickThought(ctx, date, { hidden: [], edits: {}, custom: [] });
-        expect(gentle).not.toContain(t?.id);
-      }
+    for (const t of gentle) {
+      for (const c of PRESSURE_CONTEXTS) expect(contextsOf(t, { contexts: { [t.id]: [c] } })).not.toContain(c);
     }
+  });
+  it("picks the home moment from the time of day and the day's state", () => {
+    expect(homeContext({ hour: 8, mode: "work", workState: "idle" })).toBe("morning");
+    expect(homeContext({ hour: 13, mode: "work", workState: "working" })).toBe("idea");
+    expect(homeContext({ hour: 16, mode: "work", workState: "working" })).toBe("workend");
+    const closedAt = Date.now() - 20 * 60_000;
+    expect(homeContext({ hour: 16, mode: "work", workState: "after", closedAt, now: Date.now() })).toBe("workend");
+    expect(homeContext({ hour: 18, mode: "work", workState: "after", closedAt: Date.now() - 3 * 3600_000, now: Date.now() })).toBe("family");
+    expect(homeContext({ hour: 11, mode: "rest" })).toBe("rest");
+    expect(homeContext({ hour: 18, mode: "sick" })).toBe("family");
+    expect(homeContext({ hour: 9, mode: "trip" })).toBe("trip");
+  });
+  it("search ignores case and Polish diacritics", () => {
+    expect(normalizeSearch("Łagodność ŻYCIA")).toBe("lagodnosc zycia");
   });
 });

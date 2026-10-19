@@ -60,3 +60,24 @@ test("sound studio: generate START, derive CLOSE locally, save and activate", as
   await expect(page.getByText("Aktywny ·").first()).toBeVisible();
   expect(calls).toBe(1);
 });
+
+test("Moje myśli: record a thought with a calm voice after confirmation, then reuse it", async ({ page }) => {
+  const texts: string[] = [];
+  await page.route("**/api/eleven/tts", async (route) => {
+    texts.push(route.request().postDataJSON().text);
+    await route.fulfill({ status: 200, contentType: "audio/mpeg", body: fakeAudio });
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Zacznij spokojnie" }).click();
+  await page.evaluate(() => (location.hash = "#/settings/eleven"));
+  await page.getByLabel("lub ID głosu").fill("TestVoice1234567890");
+  await page.evaluate(() => (location.hash = "#/thoughts"));
+  await page.getByRole("button", { name: /Moja energia jest moją walutą/ }).click();
+  await page.getByRole("button", { name: "Nagraj spokojnym głosem" }).click();
+  await page.getByRole("button", { name: "Generuj" }).click();
+  await expect(page.getByRole("button", { name: "Nagrana głosem ElevenLabs" })).toBeVisible();
+  expect(texts).toEqual(["Moja energia jest moją walutą."]);
+  await page.getByRole("button", { name: "Posłuchaj", exact: true }).click(); // plays the saved file, no new call
+  await page.waitForTimeout(300);
+  expect(texts.length).toBe(1);
+});

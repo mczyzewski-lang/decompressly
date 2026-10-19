@@ -101,7 +101,7 @@ export default function CloseDay() {
               Wróć do dnia
             </Button>
             <p className="mt-3 text-[13px] text-ink-3">Jeśli coś naprawdę trzeba, zawsze możesz wznowić pracę z ekranu Dziś.</p>
-            <ThoughtCard context="close" variant="plain" className="mt-10" />
+            <ThoughtCard context="workend" variant="plain" className="mt-10" />
           </div>
         </div>
       )}

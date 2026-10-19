@@ -6,6 +6,7 @@ import { ChevronLeft, X } from "lucide-react";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { back } from "@/lib/router";
+import { confirmGuardActive } from "@/lib/ui-store";
 
 export function cn(...a: (string | false | null | undefined)[]) {
   return twMerge(clsx(a));
@@ -236,7 +237,10 @@ export function Sheet({
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/25 data-[state=open]:animate-fade-in" />
         <Dialog.Content
           className="safe-bottom fixed inset-x-0 bottom-0 z-50 mx-auto max-h-[88dvh] w-full max-w-lg overflow-y-auto rounded-t-[28px] bg-bg px-5 pt-3 shadow-lift outline-none data-[state=open]:animate-fade-up"
-          aria-describedby={description ? undefined : undefined}
+          // a confirmation dialog opened from inside a sheet must not close the sheet underneath
+          onPointerDownOutside={(e) => confirmGuardActive() && e.preventDefault()}
+          onFocusOutside={(e) => confirmGuardActive() && e.preventDefault()}
+          onInteractOutside={(e) => confirmGuardActive() && e.preventDefault()}
         >
           <div className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-line" aria-hidden />
           <div className="mb-4 flex items-start justify-between gap-4">

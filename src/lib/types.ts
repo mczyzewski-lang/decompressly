@@ -1,4 +1,4 @@
-import type { Thought } from "./thoughts";
+import type { Thought, ThoughtContext } from "./thoughts";
 
 export type DayMode = "work" | "rest" | "trip" | "sick";
 
@@ -232,6 +232,7 @@ export interface AppState {
   thoughtFavorites: string[];
   thoughtHidden: string[];
   thoughtEdits: Record<string, string>;
+  thoughtContexts: Record<string, ThoughtContext[]>;
   customThoughts: Thought[];
   questionNotes: QuestionNote[];
 }
