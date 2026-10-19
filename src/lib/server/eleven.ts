@@ -1,11 +1,30 @@
 import "server-only";
 import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
+import { normalizeKey } from "./access";
+
+export { normalizeKey, mismatchHint } from "./access";
 
 export const ELEVEN_BASE = "https://api.elevenlabs.io";
 
 export function elevenKey(): string | null {
   return process.env.ELEVENLABS_API_KEY?.trim() || null;
+}
+
+/** The client URI-encodes the code so any character survives the HTTP header. */
+export function providedKey(req: Request): string {
+  const raw = req.headers.get("x-decompressly-key") ?? "";
+  let decoded = raw;
+  try {
+    decoded = decodeURIComponent(raw);
+  } catch {
+    /* sent unencoded by an older version */
+  }
+  return normalizeKey(decoded);
+}
+
+export function configuredKey(): string {
+  return normalizeKey(process.env.APP_ACCESS_KEY);
 }
 
 export function safeEqual(a: string, b: string): boolean {
@@ -17,7 +36,7 @@ export function safeEqual(a: string, b: string): boolean {
 
 /** In production the paid endpoints require APP_ACCESS_KEY; locally (next dev) they work without it. */
 export function accessRequired(): boolean {
-  return Boolean(process.env.APP_ACCESS_KEY) || process.env.NODE_ENV === "production";
+  return Boolean(configuredKey()) || process.env.NODE_ENV === "production";
 }
 
 const hits = new Map<string, number[]>();
@@ -35,7 +54,7 @@ export function guard(req: Request, opts: { paid: boolean }): NextResponse | nul
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
   if (rateLimited(ip)) return NextResponse.json({ error: "Zbyt wiele żądań. Spróbuj za chwilę." }, { status: 429 });
 
-  const required = process.env.APP_ACCESS_KEY;
+  const required = configuredKey();
   if (accessRequired()) {
     if (!required) {
       return NextResponse.json(
@@ -43,8 +62,9 @@ export function guard(req: Request, opts: { paid: boolean }): NextResponse | nul
         { status: 503 },
       );
     }
-    const provided = req.headers.get("x-decompressly-key") ?? "";
-    if (!safeEqual(provided, required)) return NextResponse.json({ error: "Nieprawidłowy kod dostępu." }, { status: 401 });
+    if (!safeEqual(providedKey(req), required)) {
+      return NextResponse.json({ error: "Nieprawidłowy kod dostępu. Sprawdź go w Ustawieniach → ElevenLabs." }, { status: 401 });
+    }
   }
   if (opts.paid && req.headers.get("x-confirm-paid") !== "1") {
     return NextResponse.json({ error: "Płatna generacja wymaga potwierdzenia w aplikacji." }, { status: 428 });

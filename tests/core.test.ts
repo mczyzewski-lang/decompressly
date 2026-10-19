@@ -201,3 +201,21 @@ describe("Moje myśli", () => {
     expect(normalizeSearch("Łagodność ŻYCIA")).toBe("lagodnosc zycia");
   });
 });
+
+import { normalizeKey, mismatchHint } from "@/lib/server/access";
+
+describe("access code", () => {
+  it("ignores whitespace, newlines, wrapping quotes and iOS smart punctuation", () => {
+    expect(normalizeKey("  abc-123\n")).toBe("abc-123");
+    expect(normalizeKey('"abc-123"')).toBe("abc-123");
+    expect(normalizeKey("abc–123​")).toBe("abc-123");
+    expect(normalizeKey("“kod”")).toBe("kod");
+  });
+  it("gives a coarse hint without revealing the code", () => {
+    expect(mismatchHint("Abc", "abc")).toBe("case");
+    expect(mismatchHint("abcd", "abc")).toBe("length");
+    expect(mismatchHint("abd", "abc")).toBe("chars");
+    expect(mismatchHint("", "abc")).toBe("empty");
+    expect(mismatchHint("abc", "abc")).toBeNull();
+  });
+});

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Play, Trash2, RefreshCw, Check } from "lucide-react";
+import { Play, Trash2, RefreshCw, Check, Eye, EyeOff } from "lucide-react";
 import { update, useApp, getState } from "@/lib/store";
 import { fetchStatus, listVoices, confirmPaid, describeChars, type ServerStatus, type Voice } from "@/lib/eleven-client";
 import { generateClip } from "@/lib/audio/narration";
@@ -18,6 +18,13 @@ const MODELS = [
   { id: "eleven_flash_v2_5", label: "Flash v2.5 — najszybszy, najtańszy" },
 ];
 
+const HINTS: Record<NonNullable<ServerStatus["accessHint"]>, string> = {
+  empty: "Pole kodu jest puste.",
+  case: "Kod różni się tylko wielkością liter. iPhone mógł zamienić pierwszą literę na wielką — użyj „Pokaż kod”, żeby sprawdzić.",
+  length: "Kod ma inną liczbę znaków niż ten na serwerze. Sprawdź, czy nie brakuje znaku albo nie dopisała się spacja. Po zmianie zmiennej na Vercelu trzeba ponownie wdrożyć aplikację (Redeploy).",
+  chars: "Kod ma właściwą długość, ale różni się znakami. Użyj „Pokaż kod” i porównaj ze zmienną APP_ACCESS_KEY (np. 0 i O, l i 1).",
+};
+
 const KIND_LABEL: Record<string, string> = { sfx: "Efekt", tts: "Narracja", session: "Sesja audio", import: "Import", cue: "Wskazówka głosowa", variant: "Wariant" };
 
 function fmtBytes(n: number) {
@@ -33,6 +40,7 @@ export default function ElevenSettings() {
   const [loadingVoices, setLoadingVoices] = useState(false);
   const [blobs, setBlobs] = useState<StoredBlob[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
+  const [showKey, setShowKey] = useState(false);
 
   const refreshStatus = () => {
     setStatus("loading");
@@ -138,17 +146,48 @@ export default function ElevenSettings() {
           <ul className="space-y-1.5 text-[14px]">
             <StatusLine ok={st.elevenConfigured} label={st.elevenConfigured ? "Klucz ElevenLabs skonfigurowany na serwerze" : "Brak ELEVENLABS_API_KEY na serwerze"} />
             {st.accessRequired && <StatusLine ok={st.accessConfigured} label={st.accessConfigured ? "Ochrona kodem dostępu włączona" : "Serwer nie ma APP_ACCESS_KEY — płatne funkcje wyłączone"} />}
-            {st.accessRequired && st.accessConfigured && <StatusLine ok={st.accessOk} label={st.accessOk ? "Kod dostępu poprawny" : "Wpisz poprawny kod dostępu"} />}
+            {st.accessRequired && st.accessConfigured && <StatusLine ok={st.accessOk} label={st.accessOk ? "Kod dostępu poprawny" : "Kod dostępu nie pasuje"} />}
           </ul>
         )}
-        <TextField
-          label="Kod dostępu (APP_ACCESS_KEY)"
-          type="password"
-          autoComplete="off"
-          value={e.accessKey}
-          onChange={(ev) => set((x) => void (x.accessKey = ev.target.value))}
-          onBlur={refreshStatus}
-        />
+        {st && st.accessRequired && st.accessConfigured && !st.accessOk && st.accessHint && <Notice tone="warn">{HINTS[st.accessHint]}</Notice>}
+        <div className="flex items-end gap-2">
+          <label className="block min-w-0 flex-1">
+            <span className="mb-1.5 block text-[13px] text-ink-2">Kod dostępu (APP_ACCESS_KEY)</span>
+            <span className="relative block">
+              <input
+                // a plain text field with masking avoids iOS password autofill silently replacing the code
+                type="text"
+                name="dc-access-code"
+                inputMode="text"
+                autoComplete="off"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                data-1p-ignore
+                data-lpignore="true"
+                style={showKey ? undefined : ({ WebkitTextSecurity: "disc" } as React.CSSProperties)}
+                className="h-12 w-full rounded-2xl bg-surface pl-4 pr-12 text-[16px] text-ink ring-1 ring-line focus:outline-none focus:ring-2 focus:ring-sage"
+                value={e.accessKey}
+                onChange={(ev) => set((x) => void (x.accessKey = ev.target.value))}
+                onBlur={() => {
+                  set((x) => void (x.accessKey = x.accessKey.trim()));
+                  refreshStatus();
+                }}
+              />
+              <button
+                type="button"
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-2 text-ink-3"
+                aria-label={showKey ? "Ukryj kod" : "Pokaż kod"}
+                onClick={() => setShowKey((v) => !v)}
+              >
+                {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </span>
+          </label>
+          <Button variant="secondary" className="h-12" onClick={refreshStatus}>
+            Sprawdź
+          </Button>
+        </div>
         <p className="text-[12px] text-ink-3">Kod zapisuje się tylko na tym urządzeniu. Chroni płatne endpointy przed użyciem przez osoby trzecie.</p>
       </Card>
 

@@ -8,12 +8,14 @@ export interface ServerStatus {
   accessRequired: boolean;
   accessConfigured: boolean;
   accessOk: boolean;
+  accessHint?: "empty" | "case" | "length" | "chars" | null;
 }
 
 function headers(paid: boolean): HeadersInit {
   const h: Record<string, string> = { "Content-Type": "application/json" };
-  const key = getState().eleven.accessKey;
-  if (key) h["x-decompressly-key"] = key;
+  const key = getState().eleven.accessKey.trim();
+  // URI-encoded so that any character (also Polish letters) survives the HTTP header
+  if (key) h["x-decompressly-key"] = encodeURIComponent(key);
   if (paid) h["x-confirm-paid"] = "1";
   return h;
 }
