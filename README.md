@@ -47,7 +47,8 @@ Bez klucza ElevenLabs aplikacja działa w pełni: wbudowane dźwięki START/CLOS
    | `APP_ACCESS_KEY` | długi losowy kod chroniący płatne endpointy, np. `openssl rand -hex 24` |
    | `ELEVENLABS_DAILY_CHAR_LIMIT` | opcjonalny dzienny limit znaków TTS na instancję (ochrona kosztów) |
 
-3. W aplikacji: **Ustawienia → ElevenLabs** → wpisz kod dostępu → „Pokaż głosy” → wybierz głos (lub wklej ID). Zalecany model dla polskiego: `eleven_multilingual_v2`.
+3. W aplikacji: **Ustawienia → ElevenLabs** → wpisz kod dostępu → „Pokaż moje głosy” (lista „My Voices”, przełącznik „Wszystkie”) → wybierz głos (lub wklej ID). Modele: `eleven_v4`, `eleven_v4_turbo`, `eleven_multilingual_v2`, `eleven_v3`, Turbo/Flash v2.5 — przycisk „Wczytaj modele z konta” dodaje wszystkie modele TTS dostępne na Twoim koncie i oznacza te bez polskiego.
+   Jeśli klucz API ma ograniczone uprawnienia, włącz w ElevenLabs → Developers → API Keys co najmniej: *Text to Speech*, *Sound Effects*, *Voices → Read* i *Models → Read*. Bez *Voices → Read* lista głosów się nie wczyta, ale ręcznie wpisane ID głosu nadal działa.
 4. Opcjonalnie: „Wskazówki głosowe” (wdech/wydech + 12 instrukcji jogi) — jedna partia, offline na zawsze.
 
 ### Użyte endpointy (zweryfikowane z dokumentacją)

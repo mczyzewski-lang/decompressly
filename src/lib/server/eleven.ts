@@ -5,7 +5,8 @@ import { normalizeKey } from "./access";
 
 export { normalizeKey, mismatchHint } from "./access";
 
-export const ELEVEN_BASE = "https://api.elevenlabs.io";
+// overridable only for local testing against a mock
+export const ELEVEN_BASE = process.env.ELEVENLABS_BASE_URL || "https://api.elevenlabs.io";
 
 export function elevenKey(): string | null {
   return process.env.ELEVENLABS_API_KEY?.trim() || null;
@@ -90,17 +91,44 @@ export function consumeChars(n: number): boolean {
   return true;
 }
 
-export async function relayAudio(upstream: Response): Promise<Response> {
-  if (!upstream.ok) {
-    let detail = "";
-    try {
-      const j = await upstream.json();
-      detail = typeof j?.detail === "string" ? j.detail : j?.detail?.message ?? JSON.stringify(j?.detail ?? j);
-    } catch {
-      detail = await upstream.text().catch(() => "");
-    }
-    return NextResponse.json({ error: `ElevenLabs: ${upstream.status} ${detail}`.trim() }, { status: upstream.status === 401 ? 502 : upstream.status });
+const PERMISSION_LABELS: Record<string, string> = {
+  voices_read: "Voices → Read",
+  text_to_speech: "Text to Speech",
+  sound_generation: "Sound Effects",
+  models_read: "Models → Read",
+};
+
+/**
+ * Turns an ElevenLabs error into a clear Polish message. Upstream auth errors are returned as 502,
+ * so they are never confused with the app's own access-code 401.
+ */
+export async function elevenError(upstream: Response): Promise<NextResponse> {
+  let status = "";
+  let message = "";
+  try {
+    const j = await upstream.json();
+    const d = j?.detail ?? j;
+    status = typeof d?.status === "string" ? d.status : "";
+    message = typeof d === "string" ? d : typeof d?.message === "string" ? d.message : JSON.stringify(d);
+  } catch {
+    message = await upstream.text().catch(() => "");
   }
+  let error = `ElevenLabs ${upstream.status}: ${message}`.trim();
+  if (status === "missing_permissions" || /missing.*permission/i.test(message)) {
+    const perm = Object.keys(PERMISSION_LABELS).find((p) => message.includes(p));
+    error = `Klucz API ElevenLabs nie ma uprawnienia${perm ? ` „${PERMISSION_LABELS[perm]}”` : ""}. W ElevenLabs → Developers → API Keys edytuj klucz i włącz je (albo ustaw dostęp bez ograniczeń), a potem odśwież.`;
+  } else if (status === "invalid_api_key" || (upstream.status === 401 && /invalid|api key/i.test(message))) {
+    error = "Klucz ELEVENLABS_API_KEY na serwerze jest nieprawidłowy albo wygasł. Wklej go ponownie w zmiennych hostingu i wdróż aplikację.";
+  } else if (status === "voice_not_found" || /voice.*not.*found/i.test(message)) {
+    error = "Nie znaleziono głosu o tym ID na Twoim koncie ElevenLabs.";
+  } else if (status === "quota_exceeded" || /quota/i.test(message)) {
+    error = "Brak kredytów na koncie ElevenLabs.";
+  }
+  return NextResponse.json({ error, code: status || undefined }, { status: upstream.status === 401 || upstream.status === 403 ? 502 : upstream.status });
+}
+
+export async function relayAudio(upstream: Response): Promise<Response> {
+  if (!upstream.ok) return elevenError(upstream);
   const body = await upstream.arrayBuffer();
   return new Response(body, {
     status: 200,

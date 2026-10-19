@@ -87,10 +87,22 @@ export interface Voice {
   previewUrl: string;
 }
 
-export async function listVoices(): Promise<Voice[]> {
-  const r = await fetch("/api/eleven/voices", { headers: headers(false), cache: "no-store" });
+export async function listVoices(scope: "mine" | "all" = "mine"): Promise<Voice[]> {
+  const r = await fetch(`/api/eleven/voices?scope=${scope}`, { headers: headers(false), cache: "no-store" });
   if (!r.ok) throw new ElevenError(await errorText(r));
   return ((await r.json()) as { voices: Voice[] }).voices;
+}
+
+export interface ModelInfo {
+  id: string;
+  name: string;
+  polish: boolean;
+}
+
+export async function listModels(): Promise<ModelInfo[]> {
+  const r = await fetch("/api/eleven/models", { headers: headers(false), cache: "no-store" });
+  if (!r.ok) throw new ElevenError(await errorText(r));
+  return ((await r.json()) as { models: ModelInfo[] }).models;
 }
 
 /** Rough credit estimate: TTS ≈ 1 credit per character on multilingual v2 (varies by plan/model). */

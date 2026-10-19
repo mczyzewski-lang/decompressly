@@ -3,17 +3,19 @@
 import { useEffect, useState } from "react";
 import { Play, Trash2, RefreshCw, Check, Eye, EyeOff } from "lucide-react";
 import { update, useApp, getState } from "@/lib/store";
-import { fetchStatus, listVoices, confirmPaid, describeChars, type ServerStatus, type Voice } from "@/lib/eleven-client";
+import { fetchStatus, listVoices, listModels, confirmPaid, describeChars, type ServerStatus, type Voice, type ModelInfo } from "@/lib/eleven-client";
 import { generateClip } from "@/lib/audio/narration";
 import { POSES } from "@/lib/yoga/poses";
 import { deleteBlob, listBlobs, type StoredBlob, forgetBlobUrl } from "@/lib/db";
 import { playCue, playRef, unlockAudio, forgetDecoded } from "@/lib/audio/engine";
 import { toast } from "@/lib/ui-store";
-import { Button, Card, IconButton, Notice, Screen, ScreenHeader, SectionTitle, Slider, TextField, cn } from "../ui";
+import { Button, Card, IconButton, Notice, Screen, ScreenHeader, SectionTitle, Segmented, Slider, TextField, cn } from "../ui";
 
 const MODELS = [
-  { id: "eleven_multilingual_v2", label: "Multilingual v2 — najbardziej naturalny polski (zalecany)" },
-  { id: "eleven_v3", label: "Eleven v3 — najbardziej ekspresyjny" },
+  { id: "eleven_v4", label: "Eleven v4 — najnowszy, bardzo naturalny i ekspresyjny" },
+  { id: "eleven_v4_turbo", label: "Eleven v4 Turbo — szybszy wariant v4" },
+  { id: "eleven_multilingual_v2", label: "Multilingual v2 — sprawdzony, spokojny polski" },
+  { id: "eleven_v3", label: "Eleven v3 — ekspresyjny" },
   { id: "eleven_turbo_v2_5", label: "Turbo v2.5 — szybszy, tańszy" },
   { id: "eleven_flash_v2_5", label: "Flash v2.5 — najszybszy, najtańszy" },
 ];
@@ -41,6 +43,10 @@ export default function ElevenSettings() {
   const [blobs, setBlobs] = useState<StoredBlob[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
   const [showKey, setShowKey] = useState(false);
+  const [voiceScope, setVoiceScope] = useState<"mine" | "all">("mine");
+  const [voiceError, setVoiceError] = useState<string | null>(null);
+  const [accountModels, setAccountModels] = useState<ModelInfo[] | null>(null);
+  const [modelError, setModelError] = useState<string | null>(null);
 
   const refreshStatus = () => {
     setStatus("loading");
@@ -55,16 +61,40 @@ export default function ElevenSettings() {
 
   const set = (fn: (x: typeof e) => void) => update((s) => fn(s.eleven));
 
-  const loadVoices = async () => {
+  const loadVoices = async (scope: "mine" | "all" = voiceScope) => {
     setLoadingVoices(true);
+    setVoiceError(null);
+    setVoiceScope(scope);
     try {
-      setVoices(await listVoices());
+      setVoices(await listVoices(scope));
     } catch (err) {
-      toast(err instanceof Error ? err.message : "Nie udało się pobrać głosów.", 5000);
+      setVoices(null);
+      setVoiceError(err instanceof Error ? err.message : "Nie udało się pobrać głosów.");
     } finally {
       setLoadingVoices(false);
     }
   };
+
+  const loadModels = async () => {
+    setModelError(null);
+    try {
+      setAccountModels(await listModels());
+    } catch (err) {
+      setModelError(err instanceof Error ? err.message : "Nie udało się pobrać modeli.");
+    }
+  };
+
+  const modelOptions = (() => {
+    const base = MODELS.map((m) => ({ ...m, polish: undefined as boolean | undefined }));
+    for (const m of accountModels ?? []) {
+      const hit = base.find((b) => b.id === m.id);
+      if (hit) hit.polish = m.polish;
+      else base.push({ id: m.id, label: m.name, polish: m.polish });
+    }
+    if (e.modelId && !base.some((b) => b.id === e.modelId)) base.push({ id: e.modelId, label: e.modelId, polish: undefined });
+    return base;
+  })();
+  const expressive = /^eleven_v[34]/.test(e.modelId);
 
   const testVoice = async () => {
     const text = `Cześć, ${getState().name}. Na dzisiaj wystarczy. Możesz po prostu odpocząć.`;
@@ -198,11 +228,32 @@ export default function ElevenSettings() {
             <p className="text-[15px] text-ink">{e.voiceName || (e.voiceId ? e.voiceId : "Nie wybrano")}</p>
             <p className="text-[12px] text-ink-3">Wybrany głos</p>
           </div>
-          <Button size="sm" variant="secondary" onClick={loadVoices} disabled={loadingVoices}>
-            {loadingVoices ? "Ładuję…" : "Pokaż głosy"}
+          <Button size="sm" variant="secondary" onClick={() => loadVoices("mine")} disabled={loadingVoices}>
+            {loadingVoices ? "Ładuję…" : "Pokaż moje głosy"}
           </Button>
         </div>
+        {voiceError && (
+          <Notice tone="warn">
+            {voiceError}
+            <span className="mt-1 block text-ink-2">Ręcznie wpisane ID głosu działa niezależnie od tej listy — sprawdzisz je przyciskiem „Wygeneruj próbkę głosu”.</span>
+          </Notice>
+        )}
         {voices && (
+          <Segmented
+            label="Które głosy"
+            size="sm"
+            value={voiceScope}
+            onChange={(v) => void loadVoices(v)}
+            options={[
+              { value: "mine", label: "My Voices" },
+              { value: "all", label: "Wszystkie" },
+            ]}
+          />
+        )}
+        {voices && voices.length === 0 && (
+          <p className="text-[13px] text-ink-3">{voiceScope === "mine" ? "Na liście „My Voices” nie ma jeszcze głosów. Dodaj głos w ElevenLabs (Voice Library → Add) albo przełącz na „Wszystkie”." : "Brak głosów."}</p>
+        )}
+        {voices && voices.length > 0 && (
           <ul className="max-h-80 space-y-1.5 overflow-y-auto">
             {voices.map((v) => (
               <li key={v.id} className={cn("flex items-center gap-2 rounded-xl px-2 py-1.5 ring-1", v.id === e.voiceId ? "bg-sage-soft ring-sage" : "ring-line")}>
@@ -233,19 +284,39 @@ export default function ElevenSettings() {
           x.voiceName = "";
         })} />
         <label className="block">
-          <span className="mb-1.5 block text-[13px] text-ink-2">Model</span>
+          <span className="mb-1.5 flex items-center justify-between text-[13px] text-ink-2">
+            Model
+            <button type="button" className="text-[12px] text-sage-deep" onClick={loadModels}>
+              Wczytaj modele z konta
+            </button>
+          </span>
           <select className="h-12 w-full rounded-2xl bg-surface px-3 text-[15px] text-ink ring-1 ring-line" value={e.modelId} onChange={(ev) => set((x) => void (x.modelId = ev.target.value))}>
-            {MODELS.map((m) => (
+            {modelOptions.map((m) => (
               <option key={m.id} value={m.id}>
                 {m.label}
+                {m.polish === false ? " (bez polskiego)" : ""}
               </option>
             ))}
           </select>
         </label>
-        <Slider label="Stabilność" value={e.stability} min={0} max={1} step={0.05} onChange={(v) => set((x) => void (x.stability = v))} format={(v) => v.toFixed(2)} />
-        <Slider label="Podobieństwo do głosu" value={e.similarity} min={0} max={1} step={0.05} onChange={(v) => set((x) => void (x.similarity = v))} format={(v) => v.toFixed(2)} />
-        <Slider label="Styl / ekspresja" value={e.style} min={0} max={1} step={0.05} onChange={(v) => set((x) => void (x.style = v))} format={(v) => v.toFixed(2)} />
-        <Slider label="Tempo mowy" value={e.speed} min={0.7} max={1.2} step={0.05} onChange={(v) => set((x) => void (x.speed = v))} format={(v) => `${v.toFixed(2)}×`} />
+        {modelError && <Notice tone="warn">{modelError}</Notice>}
+        <Slider
+          label={expressive ? "Stabilność (v3/v4: kreatywna · naturalna · stabilna)" : "Stabilność"}
+          value={e.stability}
+          min={0}
+          max={1}
+          step={expressive ? 0.5 : 0.05}
+          onChange={(v) => set((x) => void (x.stability = v))}
+          format={(v) => (expressive ? (v < 0.25 ? "kreatywna" : v > 0.75 ? "stabilna" : "naturalna") : v.toFixed(2))}
+        />
+        {!expressive && (
+          <>
+            <Slider label="Podobieństwo do głosu" value={e.similarity} min={0} max={1} step={0.05} onChange={(v) => set((x) => void (x.similarity = v))} format={(v) => v.toFixed(2)} />
+            <Slider label="Styl / ekspresja" value={e.style} min={0} max={1} step={0.05} onChange={(v) => set((x) => void (x.style = v))} format={(v) => v.toFixed(2)} />
+            <Slider label="Tempo mowy" value={e.speed} min={0.7} max={1.2} step={0.05} onChange={(v) => set((x) => void (x.speed = v))} format={(v) => `${v.toFixed(2)}×`} />
+          </>
+        )}
+        {expressive && <p className="text-[12px] text-ink-3">Modele v3 i v4 same dobierają tempo i ekspresję. Dla spokojnej narracji zalecana jest stabilność „naturalna” lub „stabilna”.</p>}
         <Button variant="secondary" block onClick={testVoice} disabled={!e.voiceId || busy === "test"}>
           {busy === "test" ? "Generuję…" : "Wygeneruj próbkę głosu"}
         </Button>
