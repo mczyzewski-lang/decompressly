@@ -43,6 +43,19 @@ export function parseScript(script: string): Segment[] {
   return out;
 }
 
+export interface Pacing {
+  pauseScale: number;
+  gap: number;
+}
+
+export const DEFAULT_PACING: Pacing = { pauseScale: 1, gap: DEFAULT_GAP };
+
+/** Longer (or shorter) silences without touching the spoken text — no new TTS needed. */
+export function applyPacing(segments: Segment[], pacing: Pacing): Segment[] {
+  if (pacing.pauseScale === 1) return segments;
+  return segments.map((s) => (s.kind === "pause" ? { kind: "pause", seconds: Math.round(s.seconds * pacing.pauseScale * 10) / 10 } : s));
+}
+
 export function wordCount(text: string): number {
   return text.split(/\s+/).filter(Boolean).length;
 }
@@ -52,14 +65,14 @@ export function estimateSpeechSeconds(text: string): number {
 }
 
 /** Estimated total duration of a parsed script, in seconds. */
-export function estimateDuration(segments: Segment[]): number {
+export function estimateDuration(segments: Segment[], gap = DEFAULT_GAP): number {
   let total = 0;
   for (let i = 0; i < segments.length; i++) {
     const s = segments[i];
     if (s.kind === "pause") total += s.seconds;
     else {
       total += estimateSpeechSeconds(s.text);
-      if (segments[i + 1]?.kind === "speech") total += DEFAULT_GAP;
+      if (segments[i + 1]?.kind === "speech") total += gap;
     }
   }
   return total;

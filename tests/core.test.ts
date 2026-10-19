@@ -219,3 +219,22 @@ describe("access code", () => {
     expect(mismatchHint("abc", "abc")).toBeNull();
   });
 });
+
+import { applyPacing } from "@/lib/audio/segments";
+import { promptForDuration } from "@/lib/sounds";
+
+describe("pacing and sound length", () => {
+  it("longer pauses scale only silences", () => {
+    const segs = parseScript("A.\n\n[pauza 10]\n\nB.");
+    expect(applyPacing(segs, { pauseScale: 3, gap: 6 })).toEqual([
+      { kind: "speech", text: "A." },
+      { kind: "pause", seconds: 30 },
+      { kind: "speech", text: "B." },
+    ]);
+    expect(estimateDuration(parseScript("A.\n\nB."), 6)).toBeGreaterThan(estimateDuration(parseScript("A.\n\nB.")) + 4);
+  });
+  it("prompt mentions the requested length", () => {
+    expect(promptForDuration("Ten-second calm sound.", 20)).toBe("Twenty-second calm sound.");
+    expect(promptForDuration("Calm sound.", 30)).toMatch(/^Thirty-second/);
+  });
+});

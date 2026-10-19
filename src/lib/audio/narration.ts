@@ -64,7 +64,7 @@ export async function motifRef(motif: Motif): Promise<AudioRef | null> {
 /** Montage from cached paragraphs → one MP3 blob stored for offline playback. */
 export async function renderSessionFile(
   segments: Segment[],
-  opts: { background: Background; motif: Motif; label: string },
+  opts: { background: Background; motif: Motif; label: string; gap?: number },
   onProgress: (stage: string, p?: number) => void,
 ): Promise<{ blobId: string; durationSec: number }> {
   onProgress("Przygotowuję fragmenty…");
@@ -86,6 +86,7 @@ export async function renderSessionFile(
     parts,
     background: bg,
     backgroundGain: 0.2,
+    gap: opts.gap,
     motif: motifBuf && opts.motif !== "none" ? { buffer: motifBuf, position: opts.motif === "start" ? "start" : "end" } : undefined,
     sampleRate: 22050,
   });

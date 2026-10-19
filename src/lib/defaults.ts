@@ -194,6 +194,7 @@ export function createDefaultState(): AppState {
       similarity: 0.75,
       style: 0.1,
       speed: 0.9,
+      confirmBeforeGenerate: false,
     },
     breath: { defaultMode: "calm", defaultMinutes: 5, customInhale: 4, customExhale: 6, cue: "tone" },
     voiceCues: {},

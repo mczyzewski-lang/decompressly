@@ -3,14 +3,14 @@
 import { useEffect, useRef, useState } from "react";
 import { Play, Check, Trash2, Upload, Sparkles, Wand2, Square } from "lucide-react";
 import { update, useApp, getState } from "@/lib/store";
-import { STYLE_PRESETS, STYLE_BY_ID, DEFAULT_PROMPT_INFLUENCE, SOUND_DURATION } from "@/lib/sounds";
+import { STYLE_PRESETS, STYLE_BY_ID, DEFAULT_PROMPT_INFLUENCE, SOUND_DURATION, promptForDuration } from "@/lib/sounds";
 import { deleteBlob, getBlob, newId, putBlob } from "@/lib/db";
 import { confirmPaid, generateSound } from "@/lib/eleven-client";
 import { playRef, refUrl, stopRitualSound, unlockAudio } from "@/lib/audio/engine";
 import { decodeAny, encodeMp3, makeVariant, VARIANT_LABELS, type VariantKind } from "@/lib/audio/render";
 import { toast } from "@/lib/ui-store";
 import type { AudioRef, SoundDraft, SoundSet, SoundStyle } from "@/lib/types";
-import { Button, Card, Chip, IconButton, Notice, Screen, ScreenHeader, SectionTitle, Sheet, Slider, TextArea, TextField, cn } from "../ui";
+import { Button, Card, Chip, IconButton, Notice, Screen, ScreenHeader, SectionTitle, Segmented, Sheet, Slider, TextArea, TextField, cn } from "../ui";
 
 const STYLE_LABEL: Record<SoundStyle, string> = { nature: "Natura", system: "System", jazz: "Jazz", orchestral: "Orkiestra", custom: "Własny" };
 
@@ -28,6 +28,7 @@ export default function SoundStudio() {
   const [name, setName] = useState("");
   const [variantOpen, setVariantOpen] = useState(false);
   const draft = drafts[style] ?? emptyDraft(style);
+  const duration = draft.duration ?? SOUND_DURATION;
 
   const setDraft = (fn: (d: SoundDraft) => void) =>
     update((s) => {
@@ -52,13 +53,13 @@ export default function SoundStudio() {
     const prompt = (which === "start" ? draft.promptStart : draft.promptClose).trim();
     if (!prompt) return toast("Wpisz opis dźwięku.");
     const ok = await confirmPaid(
-      `Efekt dźwiękowy ${which.toUpperCase()} · ${SOUND_DURATION} s · styl ${STYLE_LABEL[style]}.`,
+      `Efekt dźwiękowy ${which.toUpperCase()} · ${duration} s · styl ${STYLE_LABEL[style]}.`,
       `Model eleven_text_to_sound_v2, prompt_influence ${draft.promptInfluence.toFixed(2)}. Każda generacja to osobny koszt (zależny od długości dźwięku).`,
     );
     if (!ok) return;
     setBusy(which);
     try {
-      const blob = await generateSound(prompt, { duration: SOUND_DURATION, promptInfluence: draft.promptInfluence });
+      const blob = await generateSound(promptForDuration(prompt, duration), { duration, promptInfluence: draft.promptInfluence });
       const id = await putBlob(blob, "sfx", `${STYLE_LABEL[style]} ${which.toUpperCase()}`, { prompt });
       setDraft((d) => {
         if (which === "start") {
@@ -105,7 +106,7 @@ export default function SoundStudio() {
     if (!url) return toast(`Najpierw wybierz ${from.toUpperCase()}.`);
     try {
       const buf = await decodeAny(await (await fetch(url)).blob());
-      const out = await makeVariant(buf, kind, Math.min(14, Math.max(8, buf.duration * (kind === "calmer" ? 1.12 : 1))));
+      const out = await makeVariant(buf, kind, Math.min(35, Math.max(8, buf.duration * (kind === "calmer" ? 1.12 : 1))));
       const mp3 = await encodeMp3(out, 128);
       const id = await putBlob(mp3, "variant", `Wariant (${kind})`);
       setDraft((d) => {
@@ -260,6 +261,17 @@ export default function SoundStudio() {
         <Button variant="secondary" block onClick={() => setVariantOpen(true)} disabled={!draft.start && !draft.close}>
           <Wand2 className="h-4 w-4" /> Utwórz wariant z jednego motywu (bez kosztów)
         </Button>
+
+        <div>
+          <p className="mb-2 text-[13px] text-ink-2">Długość dźwięku</p>
+          <Segmented<number>
+            label="Długość dźwięku"
+            size="sm"
+            value={duration}
+            onChange={(v) => setDraft((d) => void (d.duration = v))}
+            options={[10, 15, 20, 30].map((v) => ({ value: v, label: `${v} s` }))}
+          />
+        </div>
 
         <Slider label="Wierność opisowi (prompt_influence)" value={draft.promptInfluence} min={0} max={1} step={0.05} onChange={(v) => setDraft((d) => void (d.promptInfluence = v))} format={(v) => v.toFixed(2)} />
 

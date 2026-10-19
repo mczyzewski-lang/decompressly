@@ -9,7 +9,7 @@ import { POSES } from "@/lib/yoga/poses";
 import { deleteBlob, listBlobs, type StoredBlob, forgetBlobUrl } from "@/lib/db";
 import { playCue, playRef, unlockAudio, forgetDecoded } from "@/lib/audio/engine";
 import { toast } from "@/lib/ui-store";
-import { Button, Card, IconButton, Notice, Screen, ScreenHeader, SectionTitle, Segmented, Slider, TextField, cn } from "../ui";
+import { Button, Card, IconButton, Notice, Screen, ScreenHeader, SectionTitle, Segmented, Slider, TextField, Toggle, cn } from "../ui";
 
 const MODELS = [
   { id: "eleven_v4", label: "Eleven v4 — najnowszy, bardzo naturalny i ekspresyjny" },
@@ -219,6 +219,12 @@ export default function ElevenSettings() {
           </Button>
         </div>
         <p className="text-[12px] text-ink-3">Kod zapisuje się tylko na tym urządzeniu. Chroni płatne endpointy przed użyciem przez osoby trzecie.</p>
+        <Toggle
+          label="Pytaj przed każdą generacją"
+          description="Domyślnie wyłączone — dźwięki i narracje generują się od razu po stuknięciu. Już wygenerowane fragmenty nigdy nie są generowane ponownie."
+          checked={e.confirmBeforeGenerate}
+          onChange={(v) => set((x) => void (x.confirmBeforeGenerate = v))}
+        />
       </Card>
 
       <SectionTitle>Głos</SectionTitle>

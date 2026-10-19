@@ -110,11 +110,13 @@ test("idea goes to the parking and survives a reload", async ({ page }) => {
   await expect(page.getByText("Aplikacja do wspólnych wyjazdów")).toBeVisible();
 });
 
-test("paid generation never runs without a voice and confirmation", async ({ page }) => {
+test("generation needs a voice; optional confirmation can be switched on", async ({ page }) => {
   await onboard(page);
   await go(page, "#/audio/present");
   await page.getByRole("button", { name: "Wygeneruj narrację" }).click();
   await expect(page.getByText("Najpierw wybierz głos")).toBeVisible();
+  await go(page, "#/settings/eleven");
+  await page.getByRole("switch", { name: "Pytaj przed każdą generacją" }).click();
   await go(page, "#/settings/sounds");
   await page.getByRole("button", { name: "Generuj START" }).click();
   await expect(page.getByRole("heading", { name: "Płatna generacja ElevenLabs" })).toBeVisible();

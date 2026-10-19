@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Pause, Play, RotateCcw, RotateCw, Square, Download, Sparkles, Pencil } from "lucide-react";
 import { AUDIO_BY_ID, personalize } from "@/lib/audio/scripts";
-import { estimateDuration, parseScript, textKey, totalCharacters, type Segment } from "@/lib/audio/segments";
+import { applyPacing, DEFAULT_GAP, estimateDuration, parseScript, textKey, totalCharacters, type Segment } from "@/lib/audio/segments";
 import { BACKGROUND_URL, generateMissing, missingSegments, renderSessionFile } from "@/lib/audio/narration";
 import { cancelSpeech, hasSystemVoice, speak, unlockAudio } from "@/lib/audio/engine";
 import { blobUrl, deleteBlob, getBlob } from "@/lib/db";
@@ -27,6 +27,8 @@ export default function AudioSession({ id }: { id: string }) {
   const name = useApp((s) => s.name);
   const ov = useApp((s) => s.audio.sessions[id]);
   const eleven = useApp((s) => s.eleven);
+  const globalPause = useApp((s) => s.audio.pauseScale ?? 1);
+  const globalGap = useApp((s) => s.audio.gap ?? DEFAULT_GAP);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
@@ -34,13 +36,35 @@ export default function AudioSession({ id }: { id: string }) {
 
   const rawScript = ov?.script ?? def?.script ?? "";
   const script = personalize(rawScript, name);
-  const segments = useMemo(() => parseScript(script), [script]);
+  const pauseScale = ov?.pauseScale ?? globalPause;
+  const gap = ov?.gap ?? globalGap;
+  const written = useMemo(() => parseScript(script), [script]);
+  // pacing only changes silences, so the spoken paragraphs (and their recordings) stay the same
+  const segments = useMemo(() => applyPacing(written, { pauseScale, gap }), [written, pauseScale, gap]);
   const background: Background = ov?.background ?? def?.suggestedBackground ?? "none";
   const motif: Motif = ov?.motif ?? def?.suggestedMotif ?? "none";
   const scriptHash = textKey(script, eleven.voiceId, eleven.modelId);
   const render = ov?.render;
   const renderFresh = !!render && render.scriptHash === scriptHash;
-  const remixNeeded = renderFresh && (render.background !== background || render.motif !== motif);
+  const remixNeeded =
+    renderFresh && (render.background !== background || render.motif !== motif || (render.pauseScale ?? 1) !== pauseScale || (render.gap ?? DEFAULT_GAP) !== gap);
+
+  // pacing / background / motif changed on an existing recording → re-montage automatically (free, no new TTS)
+  const remixRef = useRef<() => Promise<void>>(async () => {});
+  const failedKey = useRef("");
+  const mixKey = `${pauseScale}|${gap}|${background}|${motif}`;
+  useEffect(() => {
+    if (!remixNeeded || busy || failedKey.current === mixKey) return;
+    const t = setTimeout(
+      () =>
+        void remixRef.current().catch((e) => {
+          failedKey.current = mixKey; // do not retry the same settings in a loop
+          toast(String(e?.message ?? e), 5000);
+        }),
+      700,
+    );
+    return () => clearTimeout(t);
+  }, [remixNeeded, busy, mixKey]);
 
   if (!def) {
     return (
@@ -84,33 +108,42 @@ export default function AudioSession({ id }: { id: string }) {
   const remix = async () => {
     setBusy("Montuję audio…");
     setProgress(null);
-    const res = await renderSessionFile(segments, { background, motif, label: def.title }, (stage, p) => {
+    const res = await renderSessionFile(segments, { background, motif, label: def.title, gap }, (stage, p) => {
       setBusy(stage);
       setProgress(p ?? null);
     });
     const old = ov?.render?.blobId;
     setOv((o) => {
-      o.render = { blobId: res.blobId, voiceId: eleven.voiceId, scriptHash, createdAt: Date.now(), durationSec: res.durationSec, background, motif };
+      o.render = { blobId: res.blobId, voiceId: eleven.voiceId, scriptHash, createdAt: Date.now(), durationSec: res.durationSec, background, motif, pauseScale, gap };
     });
     if (old && old !== res.blobId) await deleteBlob(old);
     toast("Narracja zapisana na urządzeniu. Działa offline.");
   };
 
-  const est = estimateDuration(segments);
+  remixRef.current = async () => {
+    try {
+      await remix();
+    } finally {
+      setBusy(null);
+      setProgress(null);
+    }
+  };
+
+  const est = estimateDuration(segments, gap);
 
   return (
     <Screen tabbed>
       <ScreenHeader fallback="audio" />
       <h1 className="font-display text-[30px] leading-tight tracking-tight text-ink">{def.title}</h1>
       <p className="mt-1 text-[15px] text-ink-2">
-        ok. {def.minutes} min · {def.description}
+        ok. {Math.round(est / 60)} min · {def.description}
       </p>
 
       <div className="mt-6">
         {renderFresh && !remixNeeded ? (
           <FilePlayer blobId={render.blobId} title={def.title} onDone={() => logActivity("audio", def.title)} />
         ) : (
-          <LivePlayer segments={segments} background={background} estimate={est} title={def.title} onDone={() => logActivity("audio", def.title)} />
+          <LivePlayer segments={segments} background={background} estimate={est} gap={gap} title={def.title} onDone={() => logActivity("audio", def.title)} />
         )}
       </div>
 
@@ -132,6 +165,45 @@ export default function AudioSession({ id }: { id: string }) {
             { value: "close", label: "CLOSE" },
           ]}
         />
+        <p className="mb-2 mt-5 text-[13px] text-ink-2">Długość pauz w scenariuszu</p>
+        <Segmented<number>
+          label="Długość pauz"
+          size="sm"
+          value={pauseScale}
+          onChange={(v) => setOv((o) => void (o.pauseScale = v))}
+          options={[
+            { value: 1, label: "Jak w tekście" },
+            { value: 1.5, label: "×1,5" },
+            { value: 2, label: "×2" },
+            { value: 3, label: "×3" },
+          ]}
+        />
+        <p className="mb-2 mt-4 text-[13px] text-ink-2">Cisza między akapitami</p>
+        <Segmented<number>
+          label="Cisza między akapitami"
+          size="sm"
+          value={gap}
+          onChange={(v) => setOv((o) => void (o.gap = v))}
+          options={[DEFAULT_GAP, 3, 6, 10].map((v) => ({ value: v, label: v === DEFAULT_GAP ? "Krótka" : `${v} s` }))}
+        />
+        <button
+          className="mt-3 text-[13px] text-sage-deep"
+          onClick={() =>
+            update((s) => {
+              s.audio.pauseScale = pauseScale;
+              s.audio.gap = gap;
+              for (const o of Object.values(s.audio.sessions)) {
+                delete o.pauseScale;
+                delete o.gap;
+              }
+            })
+          }
+        >
+          Ustaw tak dla wszystkich sesji
+        </button>
+        <p className="mt-3 text-[12px] text-ink-3">
+          Zmiana pauz nie wymaga nowej generacji głosu — zapisany plik zostanie tylko ponownie zmontowany. Pojedynczą pauzę wydłużysz też w scenariuszu, np. „[pauza 60]”.
+        </p>
         <p className="mt-3 text-[12px] text-ink-3">START gra na początku, CLOSE na końcu sesji. Motyw w zapisanym pliku pochodzi z aktywnego zestawu dźwięków. Tła są subtelne i zawsze cichsze niż głos.</p>
       </Card>
 
@@ -341,7 +413,7 @@ function FilePlayer({ blobId, title, onDone }: { blobId: string; title: string; 
 }
 
 /** Offline fallback: system voice for paragraphs, real silences for pauses, optional background loop. */
-function LivePlayer({ segments, background, estimate, title, onDone }: { segments: Segment[]; background: Background; estimate: number; title: string; onDone: () => void }) {
+function LivePlayer({ segments, background, estimate, gap, title, onDone }: { segments: Segment[]; background: Background; estimate: number; gap: number; title: string; onDone: () => void }) {
   const [state, setState] = useState<"idle" | "playing" | "paused" | "done">("idle");
   const [index, setIndex] = useState(0);
   const [bgVol, setBgVol] = useState(0.25);
@@ -383,7 +455,7 @@ function LivePlayer({ segments, background, estimate, title, onDone }: { segment
         if (s.kind === "pause") await sleep(s.seconds, my);
         else {
           await speak(s.text, { rate: 0.82 });
-          if (segments[i + 1]?.kind === "speech") await sleep(1.2, my);
+          if (segments[i + 1]?.kind === "speech") await sleep(gap, my);
         }
       }
       if (token.current !== my) return;
@@ -392,7 +464,7 @@ function LivePlayer({ segments, background, estimate, title, onDone }: { segment
       setState("done");
       onDone();
     },
-    [segments, onDone],
+    [segments, onDone, gap],
   );
 
   const play = async () => {

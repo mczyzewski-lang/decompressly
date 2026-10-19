@@ -55,6 +55,17 @@ export const STYLE_PRESETS: StylePreset[] = [
 
 export const STYLE_BY_ID = Object.fromEntries(STYLE_PRESETS.map((p) => [p.id, p])) as Record<StylePreset["id"], StylePreset>;
 
-export const SOUND_DURATION = 10;
+/** Default length of generated START/CLOSE sounds (the API allows 0.5–30 s). */
+export const SOUND_DURATION = 20;
+
+const NUMBER_WORDS: Record<number, string> = { 10: "Ten", 15: "Fifteen", 20: "Twenty", 25: "Twenty-five", 30: "Thirty" };
+
+/** Keeps the length mentioned in the prompt in line with the requested duration. */
+export function promptForDuration(prompt: string, seconds: number): string {
+  const word = NUMBER_WORDS[seconds] ?? String(seconds);
+  const replaced = prompt.replace(/^(Ten|Fifteen|Twenty|Twenty-five|Thirty|\d+)-second\b/i, `${word}-second`);
+  if (replaced !== prompt || seconds <= 10) return replaced;
+  return `${word}-second, slowly evolving. ${prompt}`;
+}
 export const SOUND_MODEL = "eleven_text_to_sound_v2";
 export const DEFAULT_PROMPT_INFLUENCE = 0.5;

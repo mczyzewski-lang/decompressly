@@ -46,6 +46,8 @@ export class ElevenError extends Error {}
  * already confirmed a batch (e.g. all paragraphs of one session) skip per-request dialogs.
  */
 export async function confirmPaid(what: string, detail: string): Promise<boolean> {
+  // by default generation starts immediately; the confirmation is an opt-in in Settings → ElevenLabs
+  if (!getState().eleven.confirmBeforeGenerate) return true;
   return askConfirm("Płatna generacja ElevenLabs", `${what}\n\n${detail}\n\nZostaną zużyte kredyty z Twojego konta ElevenLabs.`, "Generuj");
 }
 

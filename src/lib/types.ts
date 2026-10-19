@@ -131,6 +131,8 @@ export interface SoundDraft {
   promptStart: string;
   promptClose: string;
   promptInfluence: number;
+  /** seconds, 5–30 */
+  duration?: number;
   start?: AudioRef;
   close?: AudioRef;
   /** ids of previously generated takes that can still be compared */
@@ -147,6 +149,8 @@ export interface ElevenSettings {
   similarity: number;
   style: number;
   speed: number;
+  /** ask before every paid generation (off by default — generation starts right away) */
+  confirmBeforeGenerate: boolean;
 }
 
 export type BreathModeId = "calm" | "gentle" | "natural" | "custom";
@@ -167,7 +171,11 @@ export interface AudioSessionOverride {
   script?: string;
   background?: Background;
   motif?: Motif;
-  render?: { blobId: string; voiceId: string; scriptHash: string; createdAt: number; durationSec: number; background: Background; motif: Motif };
+  render?: { blobId: string; voiceId: string; scriptHash: string; createdAt: number; durationSec: number; background: Background; motif: Motif; pauseScale?: number; gap?: number };
+  /** multiplies every [pauza] in the script (1 = as written) */
+  pauseScale?: number;
+  /** silence between consecutive spoken paragraphs, seconds */
+  gap?: number;
 }
 
 export interface TripDay {
@@ -226,7 +234,7 @@ export interface AppState {
   breath: BreathSettings;
   voiceCues: Record<string, string>; // cue key -> blob id ("inhale", "exhale", "yoga:<poseId>")
   yoga: { favoriteSessionId: string; handsFree: boolean; voice: boolean };
-  audio: { defaultBackground: Background; sessions: Record<string, AudioSessionOverride> };
+  audio: { defaultBackground: Background; sessions: Record<string, AudioSessionOverride>; pauseScale?: number; gap?: number };
   trip: TripState;
   privacy: { elevenLogging: boolean };
   thoughtFavorites: string[];

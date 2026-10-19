@@ -59,7 +59,7 @@ Bez klucza ElevenLabs aplikacja działa w pełni: wbudowane dźwięki START/CLOS
 
 ### Zasady kosztów i bezpieczeństwa
 
-- **Żadna płatna generacja nie odbywa się bez okna potwierdzenia** z liczbą fragmentów i znaków. Serwer dodatkowo odrzuca żądania bez nagłówka `x-confirm-paid`.
+- Generowanie startuje od razu po stuknięciu. Okno potwierdzenia z liczbą znaków można włączyć w Ustawienia → ElevenLabs → „Pytaj przed każdą generacją”. Nic nie jest generowane automatycznie bez Twojego działania, a serwer ma limit żądań i opcjonalny dzienny limit znaków.
 - **Nic zaakceptowanego nie jest generowane ponownie.** Akapity narracji są cache'owane po treści + głosie + modelu; zmiana jednego akapitu generuje tylko ten akapit. Zmiana tła lub motywu to darmowy ponowny montaż. Zapisane zestawy START/CLOSE nigdy nie są regenerowane.
 - Znaczniki `[pauza N]` **nigdy nie trafiają do TTS** — stają się prawdziwą ciszą w montażu (walidowane po stronie klienta i serwera).
 - Klucz API istnieje tylko w zmiennych środowiskowych serwera. W produkcji endpointy `/api/eleven/*` wymagają `APP_ACCESS_KEY` (porównanie odporne na timing), mają limit żądań i opcjonalny dzienny limit znaków. Bez `APP_ACCESS_KEY` w produkcji są wyłączone.
@@ -70,12 +70,12 @@ Bez klucza ElevenLabs aplikacja działa w pełni: wbudowane dźwięki START/CLOS
 Dwie osobne generacje nie gwarantują identycznego motywu, dlatego **Ustawienia → Motywy dźwiękowe** oferuje:
 
 1. wybór stylu (Natura / System / Jazz / Orkiestra / Własny) z dopracowanymi promptami START i CLOSE (`src/lib/sounds.ts`), edytowalnymi;
-2. generację START, odsłuch, regenerację — każda wersja zostaje na liście do porównania;
+2. wybór długości (10 / 15 / 20 / 30 s, domyślnie 20 s), generację START, odsłuch, regenerację — każda wersja zostaje na liście do porównania;
 3. **wariant z jednego motywu bazowego** — CLOSE tworzony lokalnie z zaakceptowanego START (niżej o 2 półtony, ciemniej, dłuższy pogłos, wybrzmienie) lub odwrotnie; ten sam materiał muzyczny, zero kosztów;
 4. import własnych plików MP3/WAV/M4A;
 5. odsłuch pary START → CLOSE, zapis jako zestaw, ustawienie jako aktywny; wiele zapisanych zestawów.
 
-Cztery **wbudowane zestawy** (i cztery tła do relaksacji) są syntezowane proceduralnie przez `scripts/generate-sounds.mjs` — wspólny trzydźwiękowy motyw w każdej parze, brak praw osób trzecich. Regeneracja: `npm run generate:sounds` (wymaga ffmpeg).
+Cztery **wbudowane zestawy** po 20 s (i cztery tła do relaksacji) są syntezowane proceduralnie przez `scripts/generate-sounds.mjs` — wspólny trzydźwiękowy motyw w każdej parze, brak praw osób trzecich. Regeneracja: `npm run generate:sounds` (wymaga ffmpeg).
 
 ## Wdrożenie (Vercel)
 

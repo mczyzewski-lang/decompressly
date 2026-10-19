@@ -11,6 +11,8 @@ export interface MontageOptions {
   motif?: { buffer: AudioBuffer; position: "start" | "end" };
   background?: AudioBuffer | null;
   backgroundGain?: number; // relative to narration (~0.15–0.3)
+  /** silence between consecutive paragraphs, seconds */
+  gap?: number;
   sampleRate?: number;
 }
 
@@ -73,7 +75,7 @@ export async function renderMontage(o: MontageOptions): Promise<AudioBuffer> {
       placements.push({ buffer: p.buffer, at: t, gain: narrGain });
       speechSpans.push([t, t + p.buffer.duration]);
       t += p.buffer.duration;
-      if (o.parts[i + 1]?.type === "speech") t += DEFAULT_GAP;
+      if (o.parts[i + 1]?.type === "speech") t += o.gap ?? DEFAULT_GAP;
     }
   }
   t += 2.5;
