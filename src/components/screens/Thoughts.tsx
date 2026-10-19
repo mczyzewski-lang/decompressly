@@ -297,7 +297,7 @@ function ThoughtSheet({ thought, onClose }: { thought: Thought; onClose: () => v
               <Sparkles className="h-4 w-4" /> {busy ? "Nagrywam…" : recorded ? "Nagrana głosem ElevenLabs" : "Nagraj spokojnym głosem"}
             </Button>
           </div>
-          {!voiceSet && <p className="mt-1 text-[12px] text-ink-3">Bez wybranego głosu ElevenLabs odsłuch używa głosu systemowego.</p>}
+          {!voiceSet && <p className="mt-1 text-[12px] text-ink-3">Odsłuch działa po wybraniu głosu ElevenLabs w Ustawieniach.</p>}
 
           <div className="mt-5 grid grid-cols-2 gap-2">
             <Button variant="quiet" onClick={() => update((s) => void (s.thoughtFavorites = fav ? s.thoughtFavorites.filter((x) => x !== thought.id) : [...s.thoughtFavorites, thought.id]))}>
@@ -450,7 +450,7 @@ function ListenSheet({ thoughts, label, onClose }: { thoughts: Thought[]; label:
           <Sparkles className="h-4 w-4" /> {busy ?? "Nagraj te myśli spokojnym głosem (ElevenLabs)"}
         </Button>
         <p className="mt-2 text-[12px] leading-relaxed text-ink-3">
-          {voiceSet ? "Nagrane wcześniej myśli są pomijane — płacisz tylko za nowe. Po edycji myśli stare nagranie nie jest używane." : "Bez głosu ElevenLabs odsłuch używa głosu systemowego. Głos wybierzesz w Ustawieniach → ElevenLabs."}
+          {voiceSet ? "Nagrane wcześniej myśli są pomijane — płacisz tylko za nowe. Po edycji myśli stare nagranie nie jest używane." : "Odsłuch działa po wybraniu głosu ElevenLabs w Ustawieniach → ElevenLabs."}
         </p>
       </div>
     </Sheet>

@@ -5,13 +5,19 @@ import { Eye, EyeOff, Pause, Play, Square, Minus, Plus, Volume2, VolumeX, Bell }
 import { BREATH_MODES, PHASE_MAX, PHASE_MIN, SessionClock, clampPhase, frameAt, patternFor, sessionLengthMs, type BreathPattern, type Phase } from "@/lib/breath";
 import { logActivity, update, useApp } from "@/lib/store";
 import { formatClock } from "@/lib/dates";
-import { cancelSpeech, playCue, softTone, speak, unlockAudio } from "@/lib/audio/engine";
+import { softTone, unlockAudio } from "@/lib/audio/engine";
+import { prefetchVoice, say, stopVoice, voiceConfigured } from "@/lib/audio/voice";
+import { BREATH_END, BREATH_EXHALE, BREATH_INHALE, BREATH_INTRO } from "@/lib/audio/phrases";
 import { useOnHidden, useWakeLock } from "@/lib/wakelock";
 import { navigate } from "@/lib/router";
 import type { BreathCue, BreathModeId } from "@/lib/types";
 import { Button, IconButton, Screen, Segmented, cn } from "../ui";
 
 const MINUTES = [2, 5, 10] as const;
+const INTRO_TEXT = BREATH_INTRO;
+const INHALE_TEXT = BREATH_INHALE;
+const EXHALE_TEXT = BREATH_EXHALE;
+const END_TEXT = BREATH_END;
 
 export default function Breath({ params }: { params: URLSearchParams }) {
   const settings = useApp((s) => s.breath);
@@ -20,6 +26,7 @@ export default function Breath({ params }: { params: URLSearchParams }) {
   const [custom, setCustom] = useState<BreathPattern>({ inhale: settings.customInhale, exhale: settings.customExhale });
   const [cue, setCue] = useState<BreathCue>(settings.cue);
   const [session, setSession] = useState<null | { eyesClosed: boolean }>(null);
+  const [preparing, setPreparing] = useState(false);
 
   const pattern = patternFor(mode, custom);
 
@@ -38,6 +45,12 @@ export default function Breath({ params }: { params: URLSearchParams }) {
 
   const begin = async (eyesClosed: boolean) => {
     await unlockAudio();
+    if ((eyesClosed || cue === "voice") && voiceConfigured()) {
+      // record (once) everything the session will say, so the voice is in time with the breath
+      setPreparing(true);
+      await prefetchVoice(eyesClosed ? [INTRO_TEXT, INHALE_TEXT, EXHALE_TEXT, END_TEXT] : [INHALE_TEXT, EXHALE_TEXT, END_TEXT]);
+      setPreparing(false);
+    }
     update((s) => {
       s.breath.customInhale = custom.inhale;
       s.breath.customExhale = custom.exhale;
@@ -100,8 +113,8 @@ export default function Breath({ params }: { params: URLSearchParams }) {
       </div>
 
       <div className="mt-8 space-y-3">
-        <Button variant="primary" size="xl" block onClick={() => begin(false)}>
-          Zacznij
+        <Button variant="primary" size="xl" block onClick={() => begin(false)} disabled={preparing}>
+          {preparing ? "Przygotowuję głos…" : "Zacznij"}
         </Button>
         <Button variant="secondary" size="lg" block className="h-auto min-h-[52px] whitespace-normal py-3" onClick={() => begin(true)}>
           <EyeOff className="h-5 w-5" /> Zamknij oczy — prowadzenie głosem
@@ -171,7 +184,7 @@ function BreathSession({
     setStatus("done");
     clock.current.pause();
     logActivity("breath", `${Math.round(clock.current.elapsed() / 60000) || 1} min · ${modeLabel}`);
-    if (cueRef.current !== "silent") setTimeout(() => void speak("Możesz wrócić do swojego dnia.", { volume: 0.8 }), 600);
+    if (cueRef.current !== "silent") setTimeout(() => void say(END_TEXT, { gain: 0.8 }), 600);
   }, [modeLabel]);
 
   // start
@@ -179,7 +192,7 @@ function BreathSession({
     let cancelled = false;
     if (eyesClosed) {
       // the timer starts only after the short spoken intro, so cues stay in sync
-      void speak("Zamknij oczy. Oddychaj spokojnie i wygodnie. Będę prowadzić Cię głosem.", { volume: 0.8 }).then(() => {
+      void say(INTRO_TEXT, { gain: 0.8 }).then(() => {
         if (!cancelled) clock.current.start();
       });
     } else {
@@ -187,7 +200,7 @@ function BreathSession({
     }
     return () => {
       cancelled = true;
-      cancelSpeech();
+      stopVoice();
     };
   }, [eyesClosed]);
 
@@ -233,7 +246,11 @@ function BreathSession({
         setPhase(f.phase);
         const c = cueRef.current;
         if (c === "tone") softTone(f.phase === "inhale" ? 392 : 293.66, f.phase === "inhale" ? 1.6 : 2.2, 0.06);
-        else if (c === "voice") void playCue(voiceCues[f.phase], f.phase === "inhale" ? "wdech" : "wydech", 0.75);
+        else if (c === "voice") {
+          // without a configured ElevenLabs voice the cue falls back to a soft tone, never to the system voice
+          if (!voiceConfigured()) softTone(f.phase === "inhale" ? 392 : 293.66, f.phase === "inhale" ? 1.6 : 2.2, 0.06);
+          else void say(f.phase === "inhale" ? INHALE_TEXT : EXHALE_TEXT, { legacyId: voiceCues[f.phase], gain: 0.75 });
+        }
       }
       const sec = Math.ceil((total - el) / 1000);
       if (sec !== lastSec) {
@@ -249,7 +266,7 @@ function BreathSession({
   const toggle = () => {
     if (status === "running") {
       clock.current.pause();
-      cancelSpeech();
+      stopVoice();
       setStatus("paused");
     } else if (status === "paused") {
       void unlockAudio();

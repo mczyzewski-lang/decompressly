@@ -238,3 +238,21 @@ describe("pacing and sound length", () => {
     expect(promptForDuration("Calm sound.", 30)).toMatch(/^Thirty-second/);
   });
 });
+
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { join } from "node:path";
+
+describe("voice", () => {
+  it("the app never uses the system speech synthesizer", () => {
+    const files: string[] = [];
+    const walk = (d: string) => {
+      for (const f of readdirSync(d)) {
+        const p = join(d, f);
+        if (statSync(p).isDirectory()) walk(p);
+        else if (/\.(ts|tsx)$/.test(f)) files.push(p);
+      }
+    };
+    walk(join(__dirname, "..", "src"));
+    for (const f of files) expect(readFileSync(f, "utf8"), f).not.toMatch(/speechSynthesis|SpeechSynthesisUtterance/);
+  });
+});

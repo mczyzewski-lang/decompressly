@@ -27,7 +27,7 @@ export default function AudioList() {
                 <div className="min-w-0 flex-1">
                   <p className="text-[16px] leading-snug text-ink">{s.title}</p>
                   <p className="mt-0.5 text-[13px] text-ink-3">{s.description}</p>
-                  <p className="mt-1.5 text-[11px] font-medium uppercase tracking-wide text-ink-3">{ready ? "Narracja zapisana · offline" : "Głos systemowy · offline"}</p>
+                  <p className="mt-1.5 text-[11px] font-medium uppercase tracking-wide text-ink-3">{ready ? "Nagrana · offline" : "Nagranie powstanie przy pierwszym słuchaniu"}</p>
                 </div>
                 <ChevronRight className="h-5 w-5 shrink-0 text-ink-3" />
               </button>

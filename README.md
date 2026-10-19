@@ -16,7 +16,7 @@ Prywatna aplikacja PWA (iPhone-first) wspierająca świadome kończenie pracy, o
 | **START day / CLOSE day** | Edytowalne kroki, napój i mantra; 10-sekundowy dźwięk z aktywnego zestawu; animacja zamykającego się koła; status „Po pracy” z możliwością wznowienia; opcjonalna narracja ElevenLabs po CLOSE |
 | **Oddech** | 2/5/10 min; tryby 4/6, 3/4, naturalny, własny (2–8 s, bez wstrzymań); koło SVG sterowane `requestAnimationFrame` i zegarem czasu rzeczywistego; pauza/kontynuacja; auto-pauza po przejściu w tło (bez „doganiania” faz); cisza / delikatny sygnał / głos; tryb „Zamknij oczy — prowadzenie głosem” z przyciemnionym ekranem; Wake Lock |
 | **Joga** | 12 pozycji z pełnymi opisami (start, kroki, wyjście, błędy, wersja dla początkujących, kiedy pominąć), ilustracje z powiększeniem, sesje 10/20/30 min (dokładnie 600/1200/1800 s) + 4 sesje tematyczne, timer z przejściami i zmianą strony, pauza, pomiń, ±30 s, zakończ, hands-free z głosem |
-| **Audio** | 7 kompletnych, oryginalnych scenariuszy (3–15 min) z prawdziwymi pauzami; edytor scenariusza; generacja ElevenLabs akapit po akapicie z montażem (cisza, tło, motyw START/CLOSE, normalizacja, ducking), zapis MP3 offline, eksport; fallback: głos systemowy offline |
+| **Audio** | 7 kompletnych, oryginalnych scenariuszy (3–15 min) z prawdziwymi pauzami; edytor scenariusza; generacja ElevenLabs akapit po akapicie z montażem (cisza, tło, motyw START/CLOSE, normalizacja, ducking), zapis MP3 offline, eksport; regulowana długość pauz i ciszy między akapitami |
 | **Odpuść** | „Mam nowy pomysł” (z komunikatem listopadowym), „Czuję napięcie” (5 kroków), „Chcę odpocząć” |
 | **Parking pomysłów** | Jedno zdanie = jeden pomysł; parkuj / wybierz świadomie / odpuść / usuń |
 | **Keep Your Nervous System Healthy** | Sleep, Movement, Breath, Downshift, Mindset, Connection, Stimulation — opis, wskazówki, konkretna akcja z linkiem |
@@ -34,7 +34,7 @@ cp .env.example .env.local     # uzupełnij ELEVENLABS_API_KEY (opcjonalnie)
 npm run dev                    # http://localhost:3000
 ```
 
-Bez klucza ElevenLabs aplikacja działa w pełni: wbudowane dźwięki START/CLOSE, tła i ilustracje są częścią projektu, a sesje audio używają głosu systemowego.
+Bez klucza ElevenLabs działa wszystko poza mową: wbudowane dźwięki START/CLOSE, tła, ilustracje, oddech (z delikatnymi sygnałami) i joga. **Aplikacja nigdy nie używa głosu systemowego** — każde wypowiadane zdanie pochodzi z wybranego głosu ElevenLabs, nagrywa się przy pierwszym użyciu i zostaje offline.
 
 ## Konfiguracja ElevenLabs
 
@@ -171,5 +171,5 @@ Stack: Next.js 15 (App Router), React 19, TypeScript, Tailwind CSS, komponenty w
 
 - Zdjęcia jogi: patrz wyżej — ilustracje SVG do czasu uruchomienia workflow zdjęć.
 - ElevenLabs nie było wywoływane podczas budowy (brak klucza i dostępu sieciowego); integracja jest zgodna z dokumentacją i przetestowana na zamockowanym API. Przy pierwszym użyciu wygeneruj próbkę głosu (Ustawienia → ElevenLabs).
-- Głos systemowy (fallback) na iOS zatrzymuje się po zablokowaniu ekranu — do słuchania z zablokowanym ekranem wygeneruj narrację ElevenLabs (zapisuje się jako plik).
+- Frazy, które nie były jeszcze nagrane, wymagają internetu przy pierwszym użyciu. Przed wyjazdem warto użyć „Nagraj wszystkie teraz” (Ustawienia → ElevenLabs → Wskazówki głosowe).
 - Limit znaków i limit żądań na serwerze są per instancja (wystarczające dla jednej osoby; nie jest to globalny licznik).

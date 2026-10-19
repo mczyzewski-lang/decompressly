@@ -4,7 +4,8 @@ import { getBlob, putBlob } from "../db";
 import { generateSpeech, confirmPaid, describeChars } from "../eleven-client";
 import { getState } from "../store";
 import { segmentId } from "./narration";
-import { cancelSpeech, playRef, speak, stopRitualSound, unlockAudio } from "./engine";
+import { playRef, stopRitualSound, unlockAudio } from "./engine";
+import { ensureVoice, stopVoice } from "./voice";
 
 /**
  * Thoughts are recorded per exact text + voice + model. Editing a thought therefore never plays an
@@ -15,26 +16,23 @@ export async function hasRecording(text: string): Promise<boolean> {
   return !!(await getBlob(segmentId(text)));
 }
 
-/** Plays the calm ElevenLabs recording if there is one, otherwise the system voice. */
+/** Plays the thought in the calm ElevenLabs voice, recording it first if needed. */
 export async function listenThought(text: string): Promise<void> {
   await unlockAudio();
-  cancelSpeech();
+  stopVoice();
   stopRitualSound();
-  if (await hasRecording(text)) {
-    const el = await playRef({ kind: "blob", id: segmentId(text) }, 1);
-    if (el) {
-      await new Promise<void>((resolve) => {
-        el.addEventListener("ended", () => resolve(), { once: true });
-        el.addEventListener("pause", () => resolve(), { once: true });
-      });
-      return;
-    }
-  }
-  await speak(text, { rate: 0.82 });
+  const id = await ensureVoice(text, `Myśl: ${text.slice(0, 50)}`);
+  if (!id) return;
+  const el = await playRef({ kind: "blob", id }, 1);
+  if (!el) return;
+  await new Promise<void>((resolve) => {
+    el.addEventListener("ended", () => resolve(), { once: true });
+    el.addEventListener("pause", () => resolve(), { once: true });
+  });
 }
 
 export function stopListening() {
-  cancelSpeech();
+  stopVoice();
   stopRitualSound();
 }
 

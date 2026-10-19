@@ -8,7 +8,8 @@ import { newId } from "@/lib/db";
 import { toISODate } from "@/lib/dates";
 import { confirmPaid, describeChars } from "@/lib/eleven-client";
 import { generateClip } from "@/lib/audio/narration";
-import { playCue, unlockAudio } from "@/lib/audio/engine";
+import { unlockAudio } from "@/lib/audio/engine";
+import { say } from "@/lib/audio/voice";
 import { toast } from "@/lib/ui-store";
 import type { Mantra, MantraCategory } from "@/lib/types";
 import { Button, Chip, IconButton, Screen, ScreenHeader, Sheet, TextField, cn } from "../ui";
@@ -35,7 +36,7 @@ export default function Mantras() {
 
   const listen = async (m: Mantra) => {
     await unlockAudio();
-    await playCue(audio[m.id], m.text, 0.9);
+    await say(m.text, { legacyId: audio[m.id], gain: 0.9 });
   };
 
   const generate = async (m: Mantra) => {
@@ -130,7 +131,7 @@ export default function Mantras() {
               </Button>
             )}
           </div>
-          {!audio[active.id] && <p className="mt-2 text-[12px] text-ink-3">Bez nagrania „Odsłuchaj” używa głosu systemowego.</p>}
+          {!audio[active.id] && <p className="mt-2 text-[12px] text-ink-3">Przy pierwszym odsłuchu mantra nagra się Twoim głosem ElevenLabs i zostanie offline.</p>}
         </Sheet>
       )}
 

@@ -8,12 +8,17 @@ import { SessionClock } from "@/lib/breath";
 import { logActivity, update, useApp } from "@/lib/store";
 import { formatClock } from "@/lib/dates";
 import { back, navigate } from "@/lib/router";
-import { cancelSpeech, playCue, softBell, unlockAudio } from "@/lib/audio/engine";
+import { softBell, unlockAudio } from "@/lib/audio/engine";
+import { prefetchVoice, say as sayVoice, stopVoice } from "@/lib/audio/voice";
+import { YOGA_END, YOGA_SWITCH, poseText } from "@/lib/audio/phrases";
 import { useOnHidden, useWakeLock } from "@/lib/wakelock";
 import { Button, IconButton, cn } from "../ui";
 import { PoseImage } from "../PoseImage";
 
 type Status = "ready" | "running" | "paused" | "waiting" | "done";
+
+const SWITCH_TEXT = YOGA_SWITCH;
+const END_TEXT = YOGA_END;
 
 export default function YogaRun({ id }: { id: string }) {
   const session = SESSION_BY_ID[id];
@@ -24,6 +29,7 @@ export default function YogaRun({ id }: { id: string }) {
   const [status, setStatus] = useState<Status>("ready");
   const [elapsed, setElapsed] = useState(0);
   const [voice, setVoice] = useState(yoga.voice);
+  const [preparing, setPreparing] = useState(false);
   const clock = useRef(new SessionClock());
   const announced = useRef<string>("");
   const doneSeconds = useRef(0);
@@ -33,7 +39,7 @@ export default function YogaRun({ id }: { id: string }) {
     useCallback(() => {
       if (clock.current.running) {
         clock.current.pause();
-        cancelSpeech();
+        stopVoice();
         setStatus("paused");
       }
     }, []),
@@ -47,8 +53,8 @@ export default function YogaRun({ id }: { id: string }) {
   const say = useCallback(
     (key: string | undefined, text: string) => {
       if (!voice) return;
-      cancelSpeech();
-      void playCue(key, text, 0.85);
+      stopVoice();
+      void sayVoice(text, { legacyId: key, gain: 0.85 });
     },
     [voice],
   );
@@ -59,7 +65,7 @@ export default function YogaRun({ id }: { id: string }) {
       setStatus("done");
       const total = doneSeconds.current + Math.min(clock.current.elapsed() / 1000, dur);
       logActivity("yoga", `${session?.title ?? ""} · ${Math.max(1, Math.round(total / 60))} min${completed ? "" : " (krócej)"}`);
-      if (voice) say(undefined, "Sesja zakończona. Możesz jeszcze chwilę poleżeć.");
+      if (voice) say(undefined, END_TEXT);
       else softBell();
     },
     [dur, session, voice, say],
@@ -87,7 +93,7 @@ export default function YogaRun({ id }: { id: string }) {
     const key = `${index}`;
     if (announced.current !== key) {
       announced.current = key;
-      say(voiceCues[`yoga:${pose.id}`], `${index === 0 ? "" : "Następna pozycja. "}${pose.name}. ${pose.cue}`);
+      say(voiceCues[`yoga:${pose.id}`], poseText(pose));
     }
     let raf = 0;
     let lastSide: number | null = null;
@@ -97,7 +103,7 @@ export default function YogaRun({ id }: { id: string }) {
       const st = stepStateAt({ ...step, seconds: dur }, t, isLast);
       if (step.sides === 2 && st.phase === "switch" && lastSide !== 2) {
         lastSide = 2;
-        say(undefined, "Spokojnie zmień stronę.");
+        say(undefined, SWITCH_TEXT);
       }
       if (t >= dur) {
         if (isLast) {
@@ -119,7 +125,7 @@ export default function YogaRun({ id }: { id: string }) {
     return () => cancelAnimationFrame(raf);
   }, [status, index, step, pose, dur, isLast, yoga.handsFree, goTo, finish, say, voiceCues]);
 
-  useEffect(() => () => cancelSpeech(), []);
+  useEffect(() => () => stopVoice(), []);
 
   if (!session || !step || !pose) {
     return (
@@ -143,6 +149,14 @@ export default function YogaRun({ id }: { id: string }) {
 
   const begin = async () => {
     await unlockAudio();
+    if (voice) {
+      // the first instruction is ready before the timer starts; the rest records in the background
+      const texts = session.steps.map((st) => poseText(POSE_BY_ID[st.poseId]));
+      setPreparing(true);
+      await prefetchVoice([texts[0]]);
+      setPreparing(false);
+      void prefetchVoice([...new Set([...texts.slice(1), SWITCH_TEXT, END_TEXT])]);
+    }
     clock.current.start();
     setStatus("running");
   };
@@ -150,7 +164,7 @@ export default function YogaRun({ id }: { id: string }) {
   const togglePause = () => {
     if (status === "running") {
       clock.current.pause();
-      cancelSpeech();
+      stopVoice();
       setStatus("paused");
     } else if (status === "paused") {
       void unlockAudio();
@@ -214,8 +228,8 @@ export default function YogaRun({ id }: { id: string }) {
         {status === "ready" ? (
           <>
             <p className="mb-4 text-center text-[14px] text-ink-2">Przygotuj matę, poduszkę i koc. Ćwicz w komfortowym zakresie.</p>
-            <Button variant="primary" size="xl" block onClick={begin}>
-              <Play className="h-5 w-5" /> Zacznij sesję
+            <Button variant="primary" size="xl" block onClick={begin} disabled={preparing}>
+              <Play className="h-5 w-5" /> {preparing ? "Przygotowuję głos…" : "Zacznij sesję"}
             </Button>
           </>
         ) : (

@@ -6,8 +6,11 @@ import { update, useApp, getState } from "@/lib/store";
 import { fetchStatus, listVoices, listModels, confirmPaid, describeChars, type ServerStatus, type Voice, type ModelInfo } from "@/lib/eleven-client";
 import { generateClip } from "@/lib/audio/narration";
 import { POSES } from "@/lib/yoga/poses";
-import { deleteBlob, listBlobs, type StoredBlob, forgetBlobUrl } from "@/lib/db";
-import { playCue, playRef, unlockAudio, forgetDecoded } from "@/lib/audio/engine";
+import { deleteBlob, getBlob, listBlobs, type StoredBlob, forgetBlobUrl } from "@/lib/db";
+import { playRef, unlockAudio, forgetDecoded } from "@/lib/audio/engine";
+import { prefetchVoice, say } from "@/lib/audio/voice";
+import { allGuidancePhrases, BREATH_EXHALE, BREATH_INHALE } from "@/lib/audio/phrases";
+import { segmentId } from "@/lib/audio/narration";
 import { toast } from "@/lib/ui-store";
 import { Button, Card, IconButton, Notice, Screen, ScreenHeader, SectionTitle, Segmented, Slider, TextField, Toggle, cn } from "../ui";
 
@@ -112,28 +115,24 @@ export default function ElevenSettings() {
     }
   };
 
-  const cueList: { key: string; text: string }[] = [
-    { key: "inhale", text: "Wdech." },
-    { key: "exhale", text: "Wydech." },
-    ...POSES.map((p) => ({ key: `yoga:${p.id}`, text: `${p.name}. ${p.cue}` })),
-  ];
-  const missingCues = cueList.filter((c) => !cues[c.key]);
+  const phrases = allGuidancePhrases();
+  const [readyCount, setReadyCount] = useState<number | null>(null);
+  const countReady = async () => {
+    let n = 0;
+    for (const t of phrases) if (await getBlob(segmentId(t))) n++;
+    setReadyCount(n);
+  };
+  useEffect(() => {
+    void countReady();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [e.voiceId, e.modelId]);
 
   const generateCues = async () => {
-    const list = missingCues;
-    if (list.length === 0) return;
-    const chars = list.reduce((a, c) => a + c.text.length, 0);
-    if (!(await confirmPaid(`Wskazówki głosowe: „wdech/wydech” i instrukcje ${POSES.length} pozycji jogi (${list.length} plików).`, describeChars(chars)))) return;
     setBusy("cues");
     try {
-      for (const c of list) {
-        const id = await generateClip(c.text, "cue", c.key.startsWith("yoga:") ? `Joga: ${c.text.split(".")[0]}` : c.text);
-        update((s) => void (s.voiceCues[c.key] = id));
-      }
-      toast("Wskazówki głosowe zapisane offline.");
+      await prefetchVoice(phrases);
+      await countReady();
       refreshBlobs();
-    } catch (err) {
-      toast(err instanceof Error ? err.message : "Błąd generacji.", 5000);
     } finally {
       setBusy(null);
     }
@@ -331,15 +330,17 @@ export default function ElevenSettings() {
 
       <SectionTitle>Wskazówki głosowe</SectionTitle>
       <Card className="space-y-3">
-        <p className="text-[14px] leading-relaxed text-ink-2">„Wdech” i „wydech” do oddechu oraz krótkie instrukcje pozycji jogi. Bez nich aplikacja używa głosu systemowego.</p>
+        <p className="text-[14px] leading-relaxed text-ink-2">
+          Aplikacja mówi wyłącznie Twoim głosem ElevenLabs. Każda fraza („wdech”, „wydech”, instrukcje jogi, myśli, mantry) nagrywa się sama przy pierwszym użyciu i zostaje offline. Tutaj możesz nagrać wszystkie wskazówki z góry, np. przed wyjazdem.
+        </p>
         <p className="text-[13px] text-ink-3">
-          Zapisane: {cueList.length - missingCues.length} z {cueList.length}
+          Gotowe offline: {readyCount ?? "…"} z {phrases.length}
         </p>
         <div className="flex flex-wrap gap-2">
-          <Button size="sm" variant="primary" onClick={generateCues} disabled={!e.voiceId || missingCues.length === 0 || busy === "cues"}>
-            {busy === "cues" ? "Generuję…" : missingCues.length ? `Wygeneruj brakujące (${missingCues.length})` : "Wszystkie zapisane"}
+          <Button size="sm" variant="primary" onClick={generateCues} disabled={!e.voiceId || readyCount === phrases.length || busy === "cues"}>
+            {busy === "cues" ? "Nagrywam…" : readyCount === phrases.length ? "Wszystkie gotowe" : "Nagraj wszystkie teraz"}
           </Button>
-          <Button size="sm" variant="ghost" onClick={async () => (await unlockAudio(), void playCue(cues.inhale, "wdech"), setTimeout(() => void playCue(cues.exhale, "wydech"), 1400))}>
+          <Button size="sm" variant="ghost" disabled={!e.voiceId} onClick={async () => (await unlockAudio(), await say(BREATH_INHALE), await say(BREATH_EXHALE))}>
             <Play className="h-3.5 w-3.5" /> Wdech / wydech
           </Button>
         </div>

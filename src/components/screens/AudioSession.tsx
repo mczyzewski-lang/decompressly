@@ -5,12 +5,12 @@ import { Pause, Play, RotateCcw, RotateCw, Square, Download, Sparkles, Pencil } 
 import { AUDIO_BY_ID, personalize } from "@/lib/audio/scripts";
 import { applyPacing, DEFAULT_GAP, estimateDuration, parseScript, textKey, totalCharacters, type Segment } from "@/lib/audio/segments";
 import { BACKGROUND_URL, generateMissing, missingSegments, renderSessionFile } from "@/lib/audio/narration";
-import { cancelSpeech, hasSystemVoice, speak, unlockAudio } from "@/lib/audio/engine";
 import { blobUrl, deleteBlob, getBlob } from "@/lib/db";
 import { confirmPaid, describeChars } from "@/lib/eleven-client";
 import { logActivity, update, useApp } from "@/lib/store";
 import { formatClock } from "@/lib/dates";
 import { toast } from "@/lib/ui-store";
+import { navigate } from "@/lib/router";
 import type { Background, Motif } from "@/lib/types";
 import { Button, Card, IconButton, Notice, Screen, ScreenHeader, SectionTitle, Segmented, Slider, TextArea } from "../ui";
 
@@ -140,10 +140,39 @@ export default function AudioSession({ id }: { id: string }) {
       </p>
 
       <div className="mt-6">
-        {renderFresh && !remixNeeded ? (
-          <FilePlayer blobId={render.blobId} title={def.title} onDone={() => logActivity("audio", def.title)} />
+        {render ? (
+          <>
+            <FilePlayer blobId={render.blobId} title={def.title} onDone={() => logActivity("audio", def.title)} />
+            {(!renderFresh || remixNeeded) && (
+              <p className="mt-2 px-1 text-[12px] text-ink-3">
+                {remixNeeded ? "Za chwilę zapisze się nowa wersja z wybranymi pauzami i tłem." : "To poprzednia wersja nagrania. Scenariusz lub głos się zmienił — wygeneruj narrację ponownie poniżej."}
+              </p>
+            )}
+          </>
         ) : (
-          <LivePlayer segments={segments} background={background} estimate={est} gap={gap} title={def.title} onDone={() => logActivity("audio", def.title)} />
+          <Card className="p-6 text-center">
+            <p className="text-[15px] leading-relaxed text-ink-2">
+              {eleven.voiceId
+                ? `Ta sesja nie ma jeszcze nagrania. Narracja powstanie Twoim głosem ElevenLabs (ok. ${Math.round(est / 60)} min) i zapisze się do słuchania offline.`
+                : "Wybierz głos ElevenLabs w Ustawieniach, żeby nagrać tę sesję."}
+            </p>
+            {busy ? (
+              <div className="mt-4" aria-live="polite">
+                <p className="text-[14px] text-ink">{busy}</p>
+                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-line">
+                  <div className="h-full bg-sage transition-[width] duration-500" style={{ width: progress === null ? "35%" : `${Math.round(progress * 100)}%` }} />
+                </div>
+              </div>
+            ) : eleven.voiceId ? (
+              <Button className="mt-5" variant="primary" size="lg" onClick={() => generate(false)}>
+                <Sparkles className="h-4 w-4" /> Wygeneruj narrację
+              </Button>
+            ) : (
+              <Button className="mt-5" variant="secondary" size="lg" onClick={() => navigate("settings/eleven")}>
+                Wybierz głos
+              </Button>
+            )}
+          </Card>
         )}
       </div>
 
@@ -233,7 +262,7 @@ export default function AudioSession({ id }: { id: string }) {
                   Zmontuj ponownie
                 </Button>
               )}
-              {!renderFresh && (
+              {render && !renderFresh && (
                 <Button variant="primary" onClick={() => generate(false)}>
                   <Sparkles className="h-4 w-4" /> Wygeneruj narrację
                 </Button>
@@ -408,134 +437,6 @@ function FilePlayer({ blobId, title, onDone }: { blobId: string; title: string; 
         </IconButton>
       </div>
       <p className="mt-4 text-center text-[12px] text-ink-3">Plik zapisany na urządzeniu · gra także przy zablokowanym ekranie</p>
-    </Card>
-  );
-}
-
-/** Offline fallback: system voice for paragraphs, real silences for pauses, optional background loop. */
-function LivePlayer({ segments, background, estimate, gap, title, onDone }: { segments: Segment[]; background: Background; estimate: number; gap: number; title: string; onDone: () => void }) {
-  const [state, setState] = useState<"idle" | "playing" | "paused" | "done">("idle");
-  const [index, setIndex] = useState(0);
-  const [bgVol, setBgVol] = useState(0.25);
-  const token = useRef(0);
-  const bgRef = useRef<HTMLAudioElement | null>(null);
-  const indexRef = useRef(0);
-
-  useEffect(() => {
-    if (bgRef.current) bgRef.current.volume = bgVol;
-  }, [bgVol]);
-
-  useEffect(
-    () => () => {
-      token.current++;
-      cancelSpeech();
-      bgRef.current?.pause();
-    },
-    [],
-  );
-
-  const sleep = (sec: number, my: number) =>
-    new Promise<void>((resolve) => {
-      const end = performance.now() + sec * 1000;
-      const tick = () => {
-        if (token.current !== my || performance.now() >= end) resolve();
-        else setTimeout(tick, 200);
-      };
-      tick();
-    });
-
-  const run = useCallback(
-    async (from: number) => {
-      const my = ++token.current;
-      for (let i = from; i < segments.length; i++) {
-        if (token.current !== my) return;
-        indexRef.current = i;
-        setIndex(i);
-        const s = segments[i];
-        if (s.kind === "pause") await sleep(s.seconds, my);
-        else {
-          await speak(s.text, { rate: 0.82 });
-          if (segments[i + 1]?.kind === "speech") await sleep(gap, my);
-        }
-      }
-      if (token.current !== my) return;
-      await sleep(2, my);
-      bgRef.current?.pause();
-      setState("done");
-      onDone();
-    },
-    [segments, onDone, gap],
-  );
-
-  const play = async () => {
-    await unlockAudio();
-    if (background !== "none") {
-      if (!bgRef.current) {
-        bgRef.current = new Audio(BACKGROUND_URL[background]);
-        bgRef.current.loop = true;
-      }
-      bgRef.current.volume = bgVol;
-      void bgRef.current.play().catch(() => {});
-    }
-    setState("playing");
-    setMediaSession(title, { play: () => void play(), pause });
-    void run(state === "paused" ? indexRef.current : 0);
-  };
-
-  const pause = () => {
-    token.current++;
-    cancelSpeech();
-    bgRef.current?.pause();
-    setState("paused");
-  };
-
-  const stop = () => {
-    token.current++;
-    cancelSpeech();
-    bgRef.current?.pause();
-    if (bgRef.current) bgRef.current.currentTime = 0;
-    indexRef.current = 0;
-    setIndex(0);
-    setState("idle");
-  };
-
-  // keep the background element in sync with the selected background
-  useEffect(() => {
-    bgRef.current?.pause();
-    bgRef.current = null;
-  }, [background]);
-
-  const current = segments[index];
-
-  return (
-    <Card className="p-6">
-      {!hasSystemVoice() && <Notice tone="warn">Ta przeglądarka nie udostępnia głosu systemowego. Wygeneruj narrację ElevenLabs, aby słuchać tej sesji.</Notice>}
-      <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-ink-3">Głos systemowy · ok. {Math.round(estimate / 60)} min</p>
-      <p className="mt-3 min-h-[72px] text-[16px] leading-relaxed text-ink" aria-live="polite">
-        {state === "idle"
-          ? "Usiądź lub połóż się wygodnie. Słuchawki pomagają, ale nie są potrzebne."
-          : state === "done"
-            ? "Sesja dobiegła końca. Możesz wrócić do swojego dnia."
-            : current?.kind === "pause"
-              ? "· cisza ·"
-              : current?.text}
-      </p>
-      <div className="mt-5 flex items-center justify-center gap-4">
-        {state !== "idle" && state !== "done" && (
-          <Button variant="secondary" onClick={stop} aria-label="Zatrzymaj">
-            <Square className="h-4 w-4" />
-          </Button>
-        )}
-        <button
-          onClick={state === "playing" ? pause : play}
-          aria-label={state === "playing" ? "Pauza" : "Odtwórz"}
-          className="flex h-16 w-16 items-center justify-center rounded-full bg-sage-deep text-bg shadow-soft active:scale-95"
-        >
-          {state === "playing" ? <Pause className="h-7 w-7" /> : <Play className="ml-1 h-7 w-7" />}
-        </button>
-      </div>
-      {background !== "none" && <Slider label="Głośność tła" value={bgVol} onChange={setBgVol} min={0} max={0.5} step={0.05} format={(v) => `${Math.round(v * 200)}%`} />}
-      <p className="mt-2 text-center text-[12px] text-ink-3">Głos systemowy brzmi prościej i wymaga włączonego ekranu. Narracja ElevenLabs zapisuje się jako plik.</p>
     </Card>
   );
 }

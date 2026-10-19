@@ -113,8 +113,10 @@ test("idea goes to the parking and survives a reload", async ({ page }) => {
 test("generation needs a voice; optional confirmation can be switched on", async ({ page }) => {
   await onboard(page);
   await go(page, "#/audio/present");
-  await page.getByRole("button", { name: "Wygeneruj narrację" }).click();
-  await expect(page.getByText("Najpierw wybierz głos")).toBeVisible();
+  await expect(page.getByText("Wybierz głos ElevenLabs w Ustawieniach")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Wygeneruj narrację" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Wybierz głos" }).click();
+  await expect(page.getByRole("heading", { name: "ElevenLabs" })).toBeVisible();
   await go(page, "#/settings/eleven");
   await page.getByRole("switch", { name: "Pytaj przed każdą generacją" }).click();
   await go(page, "#/settings/sounds");

@@ -7,7 +7,8 @@ import { blobUrl, getBlob } from "../db";
  * Audio helpers tuned for iOS Safari / standalone PWA:
  *  - everything starts from a user gesture (autoplay restrictions),
  *  - long-form playback uses HTMLAudioElement (keeps playing with the screen locked, respects Media Session),
- *  - short cues use a shared AudioContext; navigator.audioSession = "playback" lets cues sound with the mute switch on (iOS 17+).
+ *  - short cues use a shared AudioContext; navigator.audioSession = "playback" lets cues sound with the mute switch on (iOS 17+),
+ *  - every spoken word comes from the chosen ElevenLabs voice (see voice.ts) — the system voice is never used.
  */
 let ctx: AudioContext | null = null;
 
@@ -106,50 +107,6 @@ export function softBell() {
   setTimeout(() => softTone(659.25, 3.5, 0.05), 380);
 }
 
-// ---------- speech ----------
-let plVoice: SpeechSynthesisVoice | null | undefined;
-
-function pickVoice(): SpeechSynthesisVoice | null {
-  if (plVoice !== undefined && plVoice !== null) return plVoice;
-  const voices = typeof speechSynthesis !== "undefined" ? speechSynthesis.getVoices() : [];
-  const pl = voices.filter((v) => v.lang?.toLowerCase().startsWith("pl"));
-  plVoice = pl.find((v) => /zosia|ewa|paulina|premium|enhanced/i.test(v.name)) ?? pl[0] ?? null;
-  return plVoice;
-}
-
-if (typeof window !== "undefined" && "speechSynthesis" in window) {
-  speechSynthesis.onvoiceschanged = () => {
-    plVoice = undefined;
-    pickVoice();
-  };
-}
-
-export function hasSystemVoice(): boolean {
-  return typeof window !== "undefined" && "speechSynthesis" in window;
-}
-
-/** Speak with the system voice (offline fallback). Resolves when finished or cancelled. */
-export function speak(text: string, opts: { rate?: number; volume?: number } = {}): Promise<void> {
-  return new Promise((resolve) => {
-    if (!hasSystemVoice()) return resolve();
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = "pl-PL";
-    const v = pickVoice();
-    if (v) u.voice = v;
-    u.rate = opts.rate ?? 0.85;
-    u.pitch = 0.95;
-    u.volume = opts.volume ?? 0.9;
-    const done = () => resolve();
-    u.onend = done;
-    u.onerror = done;
-    speechSynthesis.speak(u);
-  });
-}
-
-export function cancelSpeech() {
-  if (hasSystemVoice()) speechSynthesis.cancel();
-}
-
 // ---------- decoded clips (voice cues, segments) ----------
 const decoded = new Map<string, AudioBuffer>();
 
@@ -167,6 +124,9 @@ export function forgetDecoded(id: string) {
   decoded.delete(id);
 }
 
+const activeVoices = new Set<{ src: AudioBufferSourceNode; done: () => void }>();
+
+/** Plays a decoded clip; resolves when it ends or is stopped with stopVoice(). */
 export function playBuffer(buf: AudioBuffer, gain = 0.9): Promise<void> {
   return new Promise((resolve) => {
     const c = audioContext();
@@ -175,20 +135,25 @@ export function playBuffer(buf: AudioBuffer, gain = 0.9): Promise<void> {
     g.gain.value = gain;
     s.buffer = buf;
     s.connect(g).connect(c.destination);
-    s.onended = () => resolve();
+    const entry = { src: s, done: resolve };
+    activeVoices.add(entry);
+    s.onended = () => {
+      activeVoices.delete(entry);
+      resolve();
+    };
     s.start();
   });
 }
 
-/** Voice cue: generated ElevenLabs clip if available, otherwise the system voice. */
-export async function playCue(blobId: string | undefined, fallbackText: string, gain = 0.8): Promise<void> {
-  if (blobId) {
+/** Stops every voice clip that is currently playing. */
+export function stopVoice() {
+  for (const v of activeVoices) {
     try {
-      const b = await decodeBlob(blobId);
-      if (b) return playBuffer(b, gain);
+      v.src.stop();
     } catch {
-      /* fall back */
+      /* already stopped */
     }
+    v.done();
   }
-  return speak(fallbackText, { volume: gain });
+  activeVoices.clear();
 }

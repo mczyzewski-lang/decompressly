@@ -79,3 +79,29 @@ test("Moje myśli: record a thought with a calm voice after confirmation, then r
   await page.waitForTimeout(300);
   expect(texts.length).toBe(1);
 });
+
+test("breath voice guidance uses only the ElevenLabs voice, recorded once", async ({ page }) => {
+  await page.addInitScript(() => {
+    // any use of the system voice fails the test
+    Object.defineProperty(window, "speechSynthesis", { get: () => { throw new Error("system voice used"); } });
+  });
+  const errors: string[] = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  const texts: string[] = [];
+  await page.route("**/api/eleven/tts", async (route) => {
+    texts.push(route.request().postDataJSON().text);
+    await route.fulfill({ status: 200, contentType: "audio/mpeg", body: fakeAudio });
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Zacznij spokojnie" }).click();
+  await page.evaluate(() => (location.hash = "#/settings/eleven"));
+  await page.getByLabel("lub ID głosu").fill("TestVoice1234567890");
+  await page.evaluate(() => (location.hash = "#/breath"));
+  await page.getByRole("radio", { name: "Głos" }).click();
+  await page.getByRole("button", { name: "Zacznij", exact: true }).click();
+  await expect(page.getByText("Wdech", { exact: true })).toBeVisible({ timeout: 15_000 });
+  await page.waitForTimeout(1500);
+  expect(texts).toEqual(expect.arrayContaining(["Wdech.", "Wydech.", "Możesz wrócić do swojego dnia."]));
+  expect(new Set(texts).size).toBe(texts.length); // each phrase generated once
+  expect(errors.filter((e) => e.includes("system voice"))).toEqual([]);
+});
