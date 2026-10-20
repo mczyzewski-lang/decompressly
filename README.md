@@ -75,7 +75,7 @@ Dwie osobne generacje nie gwarantują identycznego motywu, dlatego **Ustawienia 
 4. import własnych plików MP3/WAV/M4A;
 5. odsłuch pary START → CLOSE, zapis jako zestaw, ustawienie jako aktywny; wiele zapisanych zestawów.
 
-Cztery **wbudowane zestawy** po 20 s (i cztery tła do relaksacji) są syntezowane proceduralnie przez `scripts/generate-sounds.mjs` — wspólny trzydźwiękowy motyw w każdej parze, brak praw osób trzecich. Regeneracja: `npm run generate:sounds` (wymaga ffmpeg).
+Cztery **wbudowane zestawy** (20 s, stereo) są skomponowane i syntezowane w `scripts/signature-sounds.mjs`: jedna pięciodźwiękowa melodia-sygnet (D–A–F♯–B–A) wspólna dla wszystkich stylów. START jest energetyczny — groove I–V–vi–IV–ii–V w 112 BPM, motyw trzy razy z narastaniem i jasny akord Dadd9 na końcu; CLOSE jest kojący — te same pierwsze trzy nuty w 66 BPM, harmonia maj9, rozwiązanie w dół do toniki i długie wybrzmienie. Instrumenty: System (dzwonek FM, arpeggio syntezatora, miękki beat), Natura (marimba, kalimba, flet, ptaki, krople, fale), Jazz (fortepian, walking bass, ride swing, Rhodes, miotełki), Orkiestra (waltornia, pizzicato, kotły, smyczki, wiolonczela, harfa, dzwonki). Brak praw osób trzecich. W aplikacji przycisk „Wygeneruj 4 zestawy” tworzy pary ElevenLabs dla wszystkich stylów naraz. Regeneracja: `npm run generate:sounds` (wymaga ffmpeg).
 
 ## Wdrożenie (Vercel)
 

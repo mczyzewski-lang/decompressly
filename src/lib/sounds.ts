@@ -18,38 +18,38 @@ export const STYLE_PRESETS: StylePreset[] = [
   {
     id: "nature",
     label: "Natura",
-    description: "Wiatr, woda, organiczne dźwięki.",
+    description: "Marimba, kalimba, ptaki i woda — świeży poranek / szum morza wieczorem.",
     start:
-      "Ten-second calm nature opening sound. Soft breeze rising through tall grass, a gentle stream of water, three delicate ascending wooden kalimba notes, warm morning air, organic and spacious, no percussion, no vocals, no birds screeching, gentle natural ending.",
+      "Twenty-second uplifting, energizing nature-inspired start-of-day jingle. A bright, catchy, instantly memorable five-note signature melody on warm wooden marimba, played over a lively rhythmic marimba arpeggio and light shaker groove, playful birdsong and sparkling water droplets, building with joyful momentum to a bright, confident major-chord finish. Fresh morning sunlight energy, no vocals.",
     close:
-      "Ten-second calm nature closing sound. Soft evening breeze settling down, slow gentle stream of water, three delicate descending wooden kalimba notes, warm and peaceful, organic and spacious, no percussion, no vocals, slow fade into quiet silence.",
+      "Twenty-second deeply calming, relaxing nature-inspired end-of-day melody. The same memorable five-note signature melody played slowly and tenderly on a soft wooden flute, warm kalimba notes answering, gentle ocean waves breathing in the background, resolving peacefully onto a warm major chord with a soft chime, long slow fade into quiet. Sunset serenity, no percussion, no vocals.",
   },
   {
     id: "system",
     label: "System",
-    description: "Subtelny, futurystyczny operating system.",
+    description: "Premium operating system: jasny dzwonek FM i puls / ciepłe wyciszenie.",
     start:
-      "Ten-second premium minimalist operating system startup sound. Warm analog synthesizer, delicate ascending three-note motif, soft airy texture, elegant, calm, reassuring, no percussion, no vocals, gentle ending.",
+      "Twenty-second premium, energizing operating-system startup sound with a strong sonic identity. A bright, crystal-clear five-note signature melody on a glassy FM bell synth, driven by a pulsing synth arpeggio and a soft punchy beat, a rising airy swoosh at the start, building to a wide, shimmering, euphoric major chord. Modern, optimistic, motivating, polished like a flagship product launch, no vocals.",
     close:
-      "Ten-second premium minimalist operating system shutdown sound. Warm analog synthesizer, gently descending three-note motif, softly dissolving digital texture, deeply peaceful, no percussion, no vocals, slow fade into silence.",
+      "Twenty-second premium, calming operating-system shutdown sound with a strong sonic identity. The same five-note signature melody played slowly on a soft, warm bell synth, descending gently to the home note, lush warm analog pad slowly closing its filter, a final soft crystal chime, long dissolving fade into silence. Deeply relaxing, reassuring, elegant, no beat, no vocals.",
   },
   {
     id: "jazz",
     label: "Jazz",
-    description: "Ciepłe pianino, kontrabas, miękkie akordy.",
+    description: "Swingujące trio na start / nastrojowa ballada na koniec dnia.",
     start:
-      "Ten-second warm jazz opening sting. Soft felt piano playing an ascending three-note motif over a gentle major seventh chord, warm upright double bass pluck, brushed cymbal shimmer barely audible, relaxed late-morning cafe feeling, no vocals, smooth gentle ending.",
+      "Twenty-second upbeat, energizing jazz start-of-day jingle. A catchy, memorable five-note signature melody on bright acoustic piano with swing feel, walking upright bass, crisp ride cymbal swing pattern, Rhodes chord stabs, confident ii–V–I movement landing on a bright major ninth chord with a playful piano flourish. Feel-good morning cafe energy, no vocals.",
     close:
-      "Ten-second warm jazz closing sting. Soft felt piano playing a descending three-note motif resolving onto a gentle major ninth chord, warm upright double bass holding the root, relaxed evening feeling, no drums, no vocals, slow fade into silence.",
+      "Twenty-second calming, relaxing late-night jazz ballad ending. The same memorable five-note signature melody played slowly and softly on felt piano, warm Rhodes major ninth chords, long gentle upright bass notes, soft brushes swirling, resolving tenderly to the home chord with a quiet piano chime, slow fade into silence. Cozy evening, intimate, no drums hits, no vocals.",
   },
   {
     id: "orchestral",
     label: "Orkiestra",
-    description: "Delikatne smyczki, pianino i subtelne frazy.",
+    description: "Filmowe otwarcie z waltornią i pizzicato / spokojne smyczki i harfa.",
     start:
-      "Ten-second gentle orchestral opening. Soft legato strings swelling slowly, solo piano playing a hopeful ascending three-note phrase, warm and cinematic but understated, calm sunrise feeling, no percussion, no brass, no vocals, gentle ending.",
+      "Twenty-second uplifting, energizing cinematic orchestral opening. A heroic yet warm, instantly memorable five-note signature melody on French horn, driving pizzicato strings ostinato, soft timpani pulses, strings swelling with rising momentum to a radiant full-orchestra major chord with sparkling glockenspiel. Sunrise, optimism, fresh start, no vocals.",
     close:
-      "Ten-second gentle orchestral closing. Soft legato strings settling into a warm sustained chord, solo piano playing a tender descending three-note phrase, peaceful and understated, sunset feeling, no percussion, no brass, no vocals, slow fade into silence.",
+      "Twenty-second calming, deeply relaxing cinematic orchestral ending. The same five-note signature melody played slowly and tenderly on solo cello, soft legato strings in warm major ninth harmony, gentle descending harp arpeggios, resolving peacefully to the home chord with a quiet glockenspiel chime, long fade into silence. Sunset, gratitude, rest, no percussion, no vocals.",
   },
 ];
 

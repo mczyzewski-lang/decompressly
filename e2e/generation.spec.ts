@@ -105,3 +105,21 @@ test("breath voice guidance uses only the ElevenLabs voice, recorded once", asyn
   expect(new Set(texts).size).toBe(texts.length); // each phrase generated once
   expect(errors.filter((e) => e.includes("system voice"))).toEqual([]);
 });
+
+test("sound studio: one tap generates START + CLOSE for all four styles", async ({ page }) => {
+  const prompts: string[] = [];
+  await page.route("**/api/eleven/sound", async (route) => {
+    const b = route.request().postDataJSON();
+    prompts.push(b.text);
+    expect(b.duration_seconds).toBe(20);
+    await route.fulfill({ status: 200, contentType: "audio/mpeg", body: fakeAudio });
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Zacznij spokojnie" }).click();
+  await page.evaluate(() => (location.hash = "#/settings/sounds"));
+  await page.getByRole("button", { name: /Wygeneruj 4 zestawy/ }).click();
+  await expect(page.getByText(/Orkiestra · ElevenLabs/)).toBeVisible({ timeout: 30_000 });
+  expect(prompts.length).toBe(8);
+  expect(prompts.filter((p) => /energizing/i.test(p)).length).toBe(4);
+  for (const label of ["Natura", "System", "Jazz", "Orkiestra"]) await expect(page.getByText(new RegExp(`^${label} · ElevenLabs`))).toBeVisible();
+});

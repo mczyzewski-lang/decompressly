@@ -132,8 +132,10 @@ describe("content & helpers", () => {
   it("four sound styles with START and CLOSE prompts", () => {
     expect(STYLE_PRESETS.map((s) => s.id).sort()).toEqual(["jazz", "nature", "orchestral", "system"]);
     for (const s of STYLE_PRESETS) {
-      expect(s.start).toMatch(/Ten-second/);
-      expect(s.close).toMatch(/Ten-second/);
+      expect(s.start).toMatch(/^Twenty-second .*energizing/i);
+      expect(s.close).toMatch(/^Twenty-second .*(calming|relaxing)/i);
+      expect(s.start).toMatch(/five-note signature melody/);
+      expect(s.close).toMatch(/same .*five-note signature melody/);
     }
   });
   it("seven nervous-system categories with actions", () => {
@@ -235,6 +237,7 @@ describe("pacing and sound length", () => {
   });
   it("prompt mentions the requested length", () => {
     expect(promptForDuration("Ten-second calm sound.", 20)).toBe("Twenty-second calm sound.");
+    expect(promptForDuration("Twenty-second calm sound.", 30)).toBe("Thirty-second calm sound.");
     expect(promptForDuration("Calm sound.", 30)).toMatch(/^Thirty-second/);
   });
 });

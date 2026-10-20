@@ -11,6 +11,7 @@ import { execFileSync } from "node:child_process";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { tmpdir } from "node:os";
+import { makePair, STYLES, SR as PAIR_SR } from "./signature-sounds.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const OUT = join(ROOT, "public", "sounds");
@@ -215,12 +216,16 @@ function normalize(x, { peak = 0.89, rms } = {}) {
 
 function fit(x, sec, sr) { const out = new Float32Array(Math.floor(sec * sr)); out.set(x.subarray(0, out.length)); return out; }
 
+/** Mono Float32Array or stereo { L, R } → 16-bit PCM WAV. */
 function writeWav(path, x, sr) {
-  const n = x.length, b = Buffer.alloc(44 + n * 2);
-  b.write("RIFF", 0); b.writeUInt32LE(36 + n * 2, 4); b.write("WAVE", 8); b.write("fmt ", 12);
-  b.writeUInt32LE(16, 16); b.writeUInt16LE(1, 20); b.writeUInt16LE(1, 22); b.writeUInt32LE(sr, 24);
-  b.writeUInt32LE(sr * 2, 28); b.writeUInt16LE(2, 32); b.writeUInt16LE(16, 34); b.write("data", 36); b.writeUInt32LE(n * 2, 40);
-  for (let i = 0; i < n; i++) b.writeInt16LE(Math.max(-32767, Math.min(32767, Math.round(x[i] * 32767))), 44 + i * 2);
+  const chans = x.L ? [x.L, x.R] : [x];
+  const ch = chans.length, n = chans[0].length, bytes = n * 2 * ch;
+  const b = Buffer.alloc(44 + bytes);
+  b.write("RIFF", 0); b.writeUInt32LE(36 + bytes, 4); b.write("WAVE", 8); b.write("fmt ", 12);
+  b.writeUInt32LE(16, 16); b.writeUInt16LE(1, 20); b.writeUInt16LE(ch, 22); b.writeUInt32LE(sr, 24);
+  b.writeUInt32LE(sr * 2 * ch, 28); b.writeUInt16LE(2 * ch, 32); b.writeUInt16LE(16, 34); b.write("data", 36); b.writeUInt32LE(bytes, 40);
+  for (let i = 0; i < n; i++)
+    for (let c = 0; c < ch; c++) b.writeInt16LE(Math.max(-32767, Math.min(32767, Math.round(chans[c][i] * 32767))), 44 + (i * ch + c) * 2);
   writeFileSync(path, b);
 }
 
@@ -231,98 +236,18 @@ function encode(name, x, sr, bitrate = "128k") {
   const wav = join(TMP, `${name}.wav`);
   writeWav(wav, x, sr);
   const out = join(OUT, `${name}.mp3`);
-  execFileSync("ffmpeg", ["-y", "-loglevel", "error", "-i", wav, "-codec:a", "libmp3lame", "-b:a", bitrate, "-ac", "1", out]);
+  execFileSync("ffmpeg", ["-y", "-loglevel", "error", "-i", wav, "-codec:a", "libmp3lame", "-b:a", bitrate, "-ac", x.L ? "2" : "1", out]);
   console.log("✓", name);
 }
 
 // ---------- START / CLOSE pairs ----------
-// 20 s: an unhurried three-note motif, a softer "answer" phrase, and a long natural fade.
-const SR = 44100;
-const LEN = 20;
-
-function motifTimes(dir) { return dir === "up" ? [1.6, 3.6, 5.6] : [1.4, 3.6, 6.0]; }
-/** the answer phrase: same notes, quieter, an octave lower, later in the sound */
-function answerTimes(dir) { return dir === "up" ? [9.5, 11.3, 13.1] : [9.8, 11.8, 14.0]; }
-const fadeOut = (dir) => (dir === "up" ? 4.5 : 7);
-
-function makeSystem(dir) {
-  reseed(dir === "up" ? 11 : 12);
-  const out = buf(LEN + 4, SR);
-  const chord = [N.A2, N.E3, N.A3, N.Cs4].map(midi);
-  const pad = synthPad(chord, LEN - 1, SR, { a: dir === "up" ? 4 : 1.2, r: dir === "up" ? 5 : 9, wave: "saw", voices: 3, cutoff: 1100 });
-  addInto(out, filter(pad, SR, "lp", (t) => (dir === "up" ? 450 + Math.min(t, 12) * 110 : 1600 - Math.min(t, 16) * 75), 0.7), 0, 0.5);
-  const notes = (dir === "up" ? [N.A4, N.Cs5, N.E5] : [N.E5, N.Cs5, N.A4]).map(midi);
-  const place = (times, mul, gain) =>
-    times.forEach((t, i) => {
-      addInto(out, synthPad([notes[i] * mul], 6, SR, { a: 0.04, r: 5, wave: "sine", voices: 2, cutoff: 5000 }), Math.floor(t * SR), gain);
-      addInto(out, synthPad([notes[i] * mul * 2], 4, SR, { a: 0.03, r: 3.5, wave: "sine", voices: 1, cutoff: 8000 }), Math.floor(t * SR), gain * 0.22);
-    });
-  place(motifTimes(dir), 1, 0.55);
-  place(answerTimes(dir), 0.5, 0.32);
-  const air = filter(pink(out.length), SR, "bp", (t) => 2500 + 1500 * Math.sin(t * 0.4), 0.8);
-  const ae = env(out.length, SR, { a: 3, r: 8, s: 1, hold: 11 });
-  for (let i = 0; i < out.length; i++) out[i] += air[i] * ae[i] * (dir === "up" ? 0.022 : 0.03);
-  return fadeEdges(normalize(fit(reverb(out, SR, { wet: 0.4, room: 0.88 }), LEN, SR), { rms: 0.12 }), SR, 0.05, fadeOut(dir));
-}
-
-function makeNature(dir) {
-  reseed(dir === "up" ? 21 : 22);
-  const n = Math.floor((LEN + 4) * SR);
-  const out = new Float32Array(n);
-  const wind = filter(pink(n), SR, "bp", (t) => 400 + 250 * Math.sin(t * 0.5) + 150 * Math.sin(t * 1.3), 0.9);
-  const we = dir === "up" ? (t) => Math.min(1, t / 5) * (t > 13 ? Math.max(0.3, 1 - (t - 13) / 7) : 1) : (t) => Math.min(1, t / 1.2) * Math.max(0, 1 - t / LEN);
-  for (let i = 0; i < n; i++) out[i] += wind[i] * we(i / SR) * 0.6;
-  const stream = filter(white(n), SR, "bp", (t) => 2600 + 900 * Math.sin(t * 11) * Math.sin(t * 3.3), 1.6);
-  for (let i = 0; i < n; i++) { const t = i / SR; out[i] += stream[i] * 0.09 * (0.6 + 0.4 * Math.sin(t * 7.3)) * we(t); }
-  const notes = (dir === "up" ? [N.D5, N.Fs5, N.A5] : [N.A5, N.Fs5, N.D5]).map(midi);
-  motifTimes(dir).forEach((t, i) => addInto(out, kalimba(notes[i], 6, SR), Math.floor(t * SR), 0.5));
-  answerTimes(dir).forEach((t, i) => addInto(out, kalimba(notes[i] / 2, 6, SR), Math.floor(t * SR), 0.3));
-  addInto(out, kalimba(midi(N.D4), 6, SR), Math.floor((dir === "up" ? 15.5 : 16.2) * SR), 0.22);
-  return fadeEdges(normalize(fit(reverb(out, SR, { wet: 0.32, room: 0.82 }), LEN, SR), { rms: 0.12 }), SR, 0.05, fadeOut(dir));
-}
-
-function makeJazz(dir) {
-  reseed(dir === "up" ? 31 : 32);
-  const out = buf(LEN + 4, SR);
-  const chordA = [N.Fs3, N.A3, N.Cs4, N.E4]; // Dmaj9 colour
-  const chordB = [N.G3, N.B3, N.D4, N.Fs4]; // Gmaj7
-  const plan = dir === "up" ? [[0.4, chordA, N.D2], [8.6, chordB, N.G2], [13.4, chordA, N.D2]] : [[0.5, chordB, N.G2], [6.8, chordA, N.D2], [12.6, [...chordA, N.B3], N.D2]];
-  for (const [at, ch, root] of plan) {
-    ch.forEach((m, k) => addInto(out, piano(midi(m), 8, SR, 0.42), Math.floor((at + k * 0.04) * SR), 0.26));
-    addInto(out, bassPluck(midi(root), 7, SR), Math.floor(at * SR), 0.65);
-  }
-  const notes = (dir === "up" ? [N.A4, N.Cs5, N.E5] : [N.E5, N.Cs5, N.A4]).map(midi);
-  const times = dir === "up" ? [2.0, 3.3, 4.6] : [2.2, 3.6, 5.2];
-  times.forEach((t, i) => addInto(out, piano(notes[i], 7, SR, 0.7), Math.floor(t * SR), 0.5));
-  answerTimes(dir).forEach((t, i) => addInto(out, piano(notes[i] / 2, 7, SR, 0.55), Math.floor(t * SR), 0.3));
-  const brush = filter(white(out.length), SR, "hp", 6000, 0.7);
-  const be = env(out.length, SR, { a: 2, s: 1, r: 6, hold: 12 });
-  for (let i = 0; i < out.length; i++) out[i] += brush[i] * be[i] * 0.003;
-  return fadeEdges(normalize(fit(reverb(out, SR, { wet: 0.27, room: 0.8, damp: 0.45 }), LEN, SR), { rms: 0.12 }), SR, 0.02, fadeOut(dir));
-}
-
-function makeOrchestral(dir) {
-  reseed(dir === "up" ? 41 : 42);
-  const out = buf(LEN + 4, SR);
-  const chordA = [N.D3, N.A3, N.D4, N.Fs4].map(midi);
-  const chordB = [N.G2, N.D3, N.B3, N.D4].map(midi);
-  const first = dir === "up" ? chordA : chordB;
-  const second = dir === "up" ? chordB : chordA;
-  addInto(out, filter(synthPad(first, 11, SR, { a: dir === "up" ? 4 : 1.5, r: 4, wave: "saw", voices: 5, detune: 0.004, cutoff: 1500 }), SR, "lp", 1300, 0.6), 0, 0.4);
-  addInto(out, filter(synthPad(second, 11, SR, { a: 3, r: 6, wave: "saw", voices: 5, detune: 0.004, cutoff: 1400 }), SR, "lp", (t) => 1500 - t * 50, 0.6), Math.floor(8.5 * SR), 0.4);
-  addInto(out, synthPad([midi(N.D2)], LEN - 1, SR, { a: 3, r: 7, wave: "saw", voices: 3, detune: 0.003, cutoff: 600 }), 0, 0.28);
-  const notes = (dir === "up" ? [N.D5, N.E5, N.A5] : [N.A5, N.Fs5, N.D5]).map(midi);
-  motifTimes(dir).forEach((t, i) => addInto(out, piano(notes[i], 7, SR, 0.55), Math.floor((t + 0.4) * SR), 0.42));
-  answerTimes(dir).forEach((t, i) => addInto(out, piano(notes[i] / 2, 7, SR, 0.45), Math.floor(t * SR), 0.28));
-  return fadeEdges(normalize(fit(reverb(out, SR, { wet: 0.44, room: 0.9 }), LEN, SR), { rms: 0.12 }), SR, 0.05, fadeOut(dir));
-}
-
-const pairs = { system: makeSystem, nature: makeNature, jazz: makeJazz, orchestral: makeOrchestral };
+// Designed in signature-sounds.mjs: one shared five-note hook, energising START, calming CLOSE, stereo.
 const only = process.argv[2];
-for (const [style, fn] of Object.entries(pairs)) {
+for (const style of STYLES) {
   if (only && only !== style && only !== "pairs") continue;
-  encode(`${style}-start`, fn("up"), SR);
-  encode(`${style}-close`, fn("down"), SR);
+  const { start, close } = makePair(style);
+  encode(`${style}-start`, start, PAIR_SR, "192k");
+  encode(`${style}-close`, close, PAIR_SR, "192k");
 }
 
 // ---------- seamless backgrounds ----------

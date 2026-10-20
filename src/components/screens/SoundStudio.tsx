@@ -27,6 +27,7 @@ export default function SoundStudio() {
   const [busy, setBusy] = useState<"start" | "close" | null>(null);
   const [name, setName] = useState("");
   const [variantOpen, setVariantOpen] = useState(false);
+  const [allProgress, setAllProgress] = useState<string | null>(null);
   const draft = drafts[style] ?? emptyDraft(style);
   const duration = draft.duration ?? SOUND_DURATION;
 
@@ -125,6 +126,46 @@ export default function SoundStudio() {
     }
   };
 
+  /** One tap: START + CLOSE for every style with the signature prompts, each saved as its own set. */
+  const generateAll = async () => {
+    const ok = await confirmPaid(
+      `Nowe zestawy START/CLOSE dla wszystkich ${STYLE_PRESETS.length} stylów (${STYLE_PRESETS.length * 2} dźwięków po ${duration} s).`,
+      "Każdy dźwięk to osobna generacja efektu.",
+    );
+    if (!ok) return;
+    const date = new Date().toLocaleDateString("pl-PL");
+    let made = 0;
+    try {
+      for (const p of STYLE_PRESETS) {
+        setAllProgress(`${p.label}: START…`);
+        const s = await generateSound(promptForDuration(p.start, duration), { duration, promptInfluence: DEFAULT_PROMPT_INFLUENCE });
+        const startId = await putBlob(s, "sfx", `${p.label} START`, { prompt: p.start });
+        setAllProgress(`${p.label}: CLOSE…`);
+        const c = await generateSound(promptForDuration(p.close, duration), { duration, promptInfluence: DEFAULT_PROMPT_INFLUENCE });
+        const closeId = await putBlob(c, "sfx", `${p.label} CLOSE`, { prompt: p.close });
+        update((st) => {
+          st.soundSets.push({
+            id: newId("set"),
+            name: `${p.label} · ElevenLabs ${date}`,
+            style: p.id,
+            start: { kind: "blob", id: startId },
+            close: { kind: "blob", id: closeId },
+            createdAt: Date.now(),
+            promptStart: p.start,
+            promptClose: p.close,
+            source: "elevenlabs",
+          });
+        });
+        made++;
+      }
+      toast("Gotowe: nowe zestawy są na liście. Odsłuchaj i wybierz ulubiony.", 5000);
+    } catch (e) {
+      toast(`${made ? `Zapisano ${made} zestawy. ` : ""}${e instanceof Error ? e.message : "Nie udało się wygenerować."}`, 6000);
+    } finally {
+      setAllProgress(null);
+    }
+  };
+
   const save = async (activate: boolean) => {
     if (!draft.start || !draft.close) return;
     const set: SoundSet = {
@@ -166,6 +207,16 @@ export default function SoundStudio() {
     <Screen tabbed>
       <ScreenHeader title="Motywy dźwiękowe" subtitle="Dwa powiązane dźwięki: START otwiera dzień, CLOSE go zamyka." fallback="settings" />
 
+      <Card className="mt-2">
+        <p className="text-[15px] leading-relaxed text-ink">Wygeneruj ElevenLabs dla wszystkich stylów</p>
+        <p className="mt-1 text-[13px] leading-relaxed text-ink-2">
+          Natura, System, Jazz i Orkiestra: energetyczny START i kojący CLOSE z tą samą charakterystyczną melodią. Każda para zapisze się jako osobny zestaw.
+        </p>
+        <Button className="mt-4" variant="primary" block onClick={generateAll} disabled={!!allProgress}>
+          <Sparkles className="h-4 w-4" /> {allProgress ?? `Wygeneruj 4 zestawy (${duration} s)`}
+        </Button>
+      </Card>
+
       <SectionTitle>Zapisane zestawy</SectionTitle>
       <div className="space-y-2">
         {sets.map((set) => (
@@ -200,7 +251,7 @@ export default function SoundStudio() {
         ))}
       </div>
       <p className="mt-3 px-1 text-[12px] leading-relaxed text-ink-3">
-        Wbudowane zestawy są syntezowane przez Decompressly (bez praw osób trzecich) i działają offline od pierwszego uruchomienia. Zapisane zestawy nigdy nie są generowane ponownie.
+        Wbudowane zestawy są skomponowane i syntezowane przez Decompressly (stereo, 20 s, bez praw osób trzecich): wszystkie dzielą jedną pięciodźwiękową melodię-sygnet — START gra ją energicznie na rytmicznym tle, CLOSE zaczyna tymi samymi nutami i spokojnie schodzi do domu. Działają offline. Zapisane zestawy nigdy nie są generowane ponownie.
       </p>
 
       <SectionTitle>Nowy zestaw</SectionTitle>
@@ -217,6 +268,20 @@ export default function SoundStudio() {
         <Notice>
           Dwie osobne generacje nie gwarantują identycznego motywu. Najpewniejsza droga: wygeneruj i zaakceptuj START, a CLOSE utwórz jako wariant tego samego motywu (bez kosztów) — albo wygeneruj kilka wersji CLOSE i wybierz najlepiej pasującą.
         </Notice>
+
+        {style !== "custom" && (draft.promptStart !== STYLE_BY_ID[style].start || draft.promptClose !== STYLE_BY_ID[style].close) && (
+          <button
+            className="text-left text-[13px] text-sage-deep"
+            onClick={() =>
+              setDraft((d) => {
+                d.promptStart = STYLE_BY_ID[style as keyof typeof STYLE_BY_ID].start;
+                d.promptClose = STYLE_BY_ID[style as keyof typeof STYLE_BY_ID].close;
+              })
+            }
+          >
+            Użyj nowych promptów stylu (energetyczny START, kojący CLOSE)
+          </button>
+        )}
 
         <TakeEditor
           label="START"
