@@ -25,8 +25,8 @@ test("narration pipeline: confirm, generate paragraphs, montage, save offline", 
   await expect(page.getByText("Plik zapisany na urządzeniu")).toBeVisible({ timeout: 45_000 });
 
   expect(ttsBodies.length).toBeGreaterThan(5);
-  for (const b of ttsBodies) expect(b.text).not.toMatch(/\[pauza|\{name\}/);
-  expect(ttsBodies.some((b) => b.text.includes("Marek"))).toBe(true);
+  for (const b of ttsBodies) expect(b.text).not.toMatch(/\[pauza|\[motyw|\{name\}|\{imię/);
+  expect(ttsBodies.some((b) => b.text.includes("Marku"))).toBe(true); // addressed by name, in the vocative
   await expect(page.getByRole("button", { name: /Eksportuj MP3/ })).toBeVisible();
 
   // longer pauses / another background are a free automatic re-montage, no new TTS calls
@@ -101,7 +101,7 @@ test("breath voice guidance uses only the ElevenLabs voice, recorded once", asyn
   await page.getByRole("button", { name: "Zacznij", exact: true }).click();
   await expect(page.getByText("Wdech", { exact: true })).toBeVisible({ timeout: 15_000 });
   await page.waitForTimeout(1500);
-  expect(texts).toEqual(expect.arrayContaining(["Wdech.", "Wydech.", "Możesz wrócić do swojego dnia."]));
+  expect(texts).toEqual(expect.arrayContaining(["Wdech.", "Wydech.", "Możesz wrócić do swojego dnia, Marku."]));
   expect(new Set(texts).size).toBe(texts.length); // each phrase generated once
   expect(errors.filter((e) => e.includes("system voice"))).toEqual([]);
 });
@@ -121,5 +121,24 @@ test("sound studio: one tap generates START + CLOSE for all four styles", async 
   await expect(page.getByText(/Orkiestra · ElevenLabs/)).toBeVisible({ timeout: 30_000 });
   expect(prompts.length).toBe(8);
   expect(prompts.filter((p) => /energizing/i.test(p)).length).toBe(4);
-  for (const label of ["Natura", "System", "Jazz", "Orkiestra"]) await expect(page.getByText(new RegExp(`^${label} · ElevenLabs`))).toBeVisible();
+  for (const label of ["Natura", "System", "Jazz", "Orkiestra"]) await expect(page.getByText(new RegExp(`^${label} · ElevenLabs`)).first()).toBeVisible();
+
+  // generating again only adds — the first four sets stay, with their audio
+  await page.getByRole("button", { name: /Wygeneruj 4 zestawy/ }).click();
+  await expect.poll(() => prompts.length, { timeout: 30_000 }).toBe(16);
+  const sets = page.locator("p", { hasText: /^(Natura|System|Jazz|Orkiestra) · ElevenLabs/ });
+  await expect(sets).toHaveCount(8, { timeout: 10_000 });
+  await expect(page.getByText(/poprzednie zostały/)).toBeVisible({ timeout: 10_000 });
+  await page.reload();
+  await page.evaluate(() => (location.hash = "#/settings/sounds"));
+  await expect(sets).toHaveCount(8);
+  const blobs = await page.evaluate(async () => {
+    const req = indexedDB.open("decompressly");
+    const db: IDBDatabase = await new Promise((r) => (req.onsuccess = () => r(req.result)));
+    return new Promise<number>((r) => {
+      const c = db.transaction("blobs").objectStore("blobs").count();
+      c.onsuccess = () => r(c.result);
+    });
+  });
+  expect(blobs).toBeGreaterThanOrEqual(16);
 });

@@ -131,7 +131,7 @@ export function Toggle({ checked, onChange, label, description }: { checked: boo
       >
         <span
           className={cn(
-            "absolute top-[2px] h-[27px] w-[27px] rounded-full bg-white shadow transition-transform duration-300 ease-calm",
+            "absolute left-0 top-[2px] h-[27px] w-[27px] rounded-full bg-white shadow transition-transform duration-300 ease-calm",
             checked ? "translate-x-[22px]" : "translate-x-[2px]",
           )}
         />

@@ -1,5 +1,8 @@
+import { fillName, type NameForms } from "../names";
+
 /**
- * Original guided-relaxation scripts. "{name}" is replaced with the name from settings.
+ * Original guided-relaxation scripts. "{imię}" becomes the vocative form of the name ("Marku"),
+ * "{imię_m}" the nominative ("Marek") — both configurable in Settings.
  * Inspired by relaxation and gentle hypnosis language, but not a clinical treatment.
  */
 export interface AudioSessionDef {
@@ -12,7 +15,7 @@ export interface AudioSessionDef {
   script: string;
 }
 
-const demob = `Cześć, {name}.
+const demob = `Cześć, {imię}.
 
 Usiądź albo połóż się tak, żeby ciało miało pełne podparcie. Nie musisz układać się idealnie. Wystarczy, że jest wygodnie.
 
@@ -20,7 +23,7 @@ Jeśli chcesz, zamknij oczy. Jeśli wolisz, zostaw je półotwarte i patrz mięk
 
 [pauza 6]
 
-Przez najbliższe kilkanaście minut nie masz nic do zrobienia. Nie ma tu zadania. Nie ma dobrego ani złego wykonania. Możesz po prostu słuchać, a jeśli myśli odpłyną gdzieś dalej, to też jest w porządku.
+To jest ten czas, {imię}. Przez najbliższe kilkanaście minut nie masz nic do zrobienia. Nie ma tu zadania. Nie ma dobrego ani złego wykonania. Możesz po prostu słuchać, a jeśli myśli odpłyną gdzieś dalej, to też jest w porządku.
 
 [pauza 11]
 
@@ -32,7 +35,7 @@ Teraz pozwól, żeby wydech był odrobinę dłuższy. Bez wysiłku. Tak, jakbyś
 
 [pauza 17]
 
-{name}, przez ostatnie miesiące wiele od siebie wymagałeś.
+{imię}, przez ostatnie miesiące wiele od siebie wymagałeś.
 
 Podejmowałeś decyzje.
 
@@ -46,7 +49,7 @@ Brałeś na siebie odpowiedzialność, kiedy nie było jeszcze wiadomo, jak to w
 
 [pauza 6]
 
-Teraz możesz dać sobie chwilę.
+Teraz możesz dać sobie chwilę, {imię}.
 
 [pauza 5]
 
@@ -150,7 +153,7 @@ Nie musisz sprawdzać, czy już jesteś zrelaksowany.
 
 [pauza 4]
 
-Możesz po prostu być.
+Możesz po prostu być, {imię}.
 
 [pauza 42]
 
@@ -174,7 +177,7 @@ Zostań w tej ciszy jeszcze chwilę. Nic się nie dzieje i nic nie musi się dzi
 
 [pauza 84]
 
-Powoli zacznij wracać. Nie spiesz się.
+{imię}, powoli zacznij wracać. Nie spiesz się.
 
 [pauza 4]
 
@@ -190,9 +193,9 @@ Kiedy będziesz gotowy, otwórz oczy. Zabierz ze sobą trochę tego spokoju. Nie
 
 [pauza 4]
 
-Na dzisiaj wystarczy, {name}.`;
+Na dzisiaj wystarczy, {imię}.`;
 
-const ideas = `{name}, ta krótka sesja jest na chwile, w których pojawia się nowy pomysł i od razu czujesz, że chcesz zacząć.
+const ideas = `{imię}, ta krótka sesja jest na chwile, w których pojawia się nowy pomysł i od razu czujesz, że chcesz zacząć.
 
 Usiądź wygodnie. Połóż jedną dłoń na brzuchu albo na klatce piersiowej.
 
@@ -218,7 +221,7 @@ Twój umysł jest świetny w znajdowaniu możliwości. To jedna z rzeczy, które
 
 [pauza 4]
 
-Ale nie każda możliwość wymaga realizacji.
+Ale nie każda możliwość wymaga realizacji, {imię}.
 
 [pauza 6]
 
@@ -274,9 +277,9 @@ Wróć do tego, co robiłeś wcześniej. Albo do niczego. Możesz też po prostu
 
 [pauza 4]
 
-Pomysł poczeka. Ty możesz żyć dalej.`;
+Pomysł poczeka. Ty możesz żyć dalej, {imię}.`;
 
-const morning = `Dzień dobry, {name}.
+const morning = `Dzień dobry, {imię}.
 
 Zanim zaczniesz dzień, daj sobie kilka minut. Bez telefonu. Bez listy zadań.
 
@@ -302,7 +305,7 @@ Rozluźnij barki. Rozluźnij twarz. Pozwól szczęce lekko opaść.
 
 [pauza 17]
 
-Dzisiaj możesz działać z ciekawością, ale bez pośpiechu.
+{imię}, dzisiaj możesz działać z ciekawością, ale bez pośpiechu.
 
 [pauza 6]
 
@@ -330,9 +333,9 @@ Kiedy będziesz gotowy, możesz uruchomić START. Albo po prostu dopić kawę.
 
 [pauza 3]
 
-Miłego dnia, {name}.`;
+Miłego dnia, {imię}.`;
 
-const evening = `Dobry wieczór, {name}.
+const evening = `Dobry wieczór, {imię}.
 
 Dzień pracy jest już za Tobą. Teraz możesz powoli go odłożyć.
 
@@ -396,11 +399,11 @@ Jeśli pojawiają się myśli o jutrze, możesz je zauważyć i pozwolić im prz
 
 [pauza 37]
 
-Na dzisiaj wystarczy.
+Na dzisiaj wystarczy, {imię}.
 
 [pauza 12]
 
-Zrobiłeś dość. Jesteś wystarczający, także wtedy, kiedy nic nie robisz.
+Zrobiłeś dość, {imię}. Jesteś wystarczający, także wtedy, kiedy nic nie robisz.
 
 [pauza 49]
 
@@ -416,9 +419,9 @@ Pozostań w tym spokoju tak długo, jak chcesz. Jeśli zasypiasz, pozwól sobie 
 
 [pauza 73]
 
-Dobranoc, {name}.`;
+Dobranoc, {imię}.`;
 
-const present = `{name}, zatrzymaj się na chwilę.
+const present = `{imię}, zatrzymaj się na chwilę.
 
 Nie musisz niczego kończyć, zanim zaczniesz te trzy minuty.
 
@@ -452,13 +455,13 @@ Zauważ swoje barki. Jeśli są uniesione, pozwól im opaść. Zauważ szczękę
 
 [pauza 17]
 
-Jesteś tutaj. W tym miejscu. W tej chwili. Ta chwila nie potrzebuje ulepszenia.
+Jesteś tutaj, {imię}. W tym miejscu. W tej chwili. Ta chwila nie potrzebuje ulepszenia.
 
 [pauza 21]
 
 Możesz wrócić do swojego dnia. Wolniej niż przed chwilą.`;
 
-const jacobson = `Cześć, {name}. To jest relaksacja mięśni według Jacobsona.
+const jacobson = `Cześć, {imię}. To jest relaksacja mięśni według Jacobsona.
 
 Będziemy po kolei lekko napinać i rozluźniać kolejne grupy mięśni. Napięcie ma być delikatne, mniej więcej na trzydzieści procent siły. Nigdy do bólu. Jeśli jakaś część ciała jest obolała albo kontuzjowana, po prostu ją pomiń i tylko wyobraź sobie rozluźnienie.
 
@@ -582,7 +585,7 @@ Teraz przejdź uwagą przez całe ciało, od stóp do głowy. Jeśli gdzieś zos
 
 [pauza 41]
 
-Całe ciało jest ciężkie i spokojne. Podłoże niesie Cię w całości.
+Całe ciało jest ciężkie i spokojne, {imię}. Podłoże niesie Cię w całości.
 
 [pauza 81]
 
@@ -602,9 +605,9 @@ Kiedy będziesz gotowy, przekręć się na bok i spokojnie usiądź. Zabierz ze 
 
 [pauza 3]
 
-Dziękuję, {name}.`;
+Dziękuję, {imię}.`;
 
-const estepona = `{name}, połóż się wygodnie. Jeśli możesz, zamknij oczy.
+const estepona = `{imię}, połóż się wygodnie. Jeśli możesz, zamknij oczy.
 
 Ta wizualizacja zabierze Cię w znajome miejsce. Nie musisz niczego dokładnie wyobrażać. Wystarczy, że pozwolisz obrazom przychodzić tak, jak chcą.
 
@@ -646,7 +649,7 @@ Nie masz żadnego planu na resztę dnia. Może pójdziesz z Leonem nad wodę. Mo
 
 [pauza 25]
 
-Zauważ, jak to jest nie potrzebować niczego więcej.
+Zauważ, {imię}, jak to jest nie potrzebować niczego więcej.
 
 [pauza 13]
 
@@ -666,7 +669,7 @@ To uczucie ma swój adres w Twoim ciele. Może jest w rozluźnionych barkach. Mo
 
 [pauza 25]
 
-Możesz do niego wracać, kiedy zechcesz. Nie tylko w Hiszpanii. Także w zwykły wtorek po pracy. Na kanapie. W ogrodzie. W samochodzie, czekając na dzieci.
+Możesz do niego wracać, kiedy zechcesz, {imię}. Nie tylko w Hiszpanii. Także w zwykły wtorek po pracy. Na kanapie. W ogrodzie. W samochodzie, czekając na dzieci.
 
 [pauza 19]
 
@@ -760,6 +763,6 @@ export const AUDIO_SESSIONS: AudioSessionDef[] = [
 
 export const AUDIO_BY_ID: Record<string, AudioSessionDef> = Object.fromEntries(AUDIO_SESSIONS.map((s) => [s.id, s]));
 
-export function personalize(script: string, name: string): string {
-  return script.replaceAll("{name}", name || "Marek");
+export function personalize(script: string, forms: NameForms): string {
+  return fillName(script, forms);
 }

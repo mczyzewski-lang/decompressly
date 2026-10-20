@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { Plus, X, Sparkles, Play } from "lucide-react";
-import { update, useApp } from "@/lib/store";
+import { getNameForms, update, useApp } from "@/lib/store";
+import { closeNarration } from "@/lib/audio/phrases";
 import { DAY_MODES, DEFAULT_TEMPLATES } from "@/lib/defaults";
 import { newId, deleteBlob } from "@/lib/db";
 import { navigate } from "@/lib/router";
@@ -46,7 +47,7 @@ export default function Rituals() {
   const [busy, setBusy] = useState(false);
 
   const genNarration = async () => {
-    const text = close.message.replace(/\n+/g, " ");
+    const text = closeNarration(close.message, getNameForms());
     if (!(await confirmPaid("Narracja zamknięcia dnia (jeden krótki plik).", describeChars(text.length)))) return;
     setBusy(true);
     try {

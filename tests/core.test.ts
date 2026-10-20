@@ -88,19 +88,19 @@ describe("audio scripts", () => {
   it("has 7 complete sessions close to their target length, addressed to Marek", () => {
     expect(AUDIO_SESSIONS.length).toBeGreaterThanOrEqual(7);
     for (const s of AUDIO_SESSIONS) {
-      const segs = parseScript(personalize(s.script, "Marek"));
+      const segs = parseScript(personalize(s.script, { nom: "Marek", voc: "Marku" }));
       const est = estimateDuration(segs);
       expect(Math.abs(est - s.minutes * 60) / (s.minutes * 60), s.id).toBeLessThan(0.12);
       for (const t of speechSegments(segs)) {
         expect(t).not.toMatch(/\[|\{name\}/);
         expect(t.length).toBeLessThan(2500);
       }
-      expect(personalize(s.script, "Marek")).toContain("Marek");
+      expect(personalize(s.script, { nom: "Marek", voc: "Marku" })).toContain("Marku");
     }
   });
   it("main session contains the requested core passage", () => {
     const demob = AUDIO_SESSIONS.find((s) => s.id === "demob")!.script;
-    for (const line of ["Wyobraź sobie leżak w Esteponie.", "Za chwilę możesz pójść na spacer z Leonem.", "Możesz po prostu być.", "Twoja kreatywność nigdzie nie znika."]) expect(demob).toContain(line);
+    for (const line of ["Wyobraź sobie leżak w Esteponie.", "Za chwilę możesz pójść na spacer z Leonem.", "Możesz po prostu być", "Twoja kreatywność nigdzie nie znika.", "To jest ten czas, {imię}."]) expect(demob).toContain(line);
   });
 });
 
@@ -257,5 +257,49 @@ describe("voice", () => {
     };
     walk(join(__dirname, "..", "src"));
     for (const f of files) expect(readFileSync(f, "utf8"), f).not.toMatch(/speechSynthesis|SpeechSynthesisUtterance/);
+  });
+});
+
+import { vocative, fillName } from "@/lib/names";
+
+describe("polish vocative", () => {
+  it("declines common names", () => {
+    expect(vocative("Marek")).toBe("Marku");
+    expect(vocative("Piotr")).toBe("Piotrze");
+    expect(vocative("Paweł")).toBe("Pawle");
+    expect(vocative("Łukasz")).toBe("Łukaszu");
+    expect(vocative("Monika")).toBe("Moniko");
+    expect(vocative("Gaja")).toBe("Gajo");
+    expect(vocative("Leon")).toBe("Leonie");
+    expect(vocative("Krzysztof")).toBe("Krzysztofie");
+    expect(vocative("Andrzej")).toBe("Andrzeju");
+    expect(vocative("Robert")).toBe("Robercie");
+  });
+  it("fills both forms", () => {
+    expect(fillName("{imię}, to jest ten czas, {imię_m}.", { nom: "Marek", voc: "Marku" })).toBe("Marku, to jest ten czas, Marek.");
+    expect(fillName("{name}", { nom: "Marek", voc: "Marku" })).toBe("Marku");
+  });
+});
+
+import { withMotif, layoutKey, MOTIF_SECONDS } from "@/lib/audio/segments";
+
+describe("motifs in the script", () => {
+  it("parses motif markers and shows them in the timeline", () => {
+    const segs = parseScript("Cześć.\n\n[motyw start]\n\nDalej.\n[motyw close]");
+    expect(segs).toEqual([
+      { kind: "speech", text: "Cześć." },
+      { kind: "motif", which: "start" },
+      { kind: "speech", text: "Dalej." },
+      { kind: "motif", which: "close" },
+    ]);
+    expect(estimateDuration(segs)).toBeGreaterThan(2 * MOTIF_SECONDS);
+  });
+  it("places the session motif unless the script already does", () => {
+    const plain = parseScript("A.\n\nB.");
+    expect(withMotif(plain, "start")[0]).toEqual({ kind: "motif", which: "start" });
+    expect(withMotif(plain, "close").at(-1)).toEqual({ kind: "motif", which: "close" });
+    const marked = parseScript("A.\n[motyw close]\nB.");
+    expect(withMotif(marked, "start")).toEqual(marked);
+    expect(layoutKey(withMotif(plain, "start"))).toBe("mstart,s,s");
   });
 });

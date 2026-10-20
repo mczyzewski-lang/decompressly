@@ -5,12 +5,12 @@ import { Pause, Play, SkipForward, X, Minus, Plus, Volume2, VolumeX } from "luci
 import { SESSION_BY_ID, stepStateAt } from "@/lib/yoga/sessions";
 import { POSE_BY_ID } from "@/lib/yoga/poses";
 import { SessionClock } from "@/lib/breath";
-import { logActivity, update, useApp } from "@/lib/store";
+import { getNameForms, logActivity, update, useApp } from "@/lib/store";
 import { formatClock } from "@/lib/dates";
 import { back, navigate } from "@/lib/router";
 import { softBell, unlockAudio } from "@/lib/audio/engine";
 import { prefetchVoice, say as sayVoice, stopVoice } from "@/lib/audio/voice";
-import { YOGA_END, YOGA_SWITCH, poseText } from "@/lib/audio/phrases";
+import { YOGA_SWITCH, poseText, yogaEnd } from "@/lib/audio/phrases";
 import { useOnHidden, useWakeLock } from "@/lib/wakelock";
 import { Button, IconButton, cn } from "../ui";
 import { PoseImage } from "../PoseImage";
@@ -18,7 +18,6 @@ import { PoseImage } from "../PoseImage";
 type Status = "ready" | "running" | "paused" | "waiting" | "done";
 
 const SWITCH_TEXT = YOGA_SWITCH;
-const END_TEXT = YOGA_END;
 
 export default function YogaRun({ id }: { id: string }) {
   const session = SESSION_BY_ID[id];
@@ -65,7 +64,7 @@ export default function YogaRun({ id }: { id: string }) {
       setStatus("done");
       const total = doneSeconds.current + Math.min(clock.current.elapsed() / 1000, dur);
       logActivity("yoga", `${session?.title ?? ""} · ${Math.max(1, Math.round(total / 60))} min${completed ? "" : " (krócej)"}`);
-      if (voice) say(undefined, END_TEXT);
+      if (voice) say(undefined, yogaEnd(getNameForms()));
       else softBell();
     },
     [dur, session, voice, say],
@@ -93,7 +92,7 @@ export default function YogaRun({ id }: { id: string }) {
     const key = `${index}`;
     if (announced.current !== key) {
       announced.current = key;
-      say(voiceCues[`yoga:${pose.id}`], poseText(pose));
+      say(undefined, poseText(pose, index, getNameForms()));
     }
     let raf = 0;
     let lastSide: number | null = null;
@@ -151,11 +150,12 @@ export default function YogaRun({ id }: { id: string }) {
     await unlockAudio();
     if (voice) {
       // the first instruction is ready before the timer starts; the rest records in the background
-      const texts = session.steps.map((st) => poseText(POSE_BY_ID[st.poseId]));
+      const forms = getNameForms();
+      const texts = session.steps.map((st, i) => poseText(POSE_BY_ID[st.poseId], i, forms));
       setPreparing(true);
       await prefetchVoice([texts[0]]);
       setPreparing(false);
-      void prefetchVoice([...new Set([...texts.slice(1), SWITCH_TEXT, END_TEXT])]);
+      void prefetchVoice([...new Set([...texts.slice(1), SWITCH_TEXT, yogaEnd(forms)])]);
     }
     clock.current.start();
     setStatus("running");

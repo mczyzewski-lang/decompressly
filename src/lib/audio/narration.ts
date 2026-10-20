@@ -62,34 +62,39 @@ export async function motifRef(motif: Motif): Promise<AudioRef | null> {
 }
 
 /** Montage from cached paragraphs → one MP3 blob stored for offline playback. */
+/**
+ * Montage from cached paragraphs → one MP3 blob stored for offline playback. Motifs are part of the
+ * segment list (see withMotif), so they play exactly where the script shows them.
+ */
 export async function renderSessionFile(
   segments: Segment[],
-  opts: { background: Background; motif: Motif; label: string; gap?: number },
+  opts: { background: Background; label: string; gap?: number },
   onProgress: (stage: string, p?: number) => void,
 ): Promise<{ blobId: string; durationSec: number }> {
   onProgress("Przygotowuję fragmenty…");
+  const motifs: Partial<Record<"start" | "close", AudioBuffer | null>> = {};
+  const motifBuffer = async (which: "start" | "close") => {
+    if (!(which in motifs)) {
+      const url = await refUrl(await motifRef(which));
+      motifs[which] = url ? await fetchDecode(url) : null;
+    }
+    return motifs[which] ?? null;
+  };
   const parts: MontagePart[] = [];
   for (const seg of segments) {
     if (seg.kind === "pause") parts.push({ type: "silence", seconds: seg.seconds });
-    else {
+    else if (seg.kind === "motif") {
+      const buffer = await motifBuffer(seg.which);
+      if (buffer) parts.push({ type: "motif", buffer });
+    } else {
       const rec = await getBlob(segmentId(seg.text));
       if (!rec) throw new Error("Brakuje wygenerowanego fragmentu. Wygeneruj narrację ponownie.");
       parts.push({ type: "speech", buffer: await decodeAny(rec.blob) });
     }
   }
   const bg = opts.background !== "none" ? await fetchDecode(BACKGROUND_URL[opts.background]) : null;
-  const mref = await motifRef(opts.motif);
-  const murl = await refUrl(mref);
-  const motifBuf = murl ? await fetchDecode(murl) : null;
   onProgress("Montuję audio…");
-  const mixed = await renderMontage({
-    parts,
-    background: bg,
-    backgroundGain: 0.2,
-    gap: opts.gap,
-    motif: motifBuf && opts.motif !== "none" ? { buffer: motifBuf, position: opts.motif === "start" ? "start" : "end" } : undefined,
-    sampleRate: 22050,
-  });
+  const mixed = await renderMontage({ parts, background: bg, backgroundGain: 0.2, gap: opts.gap, sampleRate: 22050 });
   onProgress("Zapisuję plik…", 0);
   const mp3 = await encodeMp3(mixed, 64, (p) => onProgress("Zapisuję plik…", p));
   const blobId = await putBlob(mp3, "session", opts.label, { duration: mixed.duration });

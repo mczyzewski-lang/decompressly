@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Play, Check, Trash2, Upload, Sparkles, Wand2, Square } from "lucide-react";
-import { update, useApp, getState } from "@/lib/store";
+import { flushSave, update, useApp, getState } from "@/lib/store";
 import { STYLE_PRESETS, STYLE_BY_ID, DEFAULT_PROMPT_INFLUENCE, SOUND_DURATION, promptForDuration } from "@/lib/sounds";
 import { deleteBlob, getBlob, newId, putBlob } from "@/lib/db";
 import { confirmPaid, generateSound } from "@/lib/eleven-client";
@@ -133,7 +133,9 @@ export default function SoundStudio() {
       "Każdy dźwięk to osobna generacja efektu.",
     );
     if (!ok) return;
-    const date = new Date().toLocaleDateString("pl-PL");
+    // new sets are only ever appended — existing sets (and their audio) are never replaced or removed
+    const now = new Date();
+    const date = `${now.toLocaleDateString("pl-PL")} ${now.toLocaleTimeString("pl-PL", { hour: "2-digit", minute: "2-digit" })}`;
     let made = 0;
     try {
       for (const p of STYLE_PRESETS) {
@@ -158,7 +160,8 @@ export default function SoundStudio() {
         });
         made++;
       }
-      toast("Gotowe: nowe zestawy są na liście. Odsłuchaj i wybierz ulubiony.", 5000);
+      await flushSave();
+      toast("Gotowe: nowe zestawy dodane do listy (poprzednie zostały). Odsłuchaj i wybierz ulubiony.", 5000);
     } catch (e) {
       toast(`${made ? `Zapisano ${made} zestawy. ` : ""}${e instanceof Error ? e.message : "Nie udało się wygenerować."}`, 6000);
     } finally {
@@ -186,6 +189,7 @@ export default function SoundStudio() {
       if (activate) s.activeSoundSetId = set.id;
       delete s.soundDrafts[style];
     });
+    await flushSave();
     for (const id of discard) await deleteBlob(id);
     setName("");
     toast(activate ? "Zestaw zapisany i aktywny." : "Zestaw zapisany.");

@@ -3,21 +3,19 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Eye, EyeOff, Pause, Play, Square, Minus, Plus, Volume2, VolumeX, Bell } from "lucide-react";
 import { BREATH_MODES, PHASE_MAX, PHASE_MIN, SessionClock, clampPhase, frameAt, patternFor, sessionLengthMs, type BreathPattern, type Phase } from "@/lib/breath";
-import { logActivity, update, useApp } from "@/lib/store";
+import { getNameForms, logActivity, update, useApp } from "@/lib/store";
 import { formatClock } from "@/lib/dates";
 import { softTone, unlockAudio } from "@/lib/audio/engine";
 import { prefetchVoice, say, stopVoice, voiceConfigured } from "@/lib/audio/voice";
-import { BREATH_END, BREATH_EXHALE, BREATH_INHALE, BREATH_INTRO } from "@/lib/audio/phrases";
+import { BREATH_EXHALE, BREATH_INHALE, breathEnd, breathIntro } from "@/lib/audio/phrases";
 import { useOnHidden, useWakeLock } from "@/lib/wakelock";
 import { navigate } from "@/lib/router";
 import type { BreathCue, BreathModeId } from "@/lib/types";
 import { Button, IconButton, Screen, Segmented, cn } from "../ui";
 
 const MINUTES = [2, 5, 10] as const;
-const INTRO_TEXT = BREATH_INTRO;
 const INHALE_TEXT = BREATH_INHALE;
 const EXHALE_TEXT = BREATH_EXHALE;
-const END_TEXT = BREATH_END;
 
 export default function Breath({ params }: { params: URLSearchParams }) {
   const settings = useApp((s) => s.breath);
@@ -48,7 +46,7 @@ export default function Breath({ params }: { params: URLSearchParams }) {
     if ((eyesClosed || cue === "voice") && voiceConfigured()) {
       // record (once) everything the session will say, so the voice is in time with the breath
       setPreparing(true);
-      await prefetchVoice(eyesClosed ? [INTRO_TEXT, INHALE_TEXT, EXHALE_TEXT, END_TEXT] : [INHALE_TEXT, EXHALE_TEXT, END_TEXT]);
+      await prefetchVoice(eyesClosed ? [breathIntro(getNameForms()), INHALE_TEXT, EXHALE_TEXT, breathEnd(getNameForms())] : [INHALE_TEXT, EXHALE_TEXT, breathEnd(getNameForms())]);
       setPreparing(false);
     }
     update((s) => {
@@ -184,7 +182,7 @@ function BreathSession({
     setStatus("done");
     clock.current.pause();
     logActivity("breath", `${Math.round(clock.current.elapsed() / 60000) || 1} min · ${modeLabel}`);
-    if (cueRef.current !== "silent") setTimeout(() => void say(END_TEXT, { gain: 0.8 }), 600);
+    if (cueRef.current !== "silent") setTimeout(() => void say(breathEnd(getNameForms()), { gain: 0.8 }), 600);
   }, [modeLabel]);
 
   // start
@@ -192,7 +190,7 @@ function BreathSession({
     let cancelled = false;
     if (eyesClosed) {
       // the timer starts only after the short spoken intro, so cues stay in sync
-      void say(INTRO_TEXT, { gain: 0.8 }).then(() => {
+      void say(breathIntro(getNameForms()), { gain: 0.8 }).then(() => {
         if (!cancelled) clock.current.start();
       });
     } else {

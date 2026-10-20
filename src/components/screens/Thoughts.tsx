@@ -21,7 +21,9 @@ import {
 import { hasRecording, listenThought, recordThoughts, stopListening } from "@/lib/audio/thought-voice";
 import { BACKGROUND_URL } from "@/lib/audio/narration";
 import { unlockAudio } from "@/lib/audio/engine";
-import { update, useApp } from "@/lib/store";
+import { getNameForms, update, useApp } from "@/lib/store";
+import { say } from "@/lib/audio/voice";
+import { thoughtsIntro } from "@/lib/audio/phrases";
 import { newId } from "@/lib/db";
 import { formatShort, toISODate } from "@/lib/dates";
 import { toast } from "@/lib/ui-store";
@@ -385,6 +387,10 @@ function ListenSheet({ thoughts, label, onClose }: { thoughts: Thought[]; label:
     if (withBg) {
       bg.current ??= Object.assign(new Audio(BACKGROUND_URL.nature), { loop: true, volume: 0.18 });
       void bg.current.play().catch(() => {});
+    }
+    if (index === 0) {
+      await say(thoughtsIntro(getNameForms()));
+      await new Promise((r) => setTimeout(r, 1500));
     }
     for (let i = index; i < texts.length; i++) {
       if (token.current !== my) return;

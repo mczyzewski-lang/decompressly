@@ -2,6 +2,7 @@
 
 import { ChevronRight } from "lucide-react";
 import { update, useApp } from "@/lib/store";
+import { nameForms, vocative } from "@/lib/names";
 import { navigate } from "@/lib/router";
 import { BREATH_MODES } from "@/lib/breath";
 import { YOGA_SESSIONS } from "@/lib/yoga/sessions";
@@ -29,7 +30,18 @@ export default function Settings() {
 
       <SectionTitle>Ty</SectionTitle>
       <Card>
-        <TextField label="Imię" value={s.name} onChange={(e) => update((st) => void (st.name = e.target.value))} />
+        <div className="space-y-3">
+          <TextField label="Imię" value={s.name} onChange={(e) => update((st) => void (st.name = e.target.value))} />
+          <TextField
+            label="Jak głos ma się do Ciebie zwracać (wołacz)"
+            value={s.nameVocative ?? ""}
+            placeholder={vocative(s.name)}
+            onChange={(e) => update((st) => void (st.nameVocative = e.target.value || undefined))}
+          />
+          <p className="text-[12px] text-ink-3">
+            Puste pole = automatycznie: „{vocative(s.name)}”. Głos w prowadzeniu, oddechu, jodze i sesjach audio używa tej formy, np. „{nameForms(s.name, s.nameVocative).voc}, to jest Twój czas”.
+          </p>
+        </div>
       </Card>
 
       <SectionTitle>Wygląd</SectionTitle>

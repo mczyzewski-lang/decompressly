@@ -5,12 +5,16 @@
  *  - a bare "[pauza]" means 5 seconds.
  * Pause markers are never sent to text-to-speech — they become silence in the montage.
  */
-export type Segment = { kind: "speech"; text: string } | { kind: "pause"; seconds: number };
+export type Segment = { kind: "speech"; text: string } | { kind: "pause"; seconds: number } | { kind: "motif"; which: "start" | "close" };
+
+/** How much a motif adds to the timeline (sound length minus the overlap with the next words). */
+export const MOTIF_SECONDS = 17.5;
 
 export const DEFAULT_GAP = 1.2; // seconds between consecutive spoken paragraphs
 export const WORDS_PER_SECOND = 2.0; // calm Polish narration at speed ≈ 0.9
 
 const PAUSE_RE = /^\[(?:pauza|cisza|pause)(?:\s+(\d+(?:[.,]\d+)?)\s*s?)?\]$/i;
+const MOTIF_RE = /^\[(?:motyw|motif|dźwięk|dzwiek)(?:\s+(start|close|stop|koniec|początek|poczatek))?\]$/i;
 const INLINE_PAUSE_RE = /\[(?:pauza|cisza|pause)(?:\s+\d+(?:[.,]\d+)?\s*s?)?\]/gi;
 
 export function parseScript(script: string): Segment[] {
@@ -25,6 +29,13 @@ export function parseScript(script: string): Segment[] {
     const line = rawLine.trim();
     if (!line) {
       flush();
+      continue;
+    }
+    const mm = line.match(MOTIF_RE);
+    if (mm) {
+      flush();
+      const w = (mm[1] ?? "start").toLowerCase();
+      out.push({ kind: "motif", which: w === "close" || w === "stop" || w === "koniec" ? "close" : "start" });
       continue;
     }
     const m = line.match(PAUSE_RE);
@@ -70,12 +81,31 @@ export function estimateDuration(segments: Segment[], gap = DEFAULT_GAP): number
   for (let i = 0; i < segments.length; i++) {
     const s = segments[i];
     if (s.kind === "pause") total += s.seconds;
+    else if (s.kind === "motif") total += MOTIF_SECONDS;
     else {
       total += estimateSpeechSeconds(s.text);
       if (segments[i + 1]?.kind === "speech") total += gap;
     }
   }
   return total;
+}
+
+/**
+ * The session's motif setting places START at the beginning or CLOSE at the end — unless the
+ * script already says where motifs go ("[motyw start]", "[motyw close]"), which always wins.
+ */
+export function withMotif(segments: Segment[], motif: "none" | "start" | "close"): Segment[] {
+  if (segments.some((s) => s.kind === "motif") || motif === "none") return segments;
+  return motif === "start" ? [{ kind: "motif", which: "start" }, ...segments] : [...segments, { kind: "motif", which: "close" }];
+}
+
+export function hasScriptMotif(segments: Segment[]): boolean {
+  return segments.some((s) => s.kind === "motif");
+}
+
+/** Silences and motif positions — everything except the spoken words. */
+export function layoutKey(segments: Segment[]): string {
+  return segments.map((s) => (s.kind === "speech" ? "s" : s.kind === "pause" ? `p${s.seconds}` : `m${s.which}`)).join(",");
 }
 
 export function speechSegments(segments: Segment[]): string[] {

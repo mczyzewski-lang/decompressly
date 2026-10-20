@@ -49,6 +49,8 @@ export interface LogEntry {
 export interface GoalStage {
   id: string;
   name: string;
+  /** how the voice addresses the user (wołacz), e.g. "Marku"; empty = automatic */
+  nameVocative?: string;
   subtitle: string;
   start: string;
   end: string;
@@ -116,6 +118,8 @@ export type AudioRef = { kind: "static"; url: string } | { kind: "blob"; id: str
 export interface SoundSet {
   id: string;
   name: string;
+  /** how the voice addresses the user (wołacz), e.g. "Marku"; empty = automatic */
+  nameVocative?: string;
   style: SoundStyle;
   start: AudioRef;
   close: AudioRef;
@@ -171,7 +175,7 @@ export interface AudioSessionOverride {
   script?: string;
   background?: Background;
   motif?: Motif;
-  render?: { blobId: string; voiceId: string; scriptHash: string; createdAt: number; durationSec: number; background: Background; motif: Motif; pauseScale?: number; gap?: number };
+  render?: { blobId: string; voiceId: string; scriptHash: string; createdAt: number; durationSec: number; background: Background; motif: Motif; pauseScale?: number; gap?: number; layout?: string };
   /** multiplies every [pauza] in the script (1 = as written) */
   pauseScale?: number;
   /** silence between consecutive spoken paragraphs, seconds */
@@ -212,6 +216,8 @@ export interface AppState {
   version: number;
   onboarded: boolean;
   name: string;
+  /** how the voice addresses the user (wołacz), e.g. "Marku"; empty = automatic */
+  nameVocative?: string;
   theme: "system" | "light" | "dark";
   goal: Goal;
   templates: Record<DayMode, RhythmTemplateItem[]>;

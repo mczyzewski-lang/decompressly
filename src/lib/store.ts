@@ -6,6 +6,7 @@ import type { AppState, DayMode, DayRecord, LogType } from "./types";
 import { BUILTIN_SOUND_SETS, createDefaultState, STATE_VERSION } from "./defaults";
 import { kvGet, kvSet, newId } from "./db";
 import { toISODate } from "./dates";
+import { nameForms } from "./names";
 
 interface Store {
   hydrated: boolean;
@@ -45,21 +46,30 @@ let pending: AppState | null = null;
 
 function scheduleSave(s: AppState) {
   pending = s;
-  if (saveTimer) clearTimeout(saveTimer);
-  saveTimer = setTimeout(flushSave, 250);
+  // write almost immediately (coalescing changes from the same tick): closing the app right after a
+  // change — e.g. a freshly generated sound set — must never lose it
+  if (saveTimer) return;
+  saveTimer = setTimeout(flushSave, 0);
 }
 
-export async function flushSave() {
+let writing: Promise<void> = Promise.resolve();
+
+/** Persists the latest state; resolves once it is safely in IndexedDB. Writes are serialised. */
+export async function flushSave(): Promise<void> {
   if (saveTimer) clearTimeout(saveTimer);
   saveTimer = null;
-  if (!pending) return;
-  const s = pending;
-  pending = null;
-  try {
-    await kvSet(STATE_KEY, JSON.parse(JSON.stringify(s)));
-  } catch (e) {
-    console.error("Nie udało się zapisać danych", e);
+  if (pending) {
+    const s = pending;
+    pending = null;
+    writing = writing.then(async () => {
+      try {
+        await kvSet(STATE_KEY, JSON.parse(JSON.stringify(s)));
+      } catch (e) {
+        console.error("Nie udało się zapisać danych", e);
+      }
+    });
   }
+  return writing;
 }
 
 if (typeof window !== "undefined") {
@@ -100,6 +110,17 @@ export const useStore = create<Store>()(
     },
   })),
 );
+
+/** Name forms for spoken guidance: nominative ("Marek") and vocative ("Marku"). */
+export function getNameForms() {
+  const s = getState();
+  return nameForms(s.name, s.nameVocative);
+}
+export function useNameForms() {
+  const name = useApp((s) => s.name);
+  const voc = useApp((s) => s.nameVocative);
+  return nameForms(name, voc);
+}
 
 export const useApp = <T,>(sel: (s: AppState) => T) => useStore((st) => sel(st.state));
 export const update = (fn: (s: AppState) => void) => useStore.getState().update(fn);

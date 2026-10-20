@@ -1,13 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Pause, Play, RotateCcw, RotateCw, Square, Download, Sparkles, Pencil } from "lucide-react";
+import { Pause, Play, RotateCcw, RotateCw, Download, Sparkles, Pencil, Music } from "lucide-react";
 import { AUDIO_BY_ID, personalize } from "@/lib/audio/scripts";
-import { applyPacing, DEFAULT_GAP, estimateDuration, parseScript, textKey, totalCharacters, type Segment } from "@/lib/audio/segments";
+import { applyPacing, DEFAULT_GAP, estimateDuration, hasScriptMotif, layoutKey, parseScript, speechSegments, textKey, totalCharacters, withMotif } from "@/lib/audio/segments";
 import { BACKGROUND_URL, generateMissing, missingSegments, renderSessionFile } from "@/lib/audio/narration";
 import { blobUrl, deleteBlob, getBlob } from "@/lib/db";
 import { confirmPaid, describeChars } from "@/lib/eleven-client";
-import { logActivity, update, useApp } from "@/lib/store";
+import { logActivity, update, useApp, useNameForms } from "@/lib/store";
 import { formatClock } from "@/lib/dates";
 import { toast } from "@/lib/ui-store";
 import { navigate } from "@/lib/router";
@@ -24,7 +24,7 @@ const BG_OPTIONS: { value: Background; label: string }[] = [
 
 export default function AudioSession({ id }: { id: string }) {
   const def = AUDIO_BY_ID[id];
-  const name = useApp((s) => s.name);
+  const forms = useNameForms();
   const ov = useApp((s) => s.audio.sessions[id]);
   const eleven = useApp((s) => s.eleven);
   const globalPause = useApp((s) => s.audio.pauseScale ?? 1);
@@ -35,24 +35,27 @@ export default function AudioSession({ id }: { id: string }) {
   const [progress, setProgress] = useState<number | null>(null);
 
   const rawScript = ov?.script ?? def?.script ?? "";
-  const script = personalize(rawScript, name);
+  const script = personalize(rawScript, forms);
   const pauseScale = ov?.pauseScale ?? globalPause;
   const gap = ov?.gap ?? globalGap;
   const written = useMemo(() => parseScript(script), [script]);
   // pacing only changes silences, so the spoken paragraphs (and their recordings) stay the same
-  const segments = useMemo(() => applyPacing(written, { pauseScale, gap }), [written, pauseScale, gap]);
   const background: Background = ov?.background ?? def?.suggestedBackground ?? "none";
   const motif: Motif = ov?.motif ?? def?.suggestedMotif ?? "none";
-  const scriptHash = textKey(script, eleven.voiceId, eleven.modelId);
+  const scriptMotifs = hasScriptMotif(written);
+  // the timeline: pauses scaled, motif placed (by the script markers or the session setting)
+  const segments = useMemo(() => withMotif(applyPacing(written, { pauseScale, gap }), motif), [written, pauseScale, gap, motif]);
+  // a recording depends on the spoken words only; silences and motifs are re-montaged for free
+  const scriptHash = textKey(speechSegments(written).join("\n"), eleven.voiceId, eleven.modelId);
+  const layout = `${layoutKey(segments)}|${gap}`;
   const render = ov?.render;
   const renderFresh = !!render && render.scriptHash === scriptHash;
-  const remixNeeded =
-    renderFresh && (render.background !== background || render.motif !== motif || (render.pauseScale ?? 1) !== pauseScale || (render.gap ?? DEFAULT_GAP) !== gap);
+  const remixNeeded = renderFresh && (render.background !== background || render.layout !== layout);
 
   // pacing / background / motif changed on an existing recording → re-montage automatically (free, no new TTS)
   const remixRef = useRef<() => Promise<void>>(async () => {});
   const failedKey = useRef("");
-  const mixKey = `${pauseScale}|${gap}|${background}|${motif}`;
+  const mixKey = `${layout}|${background}`;
   useEffect(() => {
     if (!remixNeeded || busy || failedKey.current === mixKey) return;
     const t = setTimeout(
@@ -108,13 +111,13 @@ export default function AudioSession({ id }: { id: string }) {
   const remix = async () => {
     setBusy("Montuję audio…");
     setProgress(null);
-    const res = await renderSessionFile(segments, { background, motif, label: def.title, gap }, (stage, p) => {
+    const res = await renderSessionFile(segments, { background, label: def.title, gap }, (stage, p) => {
       setBusy(stage);
       setProgress(p ?? null);
     });
     const old = ov?.render?.blobId;
     setOv((o) => {
-      o.render = { blobId: res.blobId, voiceId: eleven.voiceId, scriptHash, createdAt: Date.now(), durationSec: res.durationSec, background, motif, pauseScale, gap };
+      o.render = { blobId: res.blobId, voiceId: eleven.voiceId, scriptHash, createdAt: Date.now(), durationSec: res.durationSec, background, motif, pauseScale, gap, layout };
     });
     if (old && old !== res.blobId) await deleteBlob(old);
     toast("Narracja zapisana na urządzeniu. Działa offline.");
@@ -233,7 +236,12 @@ export default function AudioSession({ id }: { id: string }) {
         <p className="mt-3 text-[12px] text-ink-3">
           Zmiana pauz nie wymaga nowej generacji głosu — zapisany plik zostanie tylko ponownie zmontowany. Pojedynczą pauzę wydłużysz też w scenariuszu, np. „[pauza 60]”.
         </p>
-        <p className="mt-3 text-[12px] text-ink-3">START gra na początku, CLOSE na końcu sesji. Motyw w zapisanym pliku pochodzi z aktywnego zestawu dźwięków. Tła są subtelne i zawsze cichsze niż głos.</p>
+        <p className="mt-3 text-[12px] text-ink-3">
+          {scriptMotifs
+            ? "Ten scenariusz sam wskazuje miejsca motywów (znaczniki „[motyw …]”) — widzisz je w scenariuszu poniżej."
+            : "START gra na początku, CLOSE na końcu sesji — miejsce widać w scenariuszu poniżej. Możesz też wstawić „[motyw start]” lub „[motyw close]” w dowolne miejsce scenariusza."}{" "}
+          Motyw pochodzi z aktywnego zestawu dźwięków. Tła są subtelne i zawsze cichsze niż głos.
+        </p>
       </Card>
 
       <SectionTitle>Narracja ElevenLabs</SectionTitle>
@@ -299,7 +307,9 @@ export default function AudioSession({ id }: { id: string }) {
       {editing ? (
         <div>
           <TextArea value={draft} onChange={(e) => setDraft(e.target.value)} rows={18} className="font-mono text-[14px]" aria-label="Scenariusz sesji" />
-          <p className="mt-2 text-[12px] text-ink-3">Pusta linia = nowy fragment. „[pauza 8]” = 8 sekund ciszy. „{"{name}"}” = Twoje imię. Znaczniki pauz nie są wysyłane do syntezy mowy.</p>
+          <p className="mt-2 text-[12px] leading-relaxed text-ink-3">
+            Pusta linia = nowy fragment. „[pauza 8]” = 8 sekund ciszy. „[motyw start]” lub „[motyw close]” = motyw dźwiękowy w tym miejscu (zastępuje ustawienie sesji). „{"{imię}"}” = zwrot po imieniu („{forms.voc}”), „{"{imię_m}"}” = „{forms.nom}”. Znaczniki nie są wysyłane do syntezy mowy.
+          </p>
           <div className="mt-3 flex gap-2">
             <Button variant="primary" onClick={() => (setOv((o) => void (o.script = draft === def.script ? undefined : draft)), setEditing(false))}>
               Zapisz
@@ -317,7 +327,13 @@ export default function AudioSession({ id }: { id: string }) {
       ) : (
         <Card className="space-y-3">
           {segments.map((s, i) =>
-            s.kind === "pause" ? (
+            s.kind === "motif" ? (
+              <div key={i} className="flex w-full items-center gap-2.5 rounded-xl bg-sand/50 px-3 py-2.5" aria-label={`Motyw dźwiękowy ${s.which.toUpperCase()}`}>
+                <Music className="h-4 w-4 shrink-0 text-clay" aria-hidden />
+                <span className="flex-1 whitespace-nowrap text-[13px] font-medium text-ink">Motyw {s.which === "start" ? "START" : "CLOSE"} · ok. 20 s</span>
+                <span className="text-right text-[11px] text-ink-3">{scriptMotifs ? "ze scenariusza" : "z ustawienia sesji"}</span>
+              </div>
+            ) : s.kind === "pause" ? (
               <p key={i} className="text-[12px] uppercase tracking-[0.15em] text-ink-3">
                 · cisza {s.seconds} s ·
               </p>

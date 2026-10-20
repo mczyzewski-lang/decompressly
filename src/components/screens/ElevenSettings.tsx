@@ -10,6 +10,7 @@ import { deleteBlob, getBlob, listBlobs, type StoredBlob, forgetBlobUrl } from "
 import { playRef, unlockAudio, forgetDecoded } from "@/lib/audio/engine";
 import { prefetchVoice, say } from "@/lib/audio/voice";
 import { allGuidancePhrases, BREATH_EXHALE, BREATH_INHALE } from "@/lib/audio/phrases";
+import { nameForms } from "@/lib/names";
 import { segmentId } from "@/lib/audio/narration";
 import { toast } from "@/lib/ui-store";
 import { Button, Card, IconButton, Notice, Screen, ScreenHeader, SectionTitle, Segmented, Slider, TextField, Toggle, cn } from "../ui";
@@ -115,7 +116,7 @@ export default function ElevenSettings() {
     }
   };
 
-  const phrases = allGuidancePhrases();
+  const phrases = allGuidancePhrases(nameForms(useApp((x) => x.name), useApp((x) => x.nameVocative)));
   const [readyCount, setReadyCount] = useState<number | null>(null);
   const countReady = async () => {
     let n = 0;
