@@ -1,6 +1,6 @@
 import { openDB, type DBSchema, type IDBPDatabase } from "idb";
 
-export type BlobKind = "sfx" | "tts" | "session" | "import" | "cue" | "variant";
+export type BlobKind = "sfx" | "tts" | "session" | "import" | "cue" | "variant" | "photo";
 
 export interface StoredBlob {
   id: string;

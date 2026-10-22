@@ -5,7 +5,11 @@
  *  - a bare "[pauza]" means 5 seconds.
  * Pause markers are never sent to text-to-speech — they become silence in the montage.
  */
-export type Segment = { kind: "speech"; text: string } | { kind: "pause"; seconds: number } | { kind: "motif"; which: "start" | "close" };
+/** level < 1 = a quiet echo that plays under the following silence (does not add time) */
+export type Segment = { kind: "speech"; text: string } | { kind: "pause"; seconds: number } | { kind: "motif"; which: "start" | "close"; level?: number };
+
+/** Quiet echoes of the motif in the second half, then the full motif at the end. */
+export const MOTIF_RAMP = [0.2, 0.35, 0.5, 0.6];
 
 /** How much a motif adds to the timeline (sound length minus the overlap with the next words). */
 export const MOTIF_SECONDS = 17.5;
@@ -14,7 +18,7 @@ export const DEFAULT_GAP = 1.2; // seconds between consecutive spoken paragraphs
 export const WORDS_PER_SECOND = 2.0; // calm Polish narration at speed ≈ 0.9
 
 const PAUSE_RE = /^\[(?:pauza|cisza|pause)(?:\s+(\d+(?:[.,]\d+)?)\s*s?)?\]$/i;
-const MOTIF_RE = /^\[(?:motyw|motif|dźwięk|dzwiek)(?:\s+(start|close|stop|koniec|początek|poczatek))?\]$/i;
+const MOTIF_RE = /^\[(?:motyw|motif|dźwięk|dzwiek)(?:\s+(start|close|stop|koniec|początek|poczatek))?(?:\s+(\d{1,3})\s*%)?\]$/i;
 const INLINE_PAUSE_RE = /\[(?:pauza|cisza|pause)(?:\s+\d+(?:[.,]\d+)?\s*s?)?\]/gi;
 
 export function parseScript(script: string): Segment[] {
@@ -35,7 +39,8 @@ export function parseScript(script: string): Segment[] {
     if (mm) {
       flush();
       const w = (mm[1] ?? "start").toLowerCase();
-      out.push({ kind: "motif", which: w === "close" || w === "stop" || w === "koniec" ? "close" : "start" });
+      const level = mm[2] ? Math.min(100, Math.max(5, Number(mm[2]))) / 100 : 1;
+      out.push({ kind: "motif", which: w === "close" || w === "stop" || w === "koniec" ? "close" : "start", ...(level < 1 ? { level } : {}) });
       continue;
     }
     const m = line.match(PAUSE_RE);
@@ -81,7 +86,7 @@ export function estimateDuration(segments: Segment[], gap = DEFAULT_GAP): number
   for (let i = 0; i < segments.length; i++) {
     const s = segments[i];
     if (s.kind === "pause") total += s.seconds;
-    else if (s.kind === "motif") total += MOTIF_SECONDS;
+    else if (s.kind === "motif") total += (s.level ?? 1) < 1 ? 0 : MOTIF_SECONDS;
     else {
       total += estimateSpeechSeconds(s.text);
       if (segments[i + 1]?.kind === "speech") total += gap;
@@ -94,9 +99,35 @@ export function estimateDuration(segments: Segment[], gap = DEFAULT_GAP): number
  * The session's motif setting places START at the beginning or CLOSE at the end — unless the
  * script already says where motifs go ("[motyw start]", "[motyw close]"), which always wins.
  */
-export function withMotif(segments: Segment[], motif: "none" | "start" | "close"): Segment[] {
+export function withMotif(segments: Segment[], motif: "none" | "start" | "close", opts: { ramp?: boolean; gap?: number } = {}): Segment[] {
   if (segments.some((s) => s.kind === "motif") || motif === "none") return segments;
-  return motif === "start" ? [{ kind: "motif", which: "start" }, ...segments] : [...segments, { kind: "motif", which: "close" }];
+  if (motif === "start") return [{ kind: "motif", which: "start" }, ...segments];
+  if (!opts.ramp) return [...segments, { kind: "motif", which: "close" }];
+  // growing echoes: at the longer silences of the second half, quiet → louder, full at the very end
+  const total = estimateDuration(segments, opts.gap);
+  const gap = opts.gap ?? DEFAULT_GAP;
+  const starts: number[] = [];
+  let t = 0;
+  segments.forEach((s, i) => {
+    starts.push(t);
+    if (s.kind === "pause") t += s.seconds;
+    else if (s.kind === "speech") t += estimateSpeechSeconds(s.text) + (segments[i + 1]?.kind === "speech" ? gap : 0);
+  });
+  const candidates = segments
+    .map((s, i) => ({ s, i, at: starts[i] }))
+    .filter((c) => c.s.kind === "pause" && c.s.seconds >= 8 && c.at >= total / 2);
+  const picks: number[] = [];
+  const n = Math.min(MOTIF_RAMP.length, candidates.length);
+  for (let k = 0; k < n; k++) picks.push(candidates[Math.round(((k + 0.5) * candidates.length) / n - 0.5)].i);
+  const levels = MOTIF_RAMP.slice(MOTIF_RAMP.length - n);
+  const out: Segment[] = [];
+  segments.forEach((s, i) => {
+    const k = picks.indexOf(i);
+    if (k >= 0) out.push({ kind: "motif", which: "close", level: levels[k] });
+    out.push(s);
+  });
+  out.push({ kind: "motif", which: "close" });
+  return out;
 }
 
 export function hasScriptMotif(segments: Segment[]): boolean {
@@ -105,7 +136,7 @@ export function hasScriptMotif(segments: Segment[]): boolean {
 
 /** Silences and motif positions — everything except the spoken words. */
 export function layoutKey(segments: Segment[]): string {
-  return segments.map((s) => (s.kind === "speech" ? "s" : s.kind === "pause" ? `p${s.seconds}` : `m${s.which}`)).join(",");
+  return segments.map((s) => (s.kind === "speech" ? "s" : s.kind === "pause" ? `p${s.seconds}` : `m${s.which}${s.level ?? ""}`)).join(",");
 }
 
 export function speechSegments(segments: Segment[]): string[] {

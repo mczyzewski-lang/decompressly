@@ -303,3 +303,21 @@ describe("motifs in the script", () => {
     expect(layoutKey(withMotif(plain, "start"))).toBe("mstart,s,s");
   });
 });
+
+import { MOTIF_RAMP } from "@/lib/audio/segments";
+import { AUDIO_BY_ID } from "@/lib/audio/scripts";
+
+describe("growing motif", () => {
+  it("echoes the CLOSE motif quietly in the second half and plays it fully at the end", () => {
+    const segs = withMotif(parseScript(personalize(AUDIO_BY_ID.demob.script, { nom: "Marek", voc: "Marku" })), "close", { ramp: true });
+    const motifs = segs.filter((s): s is { kind: "motif"; which: "close" | "start"; level?: number } => s.kind === "motif");
+    expect(motifs.map((m) => m.level ?? 1)).toEqual([...MOTIF_RAMP, 1]);
+    expect(segs.at(-1)).toEqual({ kind: "motif", which: "close" });
+    // the first echo sits in the second half
+    const firstIdx = segs.findIndex((s) => s.kind === "motif");
+    expect(estimateDuration(segs.slice(0, firstIdx))).toBeGreaterThan(estimateDuration(segs) / 2 - 30);
+  });
+  it("markers can set the level", () => {
+    expect(parseScript("[motyw close 35%]")).toEqual([{ kind: "motif", which: "close", level: 0.35 }]);
+  });
+});

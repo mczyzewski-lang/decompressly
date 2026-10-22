@@ -7,7 +7,9 @@ import { blobUrl, getBlob } from "../db";
  * Audio helpers tuned for iOS Safari / standalone PWA:
  *  - everything starts from a user gesture (autoplay restrictions),
  *  - long-form playback uses HTMLAudioElement (keeps playing with the screen locked, respects Media Session),
- *  - short cues use a shared AudioContext; navigator.audioSession = "playback" lets cues sound with the mute switch on (iOS 17+),
+ *  - spoken phrases play through their own <audio> element (like START/CLOSE): Web Audio can be silenced by the
+ *    iPhone mute switch, media elements are not,
+ *  - soft tones use a shared AudioContext; navigator.audioSession = "playback" helps on iOS 17+,
  *  - every spoken word comes from the chosen ElevenLabs voice (see voice.ts) — the system voice is never used.
  */
 let ctx: AudioContext | null = null;
@@ -41,6 +43,55 @@ export async function unlockAudio() {
   s.buffer = b;
   s.connect(c.destination);
   s.start(0);
+  // prime the voice element inside the user gesture, so later phrases can play without one
+  try {
+    const el = voiceElement();
+    el.src = silentWavUrl();
+    await el.play();
+  } catch {
+    /* ignore */
+  }
+}
+
+let silentUrl: string | null = null;
+function silentWavUrl(): string {
+  if (silentUrl) return silentUrl;
+  const n = 2205; // 0.1 s at 22.05 kHz
+  const buf = new ArrayBuffer(44 + n * 2);
+  const v = new DataView(buf);
+  const w = (o: number, s: string) => [...s].forEach((ch, i) => v.setUint8(o + i, ch.charCodeAt(0)));
+  w(0, "RIFF"); v.setUint32(4, 36 + n * 2, true); w(8, "WAVE"); w(12, "fmt ");
+  v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, 22050, true);
+  v.setUint32(28, 44100, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36, "data"); v.setUint32(40, n * 2, true);
+  silentUrl = URL.createObjectURL(new Blob([buf], { type: "audio/wav" }));
+  return silentUrl;
+}
+
+let voiceEl: HTMLAudioElement | null = null;
+function voiceElement(): HTMLAudioElement {
+  if (!voiceEl) {
+    voiceEl = new Audio();
+    voiceEl.preload = "auto";
+  }
+  return voiceEl;
+}
+
+/** Plays one spoken phrase; resolves when it ends, is stopped, or fails. */
+export function playVoiceUrl(url: string, volume = 0.9): Promise<boolean> {
+  return new Promise((resolve) => {
+    const el = voiceElement();
+    const done = (ok: boolean) => {
+      el.onended = el.onpause = el.onerror = null;
+      resolve(ok);
+    };
+    el.onended = () => done(true);
+    el.onpause = () => done(true);
+    el.onerror = () => done(false);
+    el.src = url;
+    el.volume = volume;
+    el.currentTime = 0;
+    el.play().catch(() => done(false));
+  });
 }
 
 export async function refUrl(ref: AudioRef | undefined | null): Promise<string | null> {
@@ -147,6 +198,7 @@ export function playBuffer(buf: AudioBuffer, gain = 0.9): Promise<void> {
 
 /** Stops every voice clip that is currently playing. */
 export function stopVoice() {
+  voiceEl?.pause();
   for (const v of activeVoices) {
     try {
       v.src.stop();

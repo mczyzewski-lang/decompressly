@@ -61,15 +61,16 @@ export async function generateSound(text: string, opts: { duration?: number; pro
   return r.blob();
 }
 
-export async function generateSpeech(text: string, ctx: { previous?: string; next?: string } = {}): Promise<Blob> {
+export async function generateSpeech(text: string, ctx: { previous?: string; next?: string; voiceId?: string } = {}): Promise<Blob> {
   const s = getState();
-  if (!s.eleven.voiceId) throw new ElevenError("Najpierw wybierz głos w Ustawieniach → ElevenLabs.");
+  const voiceId = ctx.voiceId || s.eleven.voiceId;
+  if (!voiceId) throw new ElevenError("Najpierw wybierz głos w Ustawieniach → ElevenLabs.");
   const r = await fetch("/api/eleven/tts", {
     method: "POST",
     headers: headers(true),
     body: JSON.stringify({
       text,
-      voice_id: s.eleven.voiceId,
+      voice_id: voiceId,
       model_id: s.eleven.modelId,
       voice_settings: { stability: s.eleven.stability, similarity_boost: s.eleven.similarity, style: s.eleven.style, speed: s.eleven.speed },
       previous_text: ctx.previous,

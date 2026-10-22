@@ -15,16 +15,16 @@ Prywatna aplikacja PWA (iPhone-first) wspierająca świadome kończenie pracy, o
 | **Dziś** | Powitanie, mantra dnia, tryby dnia (Praca / Odpoczynek / Wyjazd / Regeneracja), karta celu z aktualnym etapem, START/CLOSE, rytm dnia (odhacz, pomiń, przesuń, edytuj, usuń, dodaj), widok kalendarza bez czerwonych zaległości, propozycje, cotygodniowa opcjonalna refleksja |
 | **START day / CLOSE day** | Edytowalne kroki, napój i mantra; 10-sekundowy dźwięk z aktywnego zestawu; animacja zamykającego się koła; status „Po pracy” z możliwością wznowienia; opcjonalna narracja ElevenLabs po CLOSE |
 | **Oddech** | 2/5/10 min; tryby 4/6, 3/4, naturalny, własny (2–8 s, bez wstrzymań); koło SVG sterowane `requestAnimationFrame` i zegarem czasu rzeczywistego; pauza/kontynuacja; auto-pauza po przejściu w tło (bez „doganiania” faz); cisza / delikatny sygnał / głos; tryb „Zamknij oczy — prowadzenie głosem” z przyciemnionym ekranem; Wake Lock |
-| **Joga** | 12 pozycji z pełnymi opisami (start, kroki, wyjście, błędy, wersja dla początkujących, kiedy pominąć), ilustracje z powiększeniem, sesje 10/20/30 min (dokładnie 600/1200/1800 s) + 4 sesje tematyczne, timer z przejściami i zmianą strony, pauza, pomiń, ±30 s, zakończ, hands-free z głosem |
-| **Audio** | 7 kompletnych, oryginalnych scenariuszy (3–15 min) z prawdziwymi pauzami, zwracających się po imieniu w wołaczu („Marku, …”); znaczniki `[pauza N]`, `[motyw start]`, `[motyw close]`, `{imię}` (wołacz) i `{imię_m}` (mianownik), a motyw dźwiękowy jest widoczny w scenariuszu w miejscu, w którym zagra; edytor scenariusza; generacja ElevenLabs akapit po akapicie z montażem (cisza, tło, motyw START/CLOSE, normalizacja, ducking), zapis MP3 offline, eksport; regulowana długość pauz i ciszy między akapitami |
+| **Joga** | 12 pozycji z pełnymi opisami (start, kroki, wyjście, błędy, wersja dla początkujących, kiedy pominąć), ilustracje z wyraźnymi kończynami (dłonie, stopy, cień podłoża) i podpisami ustawienia ciała w widoku szczegółów i powiększeniu, możliwość dodania własnego zdjęcia każdej pozycji (zapisywane offline), sesje 10/20/30 min (dokładnie 600/1200/1800 s) + 4 sesje tematyczne, timer z przejściami i zmianą strony, pauza, pomiń, ±30 s, zakończ, hands-free z głosem |
+| **Audio** | 7 kompletnych, oryginalnych scenariuszy (3–15 min) z prawdziwymi pauzami, zwracających się po imieniu w wołaczu („Marku, …”); znaczniki `[pauza N]`, `[motyw start]`, `[motyw close]`, `[motyw close 35%]` (cichy motyw w tle), `{imię}` (wołacz) i `{imię_m}` (mianownik), a motyw dźwiękowy jest widoczny w scenariuszu w miejscu, w którym zagra; edytor scenariusza; generacja ElevenLabs akapit po akapicie z montażem (cisza, tło, motyw START/CLOSE, normalizacja, ducking), zapis MP3 offline, eksport; „narastający motyw” (w drugiej połowie CLOSE wraca cicho w dłuższych przerwach: 20% → 35% → 50% → 60%, a na końcu w pełnej głośności); wybór głosu z kolekcji dla każdej sesji; regulowana długość pauz i ciszy między akapitami |
 | **Odpuść** | „Mam nowy pomysł” (z komunikatem listopadowym), „Czuję napięcie” (5 kroków), „Chcę odpocząć” |
 | **Parking pomysłów** | Jedno zdanie = jeden pomysł; parkuj / wybierz świadomie / odpuść / usuń |
-| **Keep Your Nervous System Healthy** | Sleep, Movement, Breath, Downshift, Mindset, Connection, Stimulation — opis, wskazówki, konkretna akcja z linkiem |
+| **Keep Your Nervous System Healthy** | Sleep, Movement, Breath, Downshift, Mindset, Connection, Stimulation — opis, wskazówki, konkretna akcja z linkiem; na dole **Słoik dobrych chwil** (savoring): jedno zdanie o dobrej chwili jako kolorowy kamyk w słoiku, losowanie i odsłuch głosem ElevenLabs, bez liczników |
 | **Cel osobisty** | 18.10–31.12.2026, trzy etapy (wszystko edytowalne), bez procentów; historia refleksji |
 | **Mantry** | 64 mantry w 8 kategoriach (wszystkie obowiązkowe), ulubione, przypinanie, mantra na dziś, nagrania ElevenLabs, własne mantry |
 | **Moje myśli** | Prywatna biblioteka: 130 myśli w 12 kategoriach (12 wyróżnionych) + 18 pytań do refleksji. Wyszukiwanie (bez znaczenia wielkości liter i polskich znaków), ulubione, edycja każdego zdania z podglądem oryginału, ukrywanie („To nie moje”) z przywracaniem, własne myśli. Każda myśl ma metadane: kategorię, wyróżnienie i konteksty wyświetlania (poranek, koniec pracy, nowy pomysł, napięcie, rodzina, odpoczynek, wyjazd), które możesz zmienić. Ekran Dziś pokazuje najwyżej jedną myśl dobraną do chwili. Odsłuch pojedynczej myśli lub spokojna sekwencja z ciszą pomiędzy; nagrania ElevenLabs po potwierdzeniu, zapisywane offline i automatycznie nieaktualne po edycji tekstu. Pytania pojawiają się tylko, gdy sam po nie sięgniesz. Edycje są przypisane do stałych identyfikatorów (chronionych testem), więc przetrwają aktualizacje aplikacji |
 | **Tryb wyjazdu** | 5-dniowy plan; ekran Dziś pokazuje tylko mantrę, jedno ćwiczenie i opcjonalne audio |
-| **Ustawienia** | Imię, motyw jasny/ciemny, rytuały i godziny, zestawy dźwięków, głos i model ElevenLabs, biblioteka audio, domyślny oddech, ulubiona sesja jogi, parking, refleksje, import/eksport, prywatność |
+| **Ustawienia** | Imię, motyw jasny/ciemny, rytuały i godziny, zestawy dźwięków, głos i model ElevenLabs (z kolekcją głosów: gwiazdka = domyślny, nazwy, dodawanie po ID lub z listy „Moje głosy”), biblioteka audio, domyślny oddech, ulubiona sesja jogi, parking, refleksje, import/eksport, prywatność |
 
 ## Szybki start (lokalnie)
 
@@ -101,6 +101,7 @@ Instrukcja jest też w aplikacji: Ustawienia → Instalacja na iPhonie.
 
 - Safe areas (`viewport-fit=cover`, `env(safe-area-inset-*)`), tryb standalone, ikony i manifest.
 - Autoplay: każde audio startuje z gestu; współdzielony `AudioContext` jest odblokowywany przy pierwszym dotknięciu. Od iOS 17 `navigator.audioSession.type = "playback"` pozwala krótkim sygnałom grać mimo przełącznika wyciszenia.
+- Głos (oddech, joga, myśli, mantry) gra przez element `<audio>`, a nie Web Audio — dzięki temu słychać go również przy włączonym przełączniku wyciszenia iPhone'a. Domyślne prowadzenie oddechu to głos ElevenLabs.
 - Sesje audio zapisane jako MP3 grają przez `<audio>` z Media Session (sterowanie z ekranu blokady). Service worker obsługuje żądania `Range`, więc pliki offline są odtwarzane poprawnie.
 - Oddech i joga trzymają ekran włączony (Wake Lock, iOS 16.4+), a po przejściu w tło **pauzują się** — czas nie jest „nadrabiany” po powrocie.
 - `prefers-reduced-motion`: koło oddechu przestaje się skalować (zostaje subtelna zmiana jasności), animacje rytuałów są natychmiastowe.
@@ -108,7 +109,7 @@ Instrukcja jest też w aplikacji: Ustawienia → Instalacja na iPhonie.
 
 ## Dane i pamięć
 
-- Stan aplikacji: IndexedDB (`kv`), zapis z debounce i przy przejściu w tło.
+- Stan aplikacji: IndexedDB (`kv`), zapis natychmiast po każdej zmianie i dodatkowo przy przejściu w tło.
 - Duże pliki audio: IndexedDB (`blobs`) jako kopie oparte na `ArrayBuffer` (obejście problemów Safari z Blobami ze streamów). Aplikacja prosi o `navigator.storage.persist()`.
 - Safari może usuwać dane stron nieużywanych przez kilka tygodni — **w trybie zainstalowanym (ekran główny) dane są trwałe**. Rozmiary orientacyjne: narracja 15 min ≈ 7 MB (MP3 64 kb/s mono), efekt 10 s ≈ 160 kB.
 - **Eksport/Import**: Ustawienia → Import i eksport danych — plik JSON, opcjonalnie z wszystkimi nagraniami. Pojedyncze sesje można eksportować jako MP3.
@@ -130,7 +131,9 @@ npm run fetch:yoga-photos -- approve child 2    # konwersja do WebP, autor/licen
 npm run fetch:yoga-photos -- revoke child       # powrót do ilustracji
 ```
 
-Zdjęcie pojawia się w aplikacji tylko po `approve` (z widocznym przypisaniem autorstwa), więc fotografia, która jedynie przypomina asanę, nie trafi do aplikacji automatycznie.
+Niezależnie od tego w szczegółach każdej pozycji jest przycisk **„Dodaj własne zdjęcie”** — zdjęcie (np. z zajęć lub z aparatu) jest zmniejszane do 1400 px, zapisywane offline i zastępuje ilustrację; „Wróć do ilustracji” je usuwa.
+
+Zdjęcie z Commons pojawia się w aplikacji tylko po `approve` (z widocznym przypisaniem autorstwa), więc fotografia, która jedynie przypomina asanę, nie trafi do aplikacji automatycznie.
 
 ## Treści — źródła i zasady
 

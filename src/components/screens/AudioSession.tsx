@@ -12,7 +12,7 @@ import { formatClock } from "@/lib/dates";
 import { toast } from "@/lib/ui-store";
 import { navigate } from "@/lib/router";
 import type { Background, Motif } from "@/lib/types";
-import { Button, Card, IconButton, Notice, Screen, ScreenHeader, SectionTitle, Segmented, Slider, TextArea } from "../ui";
+import { Button, Card, Chip, IconButton, Notice, Screen, ScreenHeader, SectionTitle, Segmented, Slider, TextArea, Toggle } from "../ui";
 
 const BG_OPTIONS: { value: Background; label: string }[] = [
   { value: "none", label: "Cisza" },
@@ -44,9 +44,13 @@ export default function AudioSession({ id }: { id: string }) {
   const motif: Motif = ov?.motif ?? def?.suggestedMotif ?? "none";
   const scriptMotifs = hasScriptMotif(written);
   // the timeline: pauses scaled, motif placed (by the script markers or the session setting)
-  const segments = useMemo(() => withMotif(applyPacing(written, { pauseScale, gap }), motif), [written, pauseScale, gap, motif]);
+  const ramp = ov?.motifRamp ?? true;
+  const segments = useMemo(() => withMotif(applyPacing(written, { pauseScale, gap }), motif, { ramp, gap }), [written, pauseScale, gap, motif, ramp]);
   // a recording depends on the spoken words only; silences and motifs are re-montaged for free
-  const scriptHash = textKey(speechSegments(written).join("\n"), eleven.voiceId, eleven.modelId);
+  const voices = eleven.voices ?? [];
+  const voiceId = ov?.voiceId || eleven.voiceId;
+  const voiceName = voices.find((v) => v.id === voiceId)?.name || (voiceId === eleven.voiceId ? eleven.voiceName : "") || voiceId;
+  const scriptHash = textKey(speechSegments(written).join("\n"), voiceId, eleven.modelId);
   const layout = `${layoutKey(segments)}|${gap}`;
   const render = ov?.render;
   const renderFresh = !!render && render.scriptHash === scriptHash;
@@ -84,21 +88,21 @@ export default function AudioSession({ id }: { id: string }) {
     });
 
   const generate = async (force: boolean) => {
-    if (!eleven.voiceId) {
+    if (!voiceId) {
       toast("Najpierw wybierz głos w Ustawieniach → ElevenLabs.");
       return;
     }
-    const missing = force ? { texts: segments.filter((s) => s.kind === "speech").map((s) => (s as { text: string }).text), chars: totalCharacters(segments) } : await missingSegments(segments);
+    const missing = force ? { texts: segments.filter((s) => s.kind === "speech").map((s) => (s as { text: string }).text), chars: totalCharacters(segments) } : await missingSegments(segments, voiceId);
     if (missing.texts.length > 0) {
       const ok = await confirmPaid(
-        `Narracja „${def.title}” — ${missing.texts.length} ${missing.texts.length === 1 ? "fragment" : "fragmentów"} głosem ${eleven.voiceName || eleven.voiceId}.`,
+        `Narracja „${def.title}” — ${missing.texts.length} ${missing.texts.length === 1 ? "fragment" : "fragmentów"} głosem ${voiceName}.`,
         describeChars(missing.chars) + (force ? "" : " Fragmenty wygenerowane wcześniej zostaną użyte ponownie bez kosztów."),
       );
       if (!ok) return;
     }
     try {
       setBusy("Generuję narrację…");
-      await generateMissing(segments, (d, t) => setProgress(t ? d / t : 1), force);
+      await generateMissing(segments, (d, t) => setProgress(t ? d / t : 1), force, voiceId);
       await remix();
     } catch (e) {
       toast(e instanceof Error ? e.message : "Nie udało się wygenerować.", 5000);
@@ -111,13 +115,13 @@ export default function AudioSession({ id }: { id: string }) {
   const remix = async () => {
     setBusy("Montuję audio…");
     setProgress(null);
-    const res = await renderSessionFile(segments, { background, label: def.title, gap }, (stage, p) => {
+    const res = await renderSessionFile(segments, { background, label: def.title, gap, voiceId }, (stage, p) => {
       setBusy(stage);
       setProgress(p ?? null);
     });
     const old = ov?.render?.blobId;
     setOv((o) => {
-      o.render = { blobId: res.blobId, voiceId: eleven.voiceId, scriptHash, createdAt: Date.now(), durationSec: res.durationSec, background, motif, pauseScale, gap, layout };
+      o.render = { blobId: res.blobId, voiceId, scriptHash, createdAt: Date.now(), durationSec: res.durationSec, background, motif, pauseScale, gap, layout };
     });
     if (old && old !== res.blobId) await deleteBlob(old);
     toast("Narracja zapisana na urządzeniu. Działa offline.");
@@ -155,7 +159,7 @@ export default function AudioSession({ id }: { id: string }) {
         ) : (
           <Card className="p-6 text-center">
             <p className="text-[15px] leading-relaxed text-ink-2">
-              {eleven.voiceId
+              {voiceId
                 ? `Ta sesja nie ma jeszcze nagrania. Narracja powstanie Twoim głosem ElevenLabs (ok. ${Math.round(est / 60)} min) i zapisze się do słuchania offline.`
                 : "Wybierz głos ElevenLabs w Ustawieniach, żeby nagrać tę sesję."}
             </p>
@@ -166,7 +170,7 @@ export default function AudioSession({ id }: { id: string }) {
                   <div className="h-full bg-sage transition-[width] duration-500" style={{ width: progress === null ? "35%" : `${Math.round(progress * 100)}%` }} />
                 </div>
               </div>
-            ) : eleven.voiceId ? (
+            ) : voiceId ? (
               <Button className="mt-5" variant="primary" size="lg" onClick={() => generate(false)}>
                 <Sparkles className="h-4 w-4" /> Wygeneruj narrację
               </Button>
@@ -197,6 +201,14 @@ export default function AudioSession({ id }: { id: string }) {
             { value: "close", label: "CLOSE" },
           ]}
         />
+        {motif === "close" && !scriptMotifs && (
+          <Toggle
+            label="Narastający motyw"
+            description="W drugiej połowie motyw wraca cicho w przerwach (20% → 35% → 50% → 60%), a na końcu gra w pełnej głośności."
+            checked={ramp}
+            onChange={(v) => setOv((o) => void (o.motifRamp = v))}
+          />
+        )}
         <p className="mb-2 mt-5 text-[13px] text-ink-2">Długość pauz w scenariuszu</p>
         <Segmented<number>
           label="Długość pauz"
@@ -246,6 +258,19 @@ export default function AudioSession({ id }: { id: string }) {
 
       <SectionTitle>Narracja ElevenLabs</SectionTitle>
       <Card>
+        {voices.length > 1 && (
+          <div className="mb-4">
+            <p className="mb-2 text-[13px] text-ink-2">Głos tej sesji</p>
+            <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+              {voices.map((v) => (
+                <Chip key={v.id} active={v.id === voiceId} onClick={() => setOv((o) => void (o.voiceId = v.id === eleven.voiceId ? undefined : v.id))}>
+                  {v.name}
+                </Chip>
+              ))}
+            </div>
+            <p className="mt-1 text-[12px] text-ink-3">Nagrania każdego głosu są zapisywane osobno — możesz wracać do wcześniejszych bez ponownej generacji.</p>
+          </div>
+        )}
         {busy ? (
           <div aria-live="polite">
             <p className="text-[15px] text-ink">{busy}</p>
@@ -259,7 +284,7 @@ export default function AudioSession({ id }: { id: string }) {
               {renderFresh
                 ? remixNeeded
                   ? "Zmieniono tło lub motyw. Możesz zmontować plik ponownie — bez kosztów."
-                  : `Zapisana narracja: ${formatClock(render.durationSec)} · ${eleven.voiceName || "wybrany głos"}.`
+                  : `Zapisana narracja: ${formatClock(render.durationSec)} · ${voiceName || "wybrany głos"}.`
                 : render
                   ? "Scenariusz lub głos zmienił się od ostatniej generacji. Wygenerowane zostaną tylko zmienione fragmenty."
                   : "Wygeneruj ciepłą, polską narrację. Pauzy są prawdziwą ciszą w montażu, a gotowy plik działa offline."}
@@ -282,7 +307,7 @@ export default function AudioSession({ id }: { id: string }) {
                 </Button>
               )}
             </div>
-            {!eleven.voiceId && <p className="mt-3 text-[13px] text-ink-3">Wybierz najpierw głos w Ustawieniach → ElevenLabs.</p>}
+            {!voiceId && <p className="mt-3 text-[13px] text-ink-3">Wybierz najpierw głos w Ustawieniach → ElevenLabs.</p>}
           </>
         )}
       </Card>
@@ -308,7 +333,7 @@ export default function AudioSession({ id }: { id: string }) {
         <div>
           <TextArea value={draft} onChange={(e) => setDraft(e.target.value)} rows={18} className="font-mono text-[14px]" aria-label="Scenariusz sesji" />
           <p className="mt-2 text-[12px] leading-relaxed text-ink-3">
-            Pusta linia = nowy fragment. „[pauza 8]” = 8 sekund ciszy. „[motyw start]” lub „[motyw close]” = motyw dźwiękowy w tym miejscu (zastępuje ustawienie sesji). „{"{imię}"}” = zwrot po imieniu („{forms.voc}”), „{"{imię_m}"}” = „{forms.nom}”. Znaczniki nie są wysyłane do syntezy mowy.
+            Pusta linia = nowy fragment. „[pauza 8]” = 8 sekund ciszy. „[motyw start]” lub „[motyw close]” = motyw dźwiękowy w tym miejscu (zastępuje ustawienie sesji), „[motyw close 35%]” = cichy motyw w tle na 35% głośności. „{"{imię}"}” = zwrot po imieniu („{forms.voc}”), „{"{imię_m}"}” = „{forms.nom}”. Znaczniki nie są wysyłane do syntezy mowy.
           </p>
           <div className="mt-3 flex gap-2">
             <Button variant="primary" onClick={() => (setOv((o) => void (o.script = draft === def.script ? undefined : draft)), setEditing(false))}>
@@ -330,7 +355,9 @@ export default function AudioSession({ id }: { id: string }) {
             s.kind === "motif" ? (
               <div key={i} className="flex w-full items-center gap-2.5 rounded-xl bg-sand/50 px-3 py-2.5" aria-label={`Motyw dźwiękowy ${s.which.toUpperCase()}`}>
                 <Music className="h-4 w-4 shrink-0 text-clay" aria-hidden />
-                <span className="flex-1 whitespace-nowrap text-[13px] font-medium text-ink">Motyw {s.which === "start" ? "START" : "CLOSE"} · ok. 20 s</span>
+                <span className="flex-1 whitespace-nowrap text-[13px] font-medium text-ink">
+                  Motyw {s.which === "start" ? "START" : "CLOSE"} · {(s.level ?? 1) < 1 ? `${Math.round((s.level ?? 1) * 100)}% głośności, w tle` : "pełna głośność"}
+                </span>
                 <span className="text-right text-[11px] text-ink-3">{scriptMotifs ? "ze scenariusza" : "z ustawienia sesji"}</span>
               </div>
             ) : s.kind === "pause" ? (

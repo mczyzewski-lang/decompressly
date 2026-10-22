@@ -120,8 +120,10 @@ export function CalendarView() {
   );
 }
 
+const NO_PLANNED: never[] = [];
+
 function DaySheet({ date, entries, onClose }: { date: string; entries: LogEntry[]; onClose: () => void }) {
-  const planned = useApp((s) => s.days[date]?.planned ?? []);
+  const planned = useApp((s) => s.days[date]?.planned) ?? NO_PLANNED;
   const [kind, setKind] = useState<PracticeKind>("yoga");
   const [time, setTime] = useState("20:30");
 

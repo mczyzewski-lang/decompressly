@@ -32,6 +32,7 @@ import DataSettings from "./screens/DataSettings";
 import Nothing from "./screens/Nothing";
 import InstallGuide from "./screens/InstallGuide";
 import Thoughts from "./screens/Thoughts";
+import Moments from "./screens/Moments";
 
 const FULLSCREEN = new Set(["start", "close", "nothing"]);
 
@@ -110,6 +111,8 @@ function RouteView() {
       return <Mantras />;
     case "thoughts":
       return <Thoughts />;
+    case "moments":
+      return <Moments />;
     case "trip":
       return <Trip />;
     case "settings":

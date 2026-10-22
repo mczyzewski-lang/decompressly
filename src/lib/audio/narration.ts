@@ -8,16 +8,16 @@ import { decodeAny, encodeMp3, fetchDecode, renderMontage, type MontagePart } fr
 import { refUrl } from "./engine";
 import { speechSegments, textKey, type Segment } from "./segments";
 
-export function segmentId(text: string): string {
+export function segmentId(text: string, voiceId?: string): string {
   const e = getState().eleven;
-  return textKey(text, e.voiceId, e.modelId);
+  return textKey(text, voiceId || e.voiceId, e.modelId);
 }
 
 /** Which paragraphs still need paid generation (already generated ones are reused for free). */
-export async function missingSegments(segments: Segment[]): Promise<{ texts: string[]; chars: number }> {
+export async function missingSegments(segments: Segment[], voiceId?: string): Promise<{ texts: string[]; chars: number }> {
   const texts: string[] = [];
   for (const t of speechSegments(segments)) {
-    if (!(await getBlob(segmentId(t)))) texts.push(t);
+    if (!(await getBlob(segmentId(t, voiceId)))) texts.push(t);
   }
   return { texts: [...new Set(texts)], chars: texts.reduce((a, t) => a + t.length, 0) };
 }
@@ -26,11 +26,11 @@ export async function missingSegments(segments: Segment[]): Promise<{ texts: str
  * Generate missing narration paragraphs one by one. Each paragraph is sent with its neighbours
  * as previous/next context for natural intonation. Pause markers never reach the API.
  */
-export async function generateMissing(segments: Segment[], onProgress: (done: number, total: number) => void, force = false): Promise<void> {
+export async function generateMissing(segments: Segment[], onProgress: (done: number, total: number) => void, force = false, voiceId?: string): Promise<void> {
   const all = speechSegments(segments);
   const todo: number[] = [];
   for (let i = 0; i < all.length; i++) {
-    const id = segmentId(all[i]);
+    const id = segmentId(all[i], voiceId);
     if (force) await deleteBlob(id);
     if (force || !(await getBlob(id))) todo.push(i);
   }
@@ -38,10 +38,10 @@ export async function generateMissing(segments: Segment[], onProgress: (done: nu
   let done = 0;
   onProgress(0, todo.length);
   for (const i of todo) {
-    const id = segmentId(all[i]);
+    const id = segmentId(all[i], voiceId);
     if (seen.has(id)) continue;
     seen.add(id);
-    const blob = await generateSpeech(all[i], { previous: all[i - 1], next: all[i + 1] });
+    const blob = await generateSpeech(all[i], { previous: all[i - 1], next: all[i + 1], voiceId });
     await putBlob(blob, "tts", all[i].slice(0, 60), { text: all[i] }, id);
     onProgress(++done, todo.length);
   }
@@ -68,7 +68,7 @@ export async function motifRef(motif: Motif): Promise<AudioRef | null> {
  */
 export async function renderSessionFile(
   segments: Segment[],
-  opts: { background: Background; label: string; gap?: number },
+  opts: { background: Background; label: string; gap?: number; voiceId?: string },
   onProgress: (stage: string, p?: number) => void,
 ): Promise<{ blobId: string; durationSec: number }> {
   onProgress("Przygotowuję fragmenty…");
@@ -85,9 +85,9 @@ export async function renderSessionFile(
     if (seg.kind === "pause") parts.push({ type: "silence", seconds: seg.seconds });
     else if (seg.kind === "motif") {
       const buffer = await motifBuffer(seg.which);
-      if (buffer) parts.push({ type: "motif", buffer });
+      if (buffer) parts.push({ type: "motif", buffer, level: seg.level });
     } else {
-      const rec = await getBlob(segmentId(seg.text));
+      const rec = await getBlob(segmentId(seg.text, opts.voiceId));
       if (!rec) throw new Error("Brakuje wygenerowanego fragmentu. Wygeneruj narrację ponownie.");
       parts.push({ type: "speech", buffer: await decodeAny(rec.blob) });
     }

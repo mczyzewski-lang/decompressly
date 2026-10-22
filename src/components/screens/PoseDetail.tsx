@@ -1,9 +1,82 @@
 "use client";
 
+import { useRef, useState } from "react";
+import { Camera, Trash2 } from "lucide-react";
 import { POSE_BY_ID } from "@/lib/yoga/poses";
 import { formatClock } from "@/lib/dates";
-import { Card, Screen, ScreenHeader, SectionTitle } from "../ui";
+import { deleteBlob, putBlob } from "@/lib/db";
+import { update, useApp } from "@/lib/store";
+import { Button, Card, Screen, ScreenHeader, SectionTitle } from "../ui";
 import { PoseImage } from "../PoseImage";
+
+/** Downscales a picked photo (max 1400 px) so it stays light in offline storage. */
+async function shrinkPhoto(file: File): Promise<Blob> {
+  const bmp = await createImageBitmap(file);
+  const scale = Math.min(1, 1400 / Math.max(bmp.width, bmp.height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(bmp.width * scale);
+  canvas.height = Math.round(bmp.height * scale);
+  canvas.getContext("2d")!.drawImage(bmp, 0, 0, canvas.width, canvas.height);
+  bmp.close();
+  return new Promise((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob"))), "image/jpeg", 0.85));
+}
+
+function OwnPhoto({ poseId, name }: { poseId: string; name: string }) {
+  const current = useApp((s) => s.yogaPhotos?.[poseId]);
+  const input = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function pick(file: File | undefined) {
+    if (!file) return;
+    setBusy(true);
+    setError(null);
+    try {
+      let blob: Blob = file;
+      try {
+        blob = await shrinkPhoto(file);
+      } catch {
+        /* keep the original if the browser cannot decode it on a canvas */
+      }
+      const id = await putBlob(blob, "photo", `Zdjęcie: ${name}`, { poseId });
+      const prev = current;
+      update((s) => {
+        s.yogaPhotos = { ...(s.yogaPhotos ?? {}), [poseId]: id };
+      });
+      if (prev) await deleteBlob(prev);
+    } catch {
+      setError("Nie udało się zapisać zdjęcia.");
+    } finally {
+      setBusy(false);
+      if (input.current) input.current.value = "";
+    }
+  }
+
+  async function remove() {
+    if (!current) return;
+    update((s) => {
+      if (s.yogaPhotos) delete s.yogaPhotos[poseId];
+    });
+    await deleteBlob(current);
+  }
+
+  return (
+    <div className="mt-3 flex flex-wrap items-center gap-2">
+      <input ref={input} type="file" accept="image/*" className="hidden" onChange={(e) => void pick(e.target.files?.[0])} aria-label="Wybierz zdjęcie pozycji" />
+      <Button size="sm" variant="quiet" disabled={busy} onClick={() => input.current?.click()}>
+        <Camera className="h-4 w-4" />
+        {current ? "Zmień zdjęcie" : "Dodaj własne zdjęcie"}
+      </Button>
+      {current && (
+        <Button size="sm" variant="danger" onClick={() => void remove()}>
+          <Trash2 className="h-4 w-4" />
+          Wróć do ilustracji
+        </Button>
+      )}
+      {error && <p className="w-full text-[13px] text-clay">{error}</p>}
+    </div>
+  );
+}
 
 export default function PoseDetail({ id }: { id: string }) {
   const p = POSE_BY_ID[id];
@@ -22,7 +95,8 @@ export default function PoseDetail({ id }: { id: string }) {
         {p.english}
         {p.sanskrit ? ` · ${p.sanskrit}` : ""}
       </p>
-      <PoseImage pose={p} className="mt-5" />
+      <PoseImage pose={p} className="mt-5" notes />
+      <OwnPhoto poseId={p.id} name={p.name} />
       <div className="mt-4 grid grid-cols-2 gap-3">
         <Card className="p-4">
           <p className="text-[12px] uppercase tracking-wide text-ink-3">Czas utrzymania</p>

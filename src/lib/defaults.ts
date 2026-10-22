@@ -196,7 +196,7 @@ export function createDefaultState(): AppState {
       speed: 0.9,
       confirmBeforeGenerate: false,
     },
-    breath: { defaultMode: "calm", defaultMinutes: 5, customInhale: 4, customExhale: 6, cue: "tone" },
+    breath: { defaultMode: "calm", defaultMinutes: 5, customInhale: 4, customExhale: 6, cue: "voice" },
     voiceCues: {},
     yoga: { favoriteSessionId: "s10", handsFree: true, voice: true },
     audio: { defaultBackground: "nature", sessions: {} },

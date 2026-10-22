@@ -37,6 +37,17 @@ export function migrate(input: Partial<AppState> | undefined): AppState {
   for (const b of BUILTIN_SOUND_SETS) if (!sets.some((s) => s.id === b.id)) sets.unshift(structuredClone(b));
   merged.soundSets = sets;
   if (!sets.some((s) => s.id === merged.activeSoundSetId)) merged.activeSoundSetId = "builtin-system";
+  // one-off: breath guidance used to default to a tone; it now defaults to the ElevenLabs voice
+  const done = new Set(merged.migrations ?? []);
+  if (!done.has("breath-voice-default")) {
+    if (merged.breath.cue === "tone") merged.breath.cue = "voice";
+    done.add("breath-voice-default");
+  }
+  // the default voice is always part of the collection
+  if (merged.eleven.voiceId && !(merged.eleven.voices ?? []).some((v) => v.id === merged.eleven.voiceId)) {
+    merged.eleven.voices = [...(merged.eleven.voices ?? []), { id: merged.eleven.voiceId, name: merged.eleven.voiceName || "Mój głos" }];
+  }
+  merged.migrations = [...done];
   merged.version = STATE_VERSION;
   return merged;
 }

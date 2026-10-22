@@ -201,3 +201,28 @@ test("Moje myśli: search, favourite, edit, moments, hide/restore, questions on 
   await go(page, "#/today");
   await expect(page.getByRole("figure", { name: "Myśl na tę chwilę" })).toHaveCount(1);
 });
+
+test("jar of good moments: add from Health, draw one, take it out", async ({ page }) => {
+  await onboard(page);
+  await go(page, "#/health");
+  await page.getByText("Słoik dobrych chwil").first().click();
+  await page.getByLabel("Dobra chwila").fill("Gaja zasnęła mi na ramieniu.");
+  await page.getByRole("button", { name: "Wrzuć do słoika" }).click();
+  await page.getByRole("button", { name: "Wylosuj chwilę" }).click();
+  await expect(page.getByRole("dialog").getByText("Gaja zasnęła mi na ramieniu.")).toBeVisible();
+  await page.getByRole("button", { name: "Wyjmij ze słoika" }).click();
+  await expect(page.getByRole("button", { name: "Wylosuj chwilę" })).toHaveCount(0);
+});
+
+test("yoga pose: alignment notes, own photo replaces the illustration and can be removed", async ({ page }) => {
+  await onboard(page);
+  await go(page, "#/yoga/pose/catcow");
+  await expect(page.locator("svg text").first()).toBeVisible();
+  const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
+  await page.getByLabel("Wybierz zdjęcie pozycji").setInputFiles({ name: "kot.png", mimeType: "image/png", buffer: png });
+  await expect(page.locator("main img").first()).toBeVisible();
+  await page.reload();
+  await expect(page.locator("main img").first()).toBeVisible();
+  await page.getByRole("button", { name: "Wróć do ilustracji" }).click();
+  await expect(page.locator("main img")).toHaveCount(0);
+});

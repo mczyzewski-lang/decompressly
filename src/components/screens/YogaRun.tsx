@@ -215,7 +215,7 @@ export default function YogaRun({ id }: { id: string }) {
         {step.sides === 2 && status !== "ready" ? ` · ${st.side === 1 ? "pierwsza strona" : "druga strona"}` : ""}
       </p>
 
-      <PoseImage pose={pose} className="mt-4" />
+      <PoseImage pose={pose} className="mt-4" notes />
 
       <p className="mt-5 text-[17px] leading-relaxed text-ink">{pose.cue}</p>
       {status !== "ready" && (

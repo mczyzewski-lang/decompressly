@@ -4,7 +4,7 @@ import { Mp3Encoder } from "@breezystack/lamejs";
 import { audioContext } from "./engine";
 import { DEFAULT_GAP } from "./segments";
 
-export type MontagePart = { type: "speech"; buffer: AudioBuffer } | { type: "silence"; seconds: number } | { type: "motif"; buffer: AudioBuffer };
+export type MontagePart = { type: "speech"; buffer: AudioBuffer } | { type: "silence"; seconds: number } | { type: "motif"; buffer: AudioBuffer; level?: number };
 
 const MOTIF_OVERLAP = 2.5; // the next words start while the motif is fading out
 
@@ -74,8 +74,10 @@ export async function renderMontage(o: MontageOptions): Promise<AudioBuffer> {
     if (p.type === "silence") {
       t += p.seconds;
     } else if (p.type === "motif") {
-      placements.push({ buffer: p.buffer, at: t, gain: 0.75 });
-      t += Math.max(1, p.buffer.duration - (i === o.parts.length - 1 ? 0 : MOTIF_OVERLAP));
+      const level = p.level ?? 1;
+      placements.push({ buffer: p.buffer, at: t, gain: 0.75 * level });
+      // quiet echoes play under what follows; the full motif takes its own time
+      if (level >= 1) t += Math.max(1, p.buffer.duration - (i === o.parts.length - 1 ? 0 : MOTIF_OVERLAP));
     } else {
       placements.push({ buffer: p.buffer, at: t, gain: narrGain });
       speechSpans.push([t, t + p.buffer.duration]);

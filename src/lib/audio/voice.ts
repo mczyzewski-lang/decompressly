@@ -1,11 +1,11 @@
 "use client";
 
-import { getBlob, putBlob } from "../db";
+import { blobUrl, getBlob, putBlob } from "../db";
 import { generateSpeech } from "../eleven-client";
 import { getState } from "../store";
 import { toast } from "../ui-store";
 import { segmentId } from "./narration";
-import { decodeBlob, playBuffer, stopVoice } from "./engine";
+import { playVoiceUrl, stopVoice } from "./engine";
 
 /**
  * The only voice in the app is the chosen ElevenLabs voice. Every phrase is generated once
@@ -55,14 +55,9 @@ export async function say(text: string, opts: { gain?: number; legacyId?: string
   if (opts.legacyId && (await getBlob(opts.legacyId))) id = opts.legacyId;
   else id = await ensureVoice(text);
   if (!id) return false;
-  try {
-    const buf = await decodeBlob(id);
-    if (!buf) return false;
-    await playBuffer(buf, opts.gain ?? 0.9);
-    return true;
-  } catch {
-    return false;
-  }
+  const url = await blobUrl(id);
+  if (!url) return false;
+  return playVoiceUrl(url, Math.min(1, (opts.gain ?? 0.9) + 0.1));
 }
 
 /** Generates (in order, in the background) everything a session is about to say. */

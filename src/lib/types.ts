@@ -85,6 +85,16 @@ export interface Reflection {
   extra?: string;
 }
 
+export type MomentTag = "rodzina" | "natura" | "cialo" | "smak" | "ludzie" | "spokoj" | "dumny";
+
+export interface GoodMoment {
+  id: string;
+  text: string;
+  tag: MomentTag;
+  date: string;
+  at: number;
+}
+
 export interface QuestionNote {
   id: string;
   questionId: string;
@@ -153,6 +163,8 @@ export interface ElevenSettings {
   similarity: number;
   style: number;
   speed: number;
+  /** saved voices to choose from (the default one is voiceId) */
+  voices?: { id: string; name: string }[];
   /** ask before every paid generation (off by default — generation starts right away) */
   confirmBeforeGenerate: boolean;
 }
@@ -176,6 +188,10 @@ export interface AudioSessionOverride {
   background?: Background;
   motif?: Motif;
   render?: { blobId: string; voiceId: string; scriptHash: string; createdAt: number; durationSec: number; background: Background; motif: Motif; pauseScale?: number; gap?: number; layout?: string };
+  /** ElevenLabs voice for this session (empty = default voice) */
+  voiceId?: string;
+  /** CLOSE motif returns quietly in the second half and ends at full volume (default on) */
+  motifRamp?: boolean;
   /** multiplies every [pauza] in the script (1 = as written) */
   pauseScale?: number;
   /** silence between consecutive spoken paragraphs, seconds */
@@ -249,4 +265,10 @@ export interface AppState {
   thoughtContexts: Record<string, ThoughtContext[]>;
   customThoughts: Thought[];
   questionNotes: QuestionNote[];
+  /** "Słoik dobrych chwil" — small good moments, one sentence each */
+  moments?: GoodMoment[];
+  /** pose id → blob id of the user's own reference photo */
+  yogaPhotos?: Record<string, string>;
+  /** one-off data migrations already applied */
+  migrations?: string[];
 }

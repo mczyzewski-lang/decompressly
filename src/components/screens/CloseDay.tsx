@@ -102,6 +102,9 @@ export default function CloseDay() {
             </Button>
             <p className="mt-3 text-[13px] text-ink-3">Jeśli coś naprawdę trzeba, zawsze możesz wznowić pracę z ekranu Dziś.</p>
             <ThoughtCard context="workend" variant="plain" className="mt-10" />
+            <button className="mt-6 text-[13px] text-sage-deep underline decoration-line underline-offset-4" onClick={() => navigate("moments")}>
+              Jedna dobra chwila z dzisiaj? Wrzuć ją do słoika
+            </button>
           </div>
         </div>
       )}

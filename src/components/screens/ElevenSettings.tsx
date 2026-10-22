@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Play, Trash2, RefreshCw, Check, Eye, EyeOff } from "lucide-react";
+import { Play, Trash2, RefreshCw, Check, Eye, EyeOff, Plus, Star } from "lucide-react";
 import { update, useApp, getState } from "@/lib/store";
 import { fetchStatus, listVoices, listModels, confirmPaid, describeChars, type ServerStatus, type Voice, type ModelInfo } from "@/lib/eleven-client";
 import { generateClip } from "@/lib/audio/narration";
@@ -31,7 +31,13 @@ const HINTS: Record<NonNullable<ServerStatus["accessHint"]>, string> = {
   chars: "Kod ma właściwą długość, ale różni się znakami. Użyj „Pokaż kod” i porównaj ze zmienną APP_ACCESS_KEY (np. 0 i O, l i 1).",
 };
 
-const KIND_LABEL: Record<string, string> = { sfx: "Efekt", tts: "Narracja", session: "Sesja audio", import: "Import", cue: "Wskazówka głosowa", variant: "Wariant" };
+function addToCollection(x: { voices?: { id: string; name: string }[] }, add: { id: string; name: string }[]) {
+  const list = x.voices ?? [];
+  for (const v of add) if (!list.some((y) => y.id === v.id)) list.push(v);
+  x.voices = list;
+}
+
+const KIND_LABEL: Record<string, string> = { sfx: "Efekt", tts: "Narracja", session: "Sesja audio", import: "Import", cue: "Wskazówka głosowa", variant: "Wariant", photo: "Zdjęcie jogi" };
 
 function fmtBytes(n: number) {
   if (n > 1e6) return `${(n / 1e6).toFixed(1)} MB`;
@@ -47,6 +53,7 @@ export default function ElevenSettings() {
   const [blobs, setBlobs] = useState<StoredBlob[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
   const [showKey, setShowKey] = useState(false);
+  const [newVoices, setNewVoices] = useState("");
   const [voiceScope, setVoiceScope] = useState<"mine" | "all">("mine");
   const [voiceError, setVoiceError] = useState<string | null>(null);
   const [accountModels, setAccountModels] = useState<ModelInfo[] | null>(null);
@@ -274,21 +281,90 @@ export default function ElevenSettings() {
                     set((x) => {
                       x.voiceId = v.id;
                       x.voiceName = v.name;
+                      addToCollection(x, [{ id: v.id, name: v.name }]);
                     })
                   }
                 >
                   <span className="block text-[14px] text-ink">{v.name}</span>
                   <span className="block text-[11px] text-ink-3">{[v.labels.gender, v.labels.accent, v.labels.description, v.category].filter(Boolean).join(" · ")}</span>
                 </button>
-                {v.id === e.voiceId && <Check className="mr-1 h-4 w-4 text-sage" />}
+                {v.id === e.voiceId ? (
+                  <Check className="mr-1 h-4 w-4 text-sage" />
+                ) : (e.voices ?? []).some((c) => c.id === v.id) ? (
+                  <span className="mr-1 text-[11px] text-ink-3">w kolekcji</span>
+                ) : (
+                  <IconButton label={`Dodaj do kolekcji: ${v.name}`} className="h-9 w-9" onClick={() => set((x) => addToCollection(x, [{ id: v.id, name: v.name }]))}>
+                    <Plus className="h-4 w-4" />
+                  </IconButton>
+                )}
               </li>
             ))}
           </ul>
         )}
         <TextField label="lub ID głosu" value={e.voiceId} onChange={(ev) => set((x) => {
           x.voiceId = ev.target.value.trim();
-          x.voiceName = "";
+          x.voiceName = (x.voices ?? []).find((c) => c.id === x.voiceId)?.name ?? "";
         })} />
+
+        <div className="border-t border-line pt-4">
+          <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-ink-3">Kolekcja głosów</p>
+          <p className="mt-1 text-[12px] leading-relaxed text-ink-3">Głosy do wyboru przy nagrywaniu sesji audio. Gwiazdka = głos domyślny (oddech, joga, myśli, mantry).</p>
+          {(e.voices ?? []).length > 0 && (
+            <ul className="mt-3 space-y-1.5">
+              {(e.voices ?? []).map((v) => (
+                <li key={v.id} className={cn("flex items-center gap-2 rounded-xl px-2 py-1.5 ring-1", v.id === e.voiceId ? "bg-sage-soft ring-sage" : "ring-line")}>
+                  <IconButton label={`Ustaw jako domyślny: ${v.name}`} className="h-9 w-9" onClick={() => set((x) => void ((x.voiceId = v.id), (x.voiceName = v.name)))}>
+                    <Star className={cn("h-4 w-4", v.id === e.voiceId ? "fill-clay text-clay" : "text-ink-3")} />
+                  </IconButton>
+                  <input
+                    className="min-w-0 flex-1 bg-transparent text-[14px] text-ink focus:outline-none"
+                    aria-label={`Nazwa głosu ${v.id}`}
+                    value={v.name}
+                    onChange={(ev) =>
+                      set((x) => {
+                        const c = x.voices?.find((y) => y.id === v.id);
+                        if (c) c.name = ev.target.value;
+                        if (x.voiceId === v.id) x.voiceName = ev.target.value;
+                      })
+                    }
+                  />
+                  <span className="hidden text-[10px] text-ink-3 sm:inline">{v.id.slice(0, 8)}…</span>
+                  <IconButton label={`Usuń z kolekcji: ${v.name}`} className="h-9 w-9" onClick={() => set((x) => void (x.voices = (x.voices ?? []).filter((y) => y.id !== v.id)))}>
+                    <Trash2 className="h-4 w-4" />
+                  </IconButton>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="mt-3 flex gap-2">
+            <input
+              className="h-11 min-w-0 flex-1 rounded-xl bg-surface px-3 text-[14px] text-ink ring-1 ring-line placeholder:text-ink-3 focus:outline-none focus:ring-2 focus:ring-sage"
+              placeholder="ID głosu (kilka: po przecinku)"
+              aria-label="Dodaj ID głosów do kolekcji"
+              value={newVoices}
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              onChange={(ev) => setNewVoices(ev.target.value)}
+            />
+            <Button
+              variant="secondary"
+              className="h-11"
+              disabled={!newVoices.trim()}
+              onClick={() => {
+                const ids = newVoices.split(/[\s,;]+/).map((x) => x.trim()).filter((x) => /^[A-Za-z0-9]{10,40}$/.test(x));
+                if (!ids.length) return toast("To nie wygląda na ID głosu ElevenLabs.");
+                set((x) => {
+                  addToCollection(x, ids.map((id, k) => ({ id, name: `Głos ${(x.voices?.length ?? 0) + k + 1}` })));
+                  if (!x.voiceId) x.voiceId = ids[0];
+                });
+                setNewVoices("");
+              }}
+            >
+              Dodaj
+            </Button>
+          </div>
+        </div>
         <label className="block">
           <span className="mb-1.5 flex items-center justify-between text-[13px] text-ink-2">
             Model

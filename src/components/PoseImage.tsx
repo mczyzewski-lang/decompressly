@@ -1,12 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Maximize2, X } from "lucide-react";
 import { FIGURES } from "@/lib/yoga/figures";
 import { renderPoseSvg } from "@/lib/yoga/render-svg";
 import type { Pose } from "@/lib/yoga/poses";
 import photoManifest from "@/data/yoga-photos.json";
+import { useApp } from "@/lib/store";
+import { blobUrl } from "@/lib/db";
 import { IconButton, cn } from "./ui";
 
 export interface PhotoEntry {
@@ -26,26 +28,47 @@ export function approvedPhoto(id: string): PhotoEntry | null {
   return p && p.approved ? p : null;
 }
 
-function Visual({ pose, large }: { pose: Pose; large?: boolean }) {
+/** Object URL of the user's own photo for a pose, if one was added. */
+export function useOwnPhoto(poseId: string): string | null {
+  const blobId = useApp((s) => s.yogaPhotos?.[poseId]);
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let alive = true;
+    if (!blobId) setUrl(null);
+    else void blobUrl(blobId).then((u) => alive && setUrl(u));
+    return () => {
+      alive = false;
+    };
+  }, [blobId]);
+  return url;
+}
+
+function Visual({ pose, large, notes }: { pose: Pose; large?: boolean; notes?: boolean }) {
+  const own = useOwnPhoto(pose.id);
   const photo = approvedPhoto(pose.id);
-  const svg = useMemo(() => (FIGURES[pose.id] ? renderPoseSvg(FIGURES[pose.id], { id: `${pose.id}${large ? "-lg" : ""}`, title: pose.alt }) : ""), [pose, large]);
-  if (photo) {
+  const svg = useMemo(
+    () => (FIGURES[pose.id] ? renderPoseSvg(FIGURES[pose.id], { id: `${pose.id}${large ? "-lg" : ""}${notes ? "-n" : ""}`, title: pose.alt, notes: !!notes }) : ""),
+    [pose, large, notes],
+  );
+  const src = own ?? photo?.file;
+  if (src) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
-      <img src={photo.file} alt={pose.alt} className="h-full w-full object-contain" loading="lazy" decoding="async" />
+      <img src={src} alt={pose.alt} className="h-full w-full object-contain" loading="lazy" decoding="async" />
     );
   }
   return <div className="h-full w-full [&>svg]:h-full [&>svg]:w-full" role="img" aria-label={pose.alt} dangerouslySetInnerHTML={{ __html: svg }} />;
 }
 
-export function PoseImage({ pose, className, zoomable = true }: { pose: Pose; className?: string; zoomable?: boolean }) {
+export function PoseImage({ pose, className, zoomable = true, notes = false }: { pose: Pose; className?: string; zoomable?: boolean; notes?: boolean }) {
   const [open, setOpen] = useState(false);
-  const photo = approvedPhoto(pose.id);
+  const own = useOwnPhoto(pose.id);
+  const photo = own ? null : approvedPhoto(pose.id);
   return (
     <>
       <div className={cn("relative overflow-hidden rounded-3xl bg-surface ring-1 ring-line/60", className)}>
         <div className="aspect-[4/3] w-full p-3">
-          <Visual pose={pose} />
+          <Visual pose={pose} notes={notes} />
         </div>
         {zoomable && (
           <IconButton label="Powiększ ilustrację" onClick={() => setOpen(true)} className="absolute bottom-2 right-2 h-9 w-9 bg-bg/80 backdrop-blur">
@@ -69,7 +92,7 @@ export function PoseImage({ pose, className, zoomable = true }: { pose: Pose; cl
             <Dialog.Description className="sr-only">{pose.alt}</Dialog.Description>
             <div className="flex flex-1 items-center justify-center">
               <div className="aspect-[4/3] w-full max-w-3xl">
-                <Visual pose={pose} large />
+                <Visual pose={pose} large notes />
               </div>
             </div>
             <p className="pb-4 text-center text-[12px] text-ink-3">
@@ -80,6 +103,8 @@ export function PoseImage({ pose, className, zoomable = true }: { pose: Pose; cl
                     źródło
                   </a>
                 </>
+              ) : own ? (
+                "Twoje zdjęcie"
               ) : (
                 "Ilustracja Decompressly (widok uproszczony)"
               )}
