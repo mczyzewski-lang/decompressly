@@ -22,6 +22,7 @@ import {
   Feather,
   BookOpen,
   Sparkle,
+  Route,
 } from "lucide-react";
 import { ensureDay, setDayMode, update, useApp } from "@/lib/store";
 import { formatLong, formatTime, greeting, toISODate, weekKey, daysBetween } from "@/lib/dates";
@@ -280,6 +281,7 @@ export default function Today() {
           { label: "Kalendarz i historia", hint: "Co już się wydarzyło", Icon: CalendarDays, to: "history" },
           { label: "Moje rytuały", hint: "START, CLOSE i stały rytm", Icon: Repeat, to: "rituals" },
           { label: "Mantry", hint: "Ulubione i mantra dnia", Icon: Quote, to: "mantras" },
+          { label: "Ścieżka oczyszczenia", hint: "Audio → refleksja → audio, które ją przytacza", Icon: Route, to: "paths/oczyszczenie" },
           { label: "Moje myśli", hint: "Prywatna biblioteka myśli i refleksji", Icon: BookOpen, to: "thoughts" },
           { label: "Słoik dobrych chwil", hint: "Jedna dobra chwila — kiedy masz ochotę", Icon: Sparkle, to: "moments" },
           { label: "Tryb wyjazdu", hint: "Minimum aplikacji", Icon: Plane, to: "trip" },

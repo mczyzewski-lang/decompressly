@@ -1,8 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Pause, Play, RotateCcw, RotateCw, Download, Sparkles, Pencil, Music } from "lucide-react";
+import { Pause, Play, RotateCcw, RotateCw, Download, Sparkles, Pencil, Music, Quote, Route } from "lucide-react";
 import { AUDIO_BY_ID, personalize } from "@/lib/audio/scripts";
+import { parsePathSessionId, pathAudioDef, threadFor, weaveEcho } from "@/lib/paths";
+import { PathReflection } from "../PathReflection";
 import { applyPacing, DEFAULT_GAP, estimateDuration, hasScriptMotif, layoutKey, parseScript, speechSegments, textKey, totalCharacters, withMotif } from "@/lib/audio/segments";
 import { BACKGROUND_URL, generateMissing, missingSegments, renderSessionFile } from "@/lib/audio/narration";
 import { blobUrl, deleteBlob, getBlob } from "@/lib/db";
@@ -23,7 +25,11 @@ const BG_OPTIONS: { value: Background; label: string }[] = [
 ];
 
 export default function AudioSession({ id }: { id: string }) {
-  const def = AUDIO_BY_ID[id];
+  // a step of a path ("p.<path>.<n>") is a regular session whose script weaves in the previous reflection
+  const pathRef = useMemo(() => parsePathSessionId(id), [id]);
+  const run = useApp((s) => (pathRef ? s.paths?.[pathRef.path.id] : undefined));
+  const def = useMemo(() => (pathRef ? pathAudioDef(pathRef.path, pathRef.step) : AUDIO_BY_ID[id]), [id, pathRef]);
+  const reflectionRef = useRef<HTMLDivElement>(null);
   const forms = useNameForms();
   const ov = useApp((s) => s.audio.sessions[id]);
   const eleven = useApp((s) => s.eleven);
@@ -35,7 +41,7 @@ export default function AudioSession({ id }: { id: string }) {
   const [progress, setProgress] = useState<number | null>(null);
 
   const rawScript = ov?.script ?? def?.script ?? "";
-  const script = personalize(rawScript, forms);
+  const script = personalize(pathRef ? weaveEcho(rawScript, pathRef.step, run) : rawScript, forms);
   const pauseScale = ov?.pauseScale ?? globalPause;
   const gap = ov?.gap ?? globalGap;
   const written = useMemo(() => parseScript(script), [script]);
@@ -140,16 +146,28 @@ export default function AudioSession({ id }: { id: string }) {
 
   return (
     <Screen tabbed>
-      <ScreenHeader fallback="audio" />
+      <ScreenHeader fallback={pathRef ? `paths/${pathRef.path.id}` : "audio"} />
+      {pathRef && (
+        <button onClick={() => navigate(`paths/${pathRef.path.id}`)} className="mb-1 flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-[0.12em] text-sage-deep">
+          <Route className="h-3.5 w-3.5" /> {pathRef.path.title} · etap {pathRef.step.n}
+        </button>
+      )}
       <h1 className="font-display text-[30px] leading-tight tracking-tight text-ink">{def.title}</h1>
       <p className="mt-1 text-[15px] text-ink-2">
         ok. {Math.round(est / 60)} min · {def.description}
       </p>
 
+      {pathRef && pathRef.step.n > 1 && <PathThread pathId={pathRef.path.id} n={pathRef.step.n} />}
+
       <div className="mt-6">
         {render ? (
           <>
-            <FilePlayer blobId={render.blobId} title={def.title} onDone={() => logActivity("audio", def.title)} />
+            <FilePlayer
+              blobId={render.blobId}
+              title={def.title}
+              onDone={() => logActivity("audio", def.title)}
+              onEnded={() => reflectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+            />
             {(!renderFresh || remixNeeded) && (
               <p className="mt-2 px-1 text-[12px] text-ink-3">
                 {remixNeeded ? "Za chwilę zapisze się nowa wersja z wybranymi pauzami i tłem." : "To poprzednia wersja nagrania. Scenariusz lub głos się zmienił — wygeneruj narrację ponownie poniżej."}
@@ -182,6 +200,8 @@ export default function AudioSession({ id }: { id: string }) {
           </Card>
         )}
       </div>
+
+      {pathRef && <PathReflection ref={reflectionRef} path={pathRef.path} step={pathRef.step} />}
 
       <SectionTitle>Dźwięk</SectionTitle>
       <Card>
@@ -333,7 +353,7 @@ export default function AudioSession({ id }: { id: string }) {
         <div>
           <TextArea value={draft} onChange={(e) => setDraft(e.target.value)} rows={18} className="font-mono text-[14px]" aria-label="Scenariusz sesji" />
           <p className="mt-2 text-[12px] leading-relaxed text-ink-3">
-            Pusta linia = nowy fragment. „[pauza 8]” = 8 sekund ciszy. „[motyw start]” lub „[motyw close]” = motyw dźwiękowy w tym miejscu (zastępuje ustawienie sesji), „[motyw close 35%]” = cichy motyw w tle na 35% głośności. „{"{imię}"}” = zwrot po imieniu („{forms.voc}”), „{"{imię_m}"}” = „{forms.nom}”. Znaczniki nie są wysyłane do syntezy mowy.
+            Pusta linia = nowy fragment. „[pauza 8]” = 8 sekund ciszy. „[motyw start]” lub „[motyw close]” = motyw dźwiękowy w tym miejscu (zastępuje ustawienie sesji), „[motyw close 35%]” = cichy motyw w tle na 35% głośności. „{"{imię}"}” = zwrot po imieniu („{forms.voc}”), „{"{imię_m}"}” = „{forms.nom}”. {pathRef ? "„{echo}” = miejsce, w którym sesja przytacza Twoją poprzednią refleksję. " : ""}Znaczniki nie są wysyłane do syntezy mowy.
           </p>
           <div className="mt-3 flex gap-2">
             <Button variant="primary" onClick={() => (setOv((o) => void (o.script = draft === def.script ? undefined : draft)), setEditing(false))}>
@@ -407,7 +427,37 @@ function setMediaSession(title: string, handlers: { play: () => void; pause: () 
   }
 }
 
-function FilePlayer({ blobId, title, onDone }: { blobId: string; title: string; onDone: () => void }) {
+function PathThread({ pathId, n }: { pathId: string; n: number }) {
+  const run = useApp((s) => s.paths?.[pathId]);
+  const t = threadFor(run, n);
+  const hold = () =>
+    update((s) => {
+      const note = t.lastStep ? s.paths?.[pathId]?.notes[t.lastStep] : undefined;
+      if (note) note.private = true;
+    });
+  return (
+    <Card className="mt-5 bg-surface-2 shadow-none ring-0">
+      <p className="flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-[0.12em] text-ink-3">
+        <Quote className="h-3.5 w-3.5" /> Z poprzedniej refleksji
+      </p>
+      {t.last ? (
+        <>
+          <p className="mt-2 text-[16px] leading-relaxed text-ink">„{t.last}”</p>
+          <p className="mt-2 text-[12px] leading-relaxed text-ink-3">
+            Etap {t.lastStep} · ta sesja przytoczy to zdanie Twoim głosem ElevenLabs. Nowe nagranie obejmie tylko fragmenty z tym zdaniem.
+          </p>
+          <button className="mt-2 text-[13px] text-sage-deep" onClick={hold}>
+            Nie przytaczaj — zachowaj dla siebie
+          </button>
+        </>
+      ) : (
+        <p className="mt-2 text-[14px] leading-relaxed text-ink-2">Ta sesja nawiąże do drogi bez cytowania — poprzednia refleksja była bez słów albo tylko dla Ciebie.</p>
+      )}
+    </Card>
+  );
+}
+
+function FilePlayer({ blobId, title, onDone, onEnded }: { blobId: string; title: string; onDone: () => void; onEnded?: () => void }) {
   const ref = useRef<HTMLAudioElement>(null);
   const [url, setUrl] = useState<string | null>(null);
   const [playing, setPlaying] = useState(false);
@@ -451,7 +501,10 @@ function FilePlayer({ blobId, title, onDone }: { blobId: string; title: string; 
               onDone();
             }
           }}
-          onEnded={() => setPlaying(false)}
+          onEnded={() => {
+            setPlaying(false);
+            onEnded?.();
+          }}
         />
       )}
       <input

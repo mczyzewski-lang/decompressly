@@ -33,6 +33,7 @@ import Nothing from "./screens/Nothing";
 import InstallGuide from "./screens/InstallGuide";
 import Thoughts from "./screens/Thoughts";
 import Moments from "./screens/Moments";
+import PathScreen from "./screens/PathScreen";
 
 const FULLSCREEN = new Set(["start", "close", "nothing"]);
 
@@ -113,6 +114,8 @@ function RouteView() {
       return <Thoughts />;
     case "moments":
       return <Moments />;
+    case "paths":
+      return <PathScreen id={b} />;
     case "trip":
       return <Trip />;
     case "settings":

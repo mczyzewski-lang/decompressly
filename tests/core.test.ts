@@ -354,3 +354,55 @@ describe("breath air sound", () => {
     expect(encodeWav(new Float32Array(10)).byteLength).toBe(64);
   });
 });
+
+import { PATHS, parsePathSessionId, sanitizeReflection, stepOpen, currentStep, threadFor, weaveEcho } from "@/lib/paths";
+import type { PathRun } from "@/lib/types";
+
+describe("paths: audio → reflection → audio", () => {
+  const path = PATHS[0];
+  const run = (notes: PathRun["notes"]): PathRun => ({ id: "r", pathId: path.id, startedAt: 0, notes });
+
+  it("every step has an {echo} place, a question, and parses as a session id", () => {
+    for (const s of path.steps) {
+      expect(s.script).toContain("{echo}");
+      expect(s.question.length).toBeGreaterThan(5);
+      expect(parsePathSessionId(`p.${path.id}.${s.n}`)?.step.n).toBe(s.n);
+    }
+    expect(parsePathSessionId("demob")).toBeNull();
+  });
+
+  it("the next session quotes the previous reflection, sanitized", () => {
+    const r = run({ 1: { text: "Ciągle myślę o pracy [pauza 99] {imię}\n\ni o tym, co nie wyszło.", at: 1 } });
+    const script = weaveEcho(path.steps[1].script, path.steps[1], r);
+    expect(script).toContain("„Ciągle myślę o pracy pauza 99 imię i o tym, co nie wyszło.”");
+    expect(script).not.toContain("{echo}");
+    const segs = parseScript(script);
+    expect(segs.filter((s) => s.kind === "pause" && s.seconds === 99)).toHaveLength(0);
+  });
+
+  it("private and skipped reflections are never quoted; the thread falls back to earlier ones", () => {
+    const r = run({ 1: { text: "Pierwsza myśl", at: 1 }, 2: { text: "Tajne", at: 2, private: true }, 3: { text: "", at: 3 } });
+    expect(threadFor(r, 4)).toMatchObject({ last: "Pierwsza myśl", lastStep: 1 });
+    expect(weaveEcho(path.steps[3].script, path.steps[3], r)).not.toContain("Tajne");
+    expect(weaveEcho(path.steps[1].script, path.steps[1], run({}))).toContain("Przypomnij sobie");
+  });
+
+  it("the closing step recalls the first and the latest sentence", () => {
+    const last = path.steps[path.steps.length - 1];
+    const both = weaveEcho(last.script, last, run({ 1: { text: "Początek", at: 1 }, 6: { text: "Koniec", at: 6 } }));
+    expect(both).toContain("„Początek”");
+    expect(both).toContain("„Koniec”");
+    const single = weaveEcho(last.script, last, run({ 6: { text: "Koniec", at: 6 } }));
+    expect(single).toContain("„Koniec”");
+    expect(single).not.toContain("„”");
+  });
+
+  it("steps open one after another and the first step has no empty paragraphs", () => {
+    const r = run({ 1: { text: "a", at: 1 } });
+    expect(stepOpen(r, 2)).toBe(true);
+    expect(stepOpen(r, 3)).toBe(false);
+    expect(currentStep(path, r)).toBe(2);
+    expect(weaveEcho(path.steps[0].script, path.steps[0], undefined)).not.toMatch(/\n{3,}/);
+    expect(sanitizeReflection("„cytat”")).toBe("cytat");
+  });
+});

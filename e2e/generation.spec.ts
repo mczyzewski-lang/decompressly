@@ -142,3 +142,44 @@ test("sound studio: one tap generates START + CLOSE for all four styles", async 
   });
   expect(blobs).toBeGreaterThanOrEqual(16);
 });
+
+test("path: reflection after a session is quoted (and spoken) in the next one", async ({ page }) => {
+  test.setTimeout(150_000);
+  const tts: string[] = [];
+  await page.route("**/api/eleven/tts", async (route) => {
+    tts.push(route.request().postDataJSON().text);
+    await route.fulfill({ status: 200, contentType: "audio/mpeg", body: fakeAudio });
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Zacznij spokojnie" }).click();
+  await page.evaluate(() => (location.hash = "#/settings/eleven"));
+  await page.getByLabel("lub ID głosu").fill("TestVoice1234567890");
+
+  await page.evaluate(() => (location.hash = "#/audio"));
+  await page.getByRole("button", { name: /Ścieżka oczyszczenia/ }).click();
+  await expect(page.getByText("Otworzy się po refleksji z etapu 1")).toBeVisible();
+  await page.getByRole("button", { name: "Zacznij drogę" }).click();
+
+  await expect(page.getByText("Co noszę w sobie najciężej?")).toBeVisible();
+  await page.getByLabel("Twoja refleksja").fill("Ciągle wracam do niedokończonych spraw.");
+  await page.getByRole("button", { name: "Zapisz refleksję" }).click();
+  await expect(page.getByText(/Etap 2 „Przyjrzeć się z życzliwością” przytoczy to zdanie/)).toBeVisible();
+  await page.getByRole("button", { name: /Etap 2: Przyjrzeć się/ }).click();
+
+  await expect(page.getByText("Z poprzedniej refleksji")).toBeVisible();
+  await expect(page.getByText("Po ostatniej sesji zostały takie słowa: „Ciągle wracam do niedokończonych spraw.”.")).toBeVisible();
+  await page.getByRole("button", { name: "Wygeneruj narrację" }).click();
+  await expect(page.getByText("Plik zapisany na urządzeniu")).toBeVisible({ timeout: 120_000 });
+  expect(tts.some((t) => t.includes("„Ciągle wracam do niedokończonych spraw.”"))).toBe(true);
+  for (const t of tts) expect(t).not.toMatch(/\{echo\}|\{myśl\}|\[pauza/);
+
+  // keeping it private changes only the quoted paragraph — the rest is reused for free
+  const before = tts.length;
+  await page.getByRole("button", { name: "Nie przytaczaj — zachowaj dla siebie" }).click();
+  await expect(page.getByText("Ta sesja nawiąże do drogi bez cytowania", { exact: false })).toBeVisible();
+  await page.getByRole("button", { name: "Wygeneruj narrację" }).first().click();
+  await expect.poll(() => tts.length, { timeout: 30_000 }).toBe(before + 1);
+  await expect(page.getByText(/^Zapisana narracja: /)).toBeVisible({ timeout: 120_000 });
+  expect(tts.length - before).toBe(1);
+  expect(tts.slice(before).join(" ")).not.toContain("niedokończonych");
+});

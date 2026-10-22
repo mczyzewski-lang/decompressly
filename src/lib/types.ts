@@ -271,8 +271,29 @@ export interface AppState {
   questionNotes: QuestionNote[];
   /** "Słoik dobrych chwil" — small good moments, one sentence each */
   moments?: GoodMoment[];
+  /** "Ścieżki": the current run of each path (audio → reflection → audio) */
+  paths?: Record<string, PathRun>;
+  /** finished or restarted runs, newest first */
+  pathArchive?: PathRun[];
   /** pose id → blob id of the user's own reference photo */
   yogaPhotos?: Record<string, string>;
   /** one-off data migrations already applied */
   migrations?: string[];
+}
+
+export interface PathNote {
+  /** one sentence after the session; empty when the reflection was consciously skipped */
+  text: string;
+  at: number;
+  /** kept for yourself only — never woven into the next recording */
+  private?: boolean;
+}
+
+export interface PathRun {
+  id: string;
+  pathId: string;
+  startedAt: number;
+  finishedAt?: number;
+  /** step number → reflection written after that step */
+  notes: Record<number, PathNote>;
 }
