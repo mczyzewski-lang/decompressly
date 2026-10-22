@@ -1,17 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Eye, EyeOff, Pause, Play, Square, Minus, Plus, Volume2, VolumeX, Bell } from "lucide-react";
+import { Eye, EyeOff, Pause, Play, Square, Minus, Plus, Volume2, VolumeX, Bell, Wind } from "lucide-react";
 import { BREATH_MODES, PHASE_MAX, PHASE_MIN, SessionClock, clampPhase, frameAt, patternFor, sessionLengthMs, type BreathPattern, type Phase } from "@/lib/breath";
 import { getNameForms, logActivity, update, useApp } from "@/lib/store";
 import { formatClock } from "@/lib/dates";
-import { softTone, unlockAudio } from "@/lib/audio/engine";
+import { playAir, softTone, stopAir, unlockAudio } from "@/lib/audio/engine";
+import { airUrl } from "@/lib/audio/breath-air";
 import { prefetchVoice, say, stopVoice, voiceConfigured } from "@/lib/audio/voice";
 import { BREATH_EXHALE, BREATH_INHALE, breathEnd, breathIntro } from "@/lib/audio/phrases";
 import { useOnHidden, useWakeLock } from "@/lib/wakelock";
 import { navigate } from "@/lib/router";
 import type { BreathCue, BreathModeId } from "@/lib/types";
-import { Button, IconButton, Screen, Segmented, cn } from "../ui";
+import { Button, IconButton, Screen, Segmented, Slider, Toggle, cn } from "../ui";
 
 const MINUTES = [2, 5, 10] as const;
 const INHALE_TEXT = BREATH_INHALE;
@@ -23,6 +24,8 @@ export default function Breath({ params }: { params: URLSearchParams }) {
   const [mode, setMode] = useState<BreathModeId>(() => (params.get("mode") as BreathModeId) || settings.defaultMode);
   const [custom, setCustom] = useState<BreathPattern>({ inhale: settings.customInhale, exhale: settings.customExhale });
   const [cue, setCue] = useState<BreathCue>(settings.cue);
+  const [air, setAir] = useState(settings.air ?? true);
+  const [airVolume, setAirVolume] = useState(settings.airVolume ?? 0.4);
   const [session, setSession] = useState<null | { eyesClosed: boolean }>(null);
   const [preparing, setPreparing] = useState(false);
 
@@ -34,6 +37,8 @@ export default function Breath({ params }: { params: URLSearchParams }) {
         minutes={minutes}
         pattern={pattern}
         cue={session.eyesClosed ? "voice" : cue}
+        air={air}
+        airVolume={airVolume}
         eyesClosed={session.eyesClosed}
         modeLabel={BREATH_MODES.find((m) => m.id === mode)!.label}
         onExit={() => setSession(null)}
@@ -53,6 +58,8 @@ export default function Breath({ params }: { params: URLSearchParams }) {
       s.breath.customInhale = custom.inhale;
       s.breath.customExhale = custom.exhale;
       s.breath.cue = cue;
+      s.breath.air = air;
+      s.breath.airVolume = airVolume;
     });
     setSession({ eyesClosed });
   };
@@ -108,6 +115,32 @@ export default function Breath({ params }: { params: URLSearchParams }) {
             { value: "voice", label: "Głos" },
           ]}
         />
+        <div className="mt-3 rounded-3xl bg-surface px-4 py-1 ring-1 ring-line/60">
+          <Toggle
+            checked={air}
+            onChange={setAir}
+            label="Odgłos oddechu"
+            description={pattern ? "Delikatny szum wciąganego i wydychanego powietrza, cicho w tle." : "W naturalnym oddechu nie gra — nie narzuca tempa."}
+          />
+          {air && (
+            <div className="pb-3">
+              <Slider label="Głośność oddechu" min={0.1} max={1} step={0.05} value={airVolume} onChange={setAirVolume} format={(v) => `${Math.round(v * 100)}%`} />
+              <Button
+                size="sm"
+                variant="quiet"
+                className="mt-1"
+                onClick={async () => {
+                  await unlockAudio();
+                  const p = pattern ?? { inhale: 4, exhale: 6 };
+                  playAir(airUrl("inhale", p.inhale, airVolume));
+                  setTimeout(() => playAir(airUrl("exhale", p.exhale, airVolume)), p.inhale * 1000);
+                }}
+              >
+                <Wind className="h-4 w-4" /> Posłuchaj
+              </Button>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="mt-8 space-y-3">
@@ -149,6 +182,8 @@ function BreathSession({
   minutes,
   pattern,
   cue: initialCue,
+  air: initialAir,
+  airVolume,
   eyesClosed,
   modeLabel,
   onExit,
@@ -156,6 +191,8 @@ function BreathSession({
   minutes: number;
   pattern: BreathPattern | null;
   cue: BreathCue;
+  air: boolean;
+  airVolume: number;
   eyesClosed: boolean;
   modeLabel: string;
   onExit: () => void;
@@ -173,6 +210,9 @@ function BreathSession({
   const lastPhase = useRef<string>("");
   const cueRef = useRef(cue);
   cueRef.current = cue;
+  const [air, setAir] = useState(initialAir);
+  const airRef = useRef(air);
+  airRef.current = air;
   const total = sessionLengthMs(minutes, pattern);
   const reducedMotion = typeof window !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -181,6 +221,7 @@ function BreathSession({
   const finish = useCallback(() => {
     setStatus("done");
     clock.current.pause();
+    stopAir();
     logActivity("breath", `${Math.round(clock.current.elapsed() / 60000) || 1} min · ${modeLabel}`);
     if (cueRef.current !== "silent") setTimeout(() => void say(breathEnd(getNameForms()), { gain: 0.8 }), 600);
   }, [modeLabel]);
@@ -199,6 +240,7 @@ function BreathSession({
     return () => {
       cancelled = true;
       stopVoice();
+      stopAir();
     };
   }, [eyesClosed]);
 
@@ -207,6 +249,7 @@ function BreathSession({
     useCallback(() => {
       if (clock.current.running) {
         clock.current.pause();
+        stopAir();
         setStatus((s) => (s === "running" ? "paused" : s));
       }
     }, []),
@@ -242,6 +285,12 @@ function BreathSession({
       if (f.phase && key !== lastPhase.current && status === "running") {
         lastPhase.current = key;
         setPhase(f.phase);
+        if (airRef.current && pattern) {
+          const len = f.phase === "inhale" ? pattern.inhale : pattern.exhale;
+          const into = f.progress * len;
+          // resuming mid-phase picks the sound up where the breath is
+          playAir(airUrl(f.phase, len, airVolume), into > 0.3 ? into : 0);
+        }
         const c = cueRef.current;
         if (c === "tone") softTone(f.phase === "inhale" ? 392 : 293.66, f.phase === "inhale" ? 1.6 : 2.2, 0.06);
         else if (c === "voice") {
@@ -259,12 +308,13 @@ function BreathSession({
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [pattern, total, status, finish, reducedMotion, voiceCues]);
+  }, [pattern, total, status, finish, reducedMotion, voiceCues, airVolume]);
 
   const toggle = () => {
     if (status === "running") {
       clock.current.pause();
       stopVoice();
+      stopAir();
       setStatus("paused");
     } else if (status === "paused") {
       void unlockAudio();
@@ -281,6 +331,19 @@ function BreathSession({
       <div className="safe-top mx-auto flex w-full max-w-lg items-center justify-between px-4">
         <span className="px-2 text-[13px] text-ink-3">{modeLabel}</span>
         <div className="flex">
+          {pattern && (
+            <IconButton
+              label={air ? "Wyłącz odgłos oddechu" : "Włącz odgłos oddechu"}
+              aria-pressed={air}
+              className={air ? "" : "opacity-45"}
+              onClick={() => {
+                setAir((a) => !a);
+                if (air) stopAir();
+              }}
+            >
+              <Wind className="h-5 w-5" />
+            </IconButton>
+          )}
           <IconButton label={dim ? "Pokaż wizualizację" : "Przyciemnij ekran"} onClick={() => setDim((d) => !d)}>
             {dim ? <Eye className="h-5 w-5" /> : <EyeOff className="h-5 w-5" />}
           </IconButton>

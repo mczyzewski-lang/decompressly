@@ -51,6 +51,13 @@ export async function unlockAudio() {
   } catch {
     /* ignore */
   }
+  try {
+    const air = airElement();
+    air.src = silentWavUrl();
+    await air.play();
+  } catch {
+    /* ignore */
+  }
 }
 
 let silentUrl: string | null = null;
@@ -98,6 +105,32 @@ export async function refUrl(ref: AudioRef | undefined | null): Promise<string |
   if (!ref) return null;
   if (ref.kind === "static") return ref.url;
   return blobUrl(ref.id);
+}
+
+let airEl: HTMLAudioElement | null = null;
+function airElement(): HTMLAudioElement {
+  if (!airEl) {
+    airEl = new Audio();
+    airEl.preload = "auto";
+  }
+  return airEl;
+}
+
+/** Plays the soft breath sound of a phase (its own element, so it can sit under a spoken cue). */
+export function playAir(url: string, offsetSec = 0) {
+  const el = airElement();
+  el.pause();
+  el.src = url;
+  try {
+    el.currentTime = offsetSec;
+  } catch {
+    /* not seekable yet: starts from the beginning */
+  }
+  el.play().catch(() => undefined);
+}
+
+export function stopAir() {
+  airEl?.pause();
 }
 
 /** A single shared element for ritual sounds, so START/CLOSE never overlap. */

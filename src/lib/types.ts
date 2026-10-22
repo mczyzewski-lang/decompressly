@@ -178,6 +178,10 @@ export interface BreathSettings {
   customInhale: number;
   customExhale: number;
   cue: BreathCue;
+  /** soft, synthesized sound of the inhale and exhale under the cue */
+  air?: boolean;
+  /** 0..1, kept low by default */
+  airVolume?: number;
 }
 
 export type Background = "none" | "nature" | "jazz" | "system" | "orchestral";

@@ -226,3 +226,24 @@ test("yoga pose: alignment notes, own photo replaces the illustration and can be
   await page.getByRole("button", { name: "Wróć do ilustracji" }).click();
   await expect(page.locator("main img")).toHaveCount(0);
 });
+
+test("breath: soft air sound plays with each phase and can be switched off", async ({ page }) => {
+  await page.addInitScript(() => {
+    const w = window as unknown as { __played: string[] };
+    w.__played = [];
+    const orig = HTMLMediaElement.prototype.play;
+    HTMLMediaElement.prototype.play = function () {
+      w.__played.push(this.src);
+      return orig.call(this).catch(() => undefined);
+    };
+  });
+  await onboard(page);
+  await page.getByRole("button", { name: "Oddech", exact: true }).click();
+  await page.getByRole("radio", { name: "Cisza" }).click();
+  await expect(page.getByRole("switch", { name: "Odgłos oddechu" })).toHaveAttribute("aria-checked", "true");
+  await page.getByRole("button", { name: "Zacznij", exact: true }).click();
+  const played = () => page.evaluate(() => new Set((window as unknown as { __played: string[] }).__played).size);
+  await expect.poll(played).toBeGreaterThanOrEqual(2); // the silent primer + the inhale air
+  await page.getByRole("button", { name: "Wyłącz odgłos oddechu" }).click();
+  await expect(page.getByRole("button", { name: "Włącz odgłos oddechu" })).toBeVisible();
+});

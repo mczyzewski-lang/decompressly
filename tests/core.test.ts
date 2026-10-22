@@ -321,3 +321,36 @@ describe("growing motif", () => {
     expect(parseScript("[motyw close 35%]")).toEqual([{ kind: "motif", which: "close", level: 0.35 }]);
   });
 });
+
+import { airEnvelope, airLevel, encodeWav, renderAir, AIR_RATE } from "@/lib/audio/breath-air";
+
+describe("breath air sound", () => {
+  it("is soft, smooth at the edges and exactly one phase long", () => {
+    for (const phase of ["inhale", "exhale"] as const) {
+      const x = renderAir(phase, 4, airLevel(0.4));
+      expect(x.length).toBe(4 * AIR_RATE);
+      let peak = 0;
+      for (const v of x) {
+        expect(Number.isFinite(v)).toBe(true);
+        peak = Math.max(peak, Math.abs(v));
+      }
+      expect(peak).toBeLessThanOrEqual(airLevel(0.4) + 1e-6);
+      expect(peak).toBeLessThan(0.2);
+      expect(Math.abs(x[0])).toBeLessThan(1e-3);
+      expect(Math.abs(x[x.length - 1])).toBeLessThan(1e-3);
+    }
+  });
+  it("inhale peaks late, exhale early", () => {
+    const peakAt = (ph: "inhale" | "exhale") => {
+      let best = 0, at = 0;
+      for (let p = 0; p <= 1; p += 0.01) if (airEnvelope(ph, p) > best) [best, at] = [airEnvelope(ph, p), p];
+      return at;
+    };
+    expect(peakAt("inhale")).toBeGreaterThan(0.6);
+    expect(peakAt("exhale")).toBeLessThan(0.3);
+  });
+  it("never exceeds a gentle ceiling, even at 100%", () => {
+    expect(airLevel(1)).toBeLessThanOrEqual(0.45);
+    expect(encodeWav(new Float32Array(10)).byteLength).toBe(64);
+  });
+});
