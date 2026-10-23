@@ -234,15 +234,23 @@ export function Sheet({
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/25 data-[state=open]:animate-fade-in" />
+        {/* a clearly dimmed, slightly blurred page behind, so the window's edge is always visible */}
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] data-[state=closed]:animate-overlay-out data-[state=open]:animate-overlay-in dark:bg-black/65" />
         <Dialog.Content
-          className="safe-bottom fixed inset-x-0 bottom-0 z-50 mx-auto max-h-[88dvh] w-full max-w-lg overflow-y-auto rounded-t-[28px] bg-bg px-5 pt-3 shadow-lift outline-none data-[state=open]:animate-fade-up"
+          // the sheet slides up from the bottom edge as one piece; in dark mode it is lighter than the page
+          className="safe-bottom fixed inset-x-0 bottom-0 z-50 mx-auto max-h-[88dvh] w-full max-w-lg overflow-y-auto overscroll-contain rounded-t-[28px] border-t border-line bg-bg px-5 pt-3 shadow-[0_-12px_40px_rgba(0,0,0,0.18)] outline-none will-change-transform data-[state=closed]:animate-sheet-down data-[state=open]:animate-sheet-up dark:border-white/10 dark:bg-surface dark:shadow-[0_-12px_40px_rgba(0,0,0,0.6)]"
+          // focusing the first button can scroll the sheet on iPhone — keep focus on the sheet itself
+          onOpenAutoFocus={(e) => {
+            e.preventDefault();
+            (e.currentTarget as HTMLElement | null)?.focus({ preventScroll: true });
+          }}
+          tabIndex={-1}
           // a confirmation dialog opened from inside a sheet must not close the sheet underneath
           onPointerDownOutside={(e) => confirmGuardActive() && e.preventDefault()}
           onFocusOutside={(e) => confirmGuardActive() && e.preventDefault()}
           onInteractOutside={(e) => confirmGuardActive() && e.preventDefault()}
         >
-          <div className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-line" aria-hidden />
+          <div className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-line dark:bg-white/25" aria-hidden />
           <div className="mb-4 flex items-start justify-between gap-4">
             <div>
               <Dialog.Title className="font-display text-[22px] leading-snug text-ink">{title}</Dialog.Title>
