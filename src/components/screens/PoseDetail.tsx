@@ -1,8 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Camera, Trash2 } from "lucide-react";
-import { POSE_BY_ID, POSE_GROUPS } from "@/lib/yoga/poses";
+import { Camera, PlayCircle, Trash2 } from "lucide-react";
+import { POSE_BY_ID, POSE_GROUPS, youtubeUrl } from "@/lib/yoga/poses";
 import { formatClock } from "@/lib/dates";
 import { deleteBlob, putBlob } from "@/lib/db";
 import { update, useApp } from "@/lib/store";
@@ -102,6 +102,16 @@ export default function PoseDetail({ id }: { id: string }) {
         </span>
       </p>
       <PoseImage pose={p} className="mt-5" />
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <a
+          href={youtubeUrl(p)}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex h-9 items-center gap-2 rounded-full bg-surface-2 px-4 text-[14px] font-medium text-ink active:scale-[0.98]"
+        >
+          <PlayCircle className="h-4 w-4 text-clay" /> {p.youtube ? "Film z instrukcją" : "Zobacz na YouTube"}
+        </a>
+      </div>
       <OwnPhoto poseId={p.id} name={p.name} />
       <div className="mt-4 grid grid-cols-2 gap-3">
         <Card className="p-4">

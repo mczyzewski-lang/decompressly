@@ -9,7 +9,7 @@ import { blobUrl } from "@/lib/db";
 import { IconButton, cn } from "./ui";
 
 /** The photos share one dark studio background; tiles use the same colour so they blend in. */
-export const PHOTO_BG = "bg-[#24282a]";
+export const PHOTO_BG = "bg-[#232628]";
 
 /** Object URL of the user's own photo for a pose, if one was added. */
 export function useOwnPhoto(poseId: string): string | null {

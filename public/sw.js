@@ -1,5 +1,5 @@
 /* Decompressly service worker — offline-first shell, cache-first static assets, never caches /api. */
-const VERSION = "dc-v5"; // bump whenever bundled sounds, icons or yoga photos change, so installed apps refresh them
+const VERSION = "dc-v6"; // bump whenever bundled sounds, icons or yoga photos change, so installed apps refresh them
 const SHELL = `${VERSION}-shell`;
 const STATIC = `${VERSION}-static`;
 

@@ -24,6 +24,17 @@ describe("yoga", () => {
       for (const ph of p.photos) expect(existsSync(`public${ph}`), ph).toBe(true);
     }
   });
+  it("every pose links to YouTube — a pinned video or a search by its names", async () => {
+    const { youtubeUrl } = await import("@/lib/yoga/poses");
+    for (const p of POSES) {
+      const u = new URL(youtubeUrl(p));
+      expect(u.hostname).toBe("www.youtube.com");
+      const q = u.searchParams.get("search_query") ?? "";
+      expect(q, p.id).toContain("joga");
+      expect(q).not.toMatch(/[()]/);
+    }
+    expect(youtubeUrl({ ...POSES[0], youtube: "https://www.youtube.com/watch?v=abc" })).toBe("https://www.youtube.com/watch?v=abc");
+  });
   it("every pose of the catalogue is part of at least one practice", () => {
     const used = new Set(YOGA_SESSIONS.flatMap((s) => s.steps.map((st) => st.poseId)));
     expect(POSES.filter((p) => !used.has(p.id)).map((p) => p.id)).toEqual([]);

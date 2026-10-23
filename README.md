@@ -122,7 +122,7 @@ Jedna prerenderowana strona + hash-router (`#/breath`, `#/yoga` itd.) to świado
 
 ## Zdjęcia jogi
 
-Zdjęcia pozycji (`public/yoga/*.webp`, ok. 300 kB łącznie) zostały wycięte z dostarczonej planszy „54 pozycje jogi” (siatka 6×9, bez podpisów), powiększone 2× i zapisane jako WebP. Kot i krowa tworzą jedną pozycję w ruchu (dwa zdjęcia), stąd 53 pozycje. Service worker zapisuje wszystkie zdjęcia przy instalacji, więc biblioteka działa offline od pierwszego uruchomienia. W szczegółach pozycji można dodać własne zdjęcie (zmniejszane do 1400 px, zapisywane lokalnie) — „Wróć do zdjęcia z katalogu” je usuwa.
+Zdjęcia pozycji (`public/yoga/*.webp`, ok. 420 kB łącznie, ok. 500 px szerokości) zostały wycięte z ośmiu dostarczonych plansz „JOGA 1/8 … 8/8” (siatki 2×3 i 2×4, podpisy odcięte automatycznie) i zapisane jako WebP bez skalowania. Kot i krowa tworzą jedną pozycję w ruchu (dwa zdjęcia), stąd 53 pozycje. Każda pozycja ma przycisk „Zobacz na YouTube” — wyszukiwanie po nazwie polskiej i sanskryckiej; konkretny film można przypiąć polem `youtube` w `src/lib/yoga/poses.ts`. Service worker zapisuje wszystkie zdjęcia przy instalacji, więc biblioteka działa offline od pierwszego uruchomienia. W szczegółach pozycji można dodać własne zdjęcie (zmniejszane do 1400 px, zapisywane lokalnie) — „Wróć do zdjęcia z katalogu” je usuwa.
 
 ## Treści — źródła i zasady
 
@@ -161,7 +161,6 @@ Stack: Next.js 15 (App Router), React 19, TypeScript, Tailwind CSS, komponenty w
 
 ## Znane ograniczenia
 
-- Zdjęcia jogi mają rozdzielczość planszy źródłowej (komórka ok. 165 px, powiększona 2×) — w pełnoekranowym powiększeniu są lekko miękkie.
 - ElevenLabs nie było wywoływane podczas budowy (brak klucza i dostępu sieciowego); integracja jest zgodna z dokumentacją i przetestowana na zamockowanym API. Przy pierwszym użyciu wygeneruj próbkę głosu (Ustawienia → ElevenLabs).
 - Frazy, które nie były jeszcze nagrane, wymagają internetu przy pierwszym użyciu. Przed wyjazdem warto użyć „Nagraj wszystkie teraz” (Ustawienia → ElevenLabs → Wskazówki głosowe).
 - Limit znaków i limit żądań na serwerze są per instancja (wystarczające dla jednej osoby; nie jest to globalny licznik).

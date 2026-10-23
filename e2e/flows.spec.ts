@@ -226,6 +226,8 @@ test("yoga: photo catalogue with groups; own photo replaces the pose photo and c
   const photos = page.locator("main img[src^='/yoga/']");
   await expect(photos).toHaveCount(2);
   expect(await photos.evaluateAll((els) => els.every((e) => (e as HTMLImageElement).naturalWidth > 0))).toBe(true);
+  expect(await photos.first().evaluate((e) => (e as HTMLImageElement).naturalWidth)).toBeGreaterThan(400); // the sharp versions
+  await expect(page.getByRole("link", { name: /Zobacz na YouTube/ })).toHaveAttribute("href", /youtube\.com\/results\?search_query=Kot/);
   const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
   await page.getByLabel("Wybierz zdjęcie pozycji").setInputFiles({ name: "kot.png", mimeType: "image/png", buffer: png });
   await expect(page.locator("main img[src^='blob:']")).toHaveCount(1);

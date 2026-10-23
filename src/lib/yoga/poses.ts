@@ -30,6 +30,16 @@ export interface Pose {
   beginner: string;
   skipWhen: string;
   alt: string;
+  /** a specific instruction video; without it the app opens a YouTube search for the pose */
+  youtube?: string;
+}
+
+/** YouTube link for a pose: the pinned video, or a search by its Polish and Sanskrit names. */
+export function youtubeUrl(p: Pose): string {
+  if (p.youtube) return p.youtube;
+  const sanskrit = (p.sanskrit ?? "").replace(/\(.*?\)/g, "").split("–")[0].trim();
+  const q = [p.name.replace(/\s*\(.*?\)/g, ""), "joga", sanskrit, "jak wykonać"].filter(Boolean).join(" ");
+  return `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`;
 }
 
 const photo = (id: string) => [`/yoga/${id}.webp`];
