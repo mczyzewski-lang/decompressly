@@ -35,7 +35,7 @@ cp .env.example .env.local     # uzupełnij ELEVENLABS_API_KEY (opcjonalnie)
 npm run dev                    # http://localhost:3000
 ```
 
-Bez klucza ElevenLabs działa wszystko poza mową: wbudowane dźwięki START/CLOSE, tła, ilustracje, oddech (z delikatnymi sygnałami) i joga. **Aplikacja nigdy nie używa głosu systemowego** — każde wypowiadane zdanie pochodzi z wybranego głosu ElevenLabs, nagrywa się przy pierwszym użyciu i zostaje offline.
+Bez klucza ElevenLabs działa wszystko poza mową: wbudowane dźwięki START/CLOSE, tła, zdjęcia pozycji, oddech (z delikatnymi sygnałami) i joga. **Aplikacja nigdy nie używa głosu systemowego** — każde wypowiadane zdanie pochodzi z wybranego głosu ElevenLabs, nagrywa się przy pierwszym użyciu i zostaje offline.
 
 ## Konfiguracja ElevenLabs
 
@@ -107,7 +107,7 @@ Instrukcja jest też w aplikacji: Ustawienia → Instalacja na iPhonie.
 - Oddech i joga trzymają ekran włączony (Wake Lock, iOS 16.4+), a po przejściu w tło **pauzują się** — czas nie jest „nadrabiany” po powrocie.
 - `prefers-reduced-motion`: koło oddechu przestaje się skalować (zostaje subtelna zmiana jasności), animacje rytuałów są natychmiastowe.
 - Pola tekstowe mają co najmniej 16 px (także wymuszone w CSS dla iOS), więc Safari nie powiększa ekranu przy wpisywaniu.
-- VoiceOver: etykiety przycisków, `aria-live` dla faz i timerów, role `radiogroup`/`switch`, opisy ilustracji.
+- VoiceOver: etykiety przycisków, `aria-live` dla faz i timerów, role `radiogroup`/`switch`, opisy zdjęć pozycji.
 
 ## Dane i pamięć
 
@@ -151,7 +151,7 @@ src/components/         App (router + host dialogów), TabBar, ui.tsx (design sy
 src/lib/                store (zustand+immer → IndexedDB), db, router, breath, goal, mantras, health, sounds, defaults
 src/lib/audio/          engine (iOS audio, mowa, sygnały), segments (parser scenariuszy), scripts (7 sesji),
                         narration (generacja + cache), render (montaż OfflineAudioContext, MP3 lamejs, warianty)
-src/lib/yoga/           poses, sessions, figures, render-svg
+src/lib/yoga/           poses (53 pozycje), sessions
 src/lib/server/         eleven.ts — klucz, ochrona dostępu, limity (server-only)
 public/                 sw.js, manifest, ikony, sounds/ (wbudowane, syntezowane)
 scripts/                generate-sounds, generate-icons, fetch-yoga-photos
@@ -161,7 +161,7 @@ Stack: Next.js 15 (App Router), React 19, TypeScript, Tailwind CSS, komponenty w
 
 ## Znane ograniczenia
 
-- Zdjęcia jogi: patrz wyżej — ilustracje SVG do czasu uruchomienia workflow zdjęć.
+- Zdjęcia jogi mają rozdzielczość planszy źródłowej (komórka ok. 165 px, powiększona 2×) — w pełnoekranowym powiększeniu są lekko miękkie.
 - ElevenLabs nie było wywoływane podczas budowy (brak klucza i dostępu sieciowego); integracja jest zgodna z dokumentacją i przetestowana na zamockowanym API. Przy pierwszym użyciu wygeneruj próbkę głosu (Ustawienia → ElevenLabs).
 - Frazy, które nie były jeszcze nagrane, wymagają internetu przy pierwszym użyciu. Przed wyjazdem warto użyć „Nagraj wszystkie teraz” (Ustawienia → ElevenLabs → Wskazówki głosowe).
 - Limit znaków i limit żądań na serwerze są per instancja (wystarczające dla jednej osoby; nie jest to globalny licznik).
