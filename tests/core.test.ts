@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { SESSION_BY_ID, YOGA_SESSIONS, sessionTotal, stepStateAt, validateSessions } from "@/lib/yoga/sessions";
 import { POSES } from "@/lib/yoga/poses";
-import { FIGURES } from "@/lib/yoga/figures";
+import { existsSync } from "node:fs";
 import { SessionClock, frameAt, sessionLengthMs, patternFor, clampPhase } from "@/lib/breath";
 import { parseScript, estimateDuration, speechSegments } from "@/lib/audio/segments";
 import { AUDIO_SESSIONS, personalize } from "@/lib/audio/scripts";
@@ -13,13 +13,25 @@ import { HEALTH } from "@/lib/health";
 import { shiftTime, weekKey, addDays } from "@/lib/dates";
 
 describe("yoga", () => {
-  it("has at least 12 complete poses with illustrations", () => {
-    expect(POSES.length).toBeGreaterThanOrEqual(12);
+  it("has the full catalogue of 53 complete poses, each with its photo", () => {
+    expect(POSES.length).toBe(53);
+    expect(new Set(POSES.map((p) => p.id)).size).toBe(POSES.length);
     for (const p of POSES) {
-      expect(p.name && p.english && p.start && p.exit && p.beginner && p.skipWhen && p.alt).toBeTruthy();
-      expect(p.steps.length).toBeGreaterThan(2);
+      expect(p.name && p.english && p.start && p.exit && p.beginner && p.skipWhen && p.alt && p.cue).toBeTruthy();
+      expect(p.steps.length, p.id).toBeGreaterThan(2);
       expect(p.mistakes.length).toBeGreaterThan(0);
-      expect(FIGURES[p.id], p.id).toBeDefined();
+      expect(p.photos.length).toBeGreaterThan(0);
+      for (const ph of p.photos) expect(existsSync(`public${ph}`), ph).toBe(true);
+    }
+  });
+  it("every pose of the catalogue is part of at least one practice", () => {
+    const used = new Set(YOGA_SESSIONS.flatMap((s) => s.steps.map((st) => st.poseId)));
+    expect(POSES.filter((p) => !used.has(p.id)).map((p) => p.id)).toEqual([]);
+  });
+  it("themed practices last as long as their subtitle says", () => {
+    for (const s of YOGA_SESSIONS.filter((x) => x.category !== "length")) {
+      const m = Number(/^(\d+) minut/.exec(s.subtitle)?.[1]);
+      expect(sessionTotal(s), s.id).toBe(m * 60);
     }
   });
   it("main sessions are exactly 10/20/30 minutes", () => {

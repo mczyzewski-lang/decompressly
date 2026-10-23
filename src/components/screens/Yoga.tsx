@@ -3,11 +3,11 @@
 import { useState } from "react";
 import { Star, Play, ChevronRight } from "lucide-react";
 import { YOGA_SESSIONS, sessionTotal, type YogaSession } from "@/lib/yoga/sessions";
-import { POSES, POSE_BY_ID } from "@/lib/yoga/poses";
+import { POSES, POSE_BY_ID, POSE_GROUPS, type PoseGroup } from "@/lib/yoga/poses";
 import { update, useApp } from "@/lib/store";
 import { navigate } from "@/lib/router";
 import { formatClock } from "@/lib/dates";
-import { Button, IconButton, Screen, SectionTitle, Segmented, Sheet, Toggle, cn } from "../ui";
+import { Button, Chip, IconButton, Screen, SectionTitle, Segmented, Sheet, Toggle, cn } from "../ui";
 import { PoseImage } from "../PoseImage";
 
 export default function Yoga() {
@@ -15,6 +15,8 @@ export default function Yoga() {
   const yoga = useApp((s) => s.yoga);
   const [len, setLen] = useState<"s10" | "s20" | "s30">(() => (["s10", "s20", "s30"].includes(fav) ? (fav as "s10") : "s10"));
   const [detail, setDetail] = useState<YogaSession | null>(null);
+  const [group, setGroup] = useState<PoseGroup | "all">("all");
+  const shown = group === "all" ? POSES : POSES.filter((p) => p.group === group);
   const main = YOGA_SESSIONS.find((s) => s.id === len)!;
   const categories = YOGA_SESSIONS.filter((s) => s.category !== "length");
 
@@ -81,7 +83,7 @@ export default function Yoga() {
         {categories.map((s) => (
           <button key={s.id} onClick={() => setDetail(s)} className="flex w-full items-center gap-4 rounded-3xl bg-surface p-4 text-left shadow-soft ring-1 ring-line/60 active:scale-[0.99]">
             <div className="h-16 w-20 shrink-0 overflow-hidden rounded-2xl bg-surface-2">
-              <PoseImage pose={POSE_BY_ID[s.steps[s.steps.length - 1].poseId]} className="h-full rounded-none ring-0 [&>div]:p-1" zoomable={false} />
+              <PoseImage pose={POSE_BY_ID[s.steps[Math.floor(s.steps.length / 2)].poseId]} className="h-full rounded-none ring-0 [&>div]:p-1" zoomable={false} />
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-[16px] text-ink">{s.title}</p>
@@ -92,14 +94,27 @@ export default function Yoga() {
         ))}
       </div>
 
-      <SectionTitle>Biblioteka pozycji</SectionTitle>
+      <SectionTitle>Biblioteka pozycji · {POSES.length}</SectionTitle>
+      <div className="no-scrollbar -mx-5 mb-3 flex gap-2 overflow-x-auto px-5 pb-1">
+        <Chip active={group === "all"} onClick={() => setGroup("all")}>
+          Wszystkie
+        </Chip>
+        {POSE_GROUPS.map((g) => (
+          <Chip key={g.id} active={group === g.id} onClick={() => setGroup(g.id)}>
+            {g.label}
+          </Chip>
+        ))}
+      </div>
       <div className="grid grid-cols-2 gap-3">
-        {POSES.map((p) => (
+        {shown.map((p) => (
           <button key={p.id} onClick={() => navigate(`yoga/pose/${p.id}`)} className="overflow-hidden rounded-3xl bg-surface text-left shadow-soft ring-1 ring-line/60 active:scale-[0.99]">
             <PoseImage pose={p} className="rounded-none ring-0" zoomable={false} />
             <div className="px-3.5 pb-3.5 pt-1">
               <p className="text-[15px] leading-snug text-ink">{p.name}</p>
-              <p className="mt-0.5 text-[12px] text-ink-3">{p.english}</p>
+              <p className="mt-0.5 text-[12px] text-ink-3">
+                {p.english}
+                {p.level === 2 && <span className="ml-1 text-clay">· średnio zaaw.</span>}
+              </p>
             </div>
           </button>
         ))}

@@ -83,14 +83,14 @@ test("breath session animates in real time, pauses, and ends without judgement",
 test("yoga session runs, skips and finishes", async ({ page }) => {
   await onboard(page);
   await go(page, "#/yoga/run/s10");
-  await expect(page.getByText("Krok 1 z 8")).toBeVisible();
+  await expect(page.getByText("Krok 1 z 10")).toBeVisible();
   await page.getByRole("button", { name: "Wyłącz głos" }).click();
   await page.getByRole("button", { name: "Zacznij sesję" }).click();
   await expect(page.getByLabel(/Pozostało 0:5\d|Pozostało 1:00/)).toBeVisible();
   await page.getByRole("button", { name: "Wydłuż o 30 sekund" }).click();
   await expect(page.getByLabel(/Pozostało 1:[23]\d/)).toBeVisible();
   await page.getByRole("button", { name: /Następna pozycja/ }).click();
-  await expect(page.getByText("Krok 2 z 8")).toBeVisible();
+  await expect(page.getByText("Krok 2 z 10")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Kot–krowa" })).toBeVisible();
   await page.getByRole("button", { name: "Zakończ", exact: true }).click();
   await expect(page.getByText("Możesz wrócić do swojego dnia.")).toBeVisible();
@@ -214,17 +214,25 @@ test("jar of good moments: add from Health, draw one, take it out", async ({ pag
   await expect(page.getByRole("button", { name: "Wylosuj chwilę" })).toHaveCount(0);
 });
 
-test("yoga pose: alignment notes, own photo replaces the illustration and can be removed", async ({ page }) => {
+test("yoga: photo catalogue with groups; own photo replaces the pose photo and can be removed", async ({ page }) => {
   await onboard(page);
+  await go(page, "#/yoga");
+  await expect(page.getByText("Biblioteka pozycji · 53")).toBeVisible();
+  await page.getByRole("button", { name: "Równowaga", exact: true }).click();
+  await expect(page.getByRole("button", { name: /Półksiężyc/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Kobra/ })).toHaveCount(0);
   await go(page, "#/yoga/pose/catcow");
-  await expect(page.locator("svg text").first()).toBeVisible();
+  // cat–cow shows both photos, loaded from the bundled catalogue
+  const photos = page.locator("main img[src^='/yoga/']");
+  await expect(photos).toHaveCount(2);
+  expect(await photos.evaluateAll((els) => els.every((e) => (e as HTMLImageElement).naturalWidth > 0))).toBe(true);
   const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
   await page.getByLabel("Wybierz zdjęcie pozycji").setInputFiles({ name: "kot.png", mimeType: "image/png", buffer: png });
-  await expect(page.locator("main img").first()).toBeVisible();
+  await expect(page.locator("main img[src^='blob:']")).toHaveCount(1);
   await page.reload();
-  await expect(page.locator("main img").first()).toBeVisible();
-  await page.getByRole("button", { name: "Wróć do ilustracji" }).click();
-  await expect(page.locator("main img")).toHaveCount(0);
+  await expect(page.locator("main img[src^='blob:']")).toHaveCount(1);
+  await page.getByRole("button", { name: "Wróć do zdjęcia z katalogu" }).click();
+  await expect(page.locator("main img[src^='/yoga/']")).toHaveCount(2);
 });
 
 test("breath: soft air sound plays with each phase and can be switched off", async ({ page }) => {

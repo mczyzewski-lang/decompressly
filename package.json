@@ -11,8 +11,7 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "generate:sounds": "node scripts/generate-sounds.mjs",
-    "generate:icons": "node scripts/generate-icons.mjs",
-    "fetch:yoga-photos": "node scripts/fetch-yoga-photos.mjs"
+    "generate:icons": "node scripts/generate-icons.mjs"
   },
   "dependencies": {
     "@breezystack/lamejs": "^1.2.7",

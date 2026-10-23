@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { Camera, Trash2 } from "lucide-react";
-import { POSE_BY_ID } from "@/lib/yoga/poses";
+import { POSE_BY_ID, POSE_GROUPS } from "@/lib/yoga/poses";
 import { formatClock } from "@/lib/dates";
 import { deleteBlob, putBlob } from "@/lib/db";
 import { update, useApp } from "@/lib/store";
@@ -70,7 +70,7 @@ function OwnPhoto({ poseId, name }: { poseId: string; name: string }) {
       {current && (
         <Button size="sm" variant="danger" onClick={() => void remove()}>
           <Trash2 className="h-4 w-4" />
-          Wróć do ilustracji
+          Wróć do zdjęcia z katalogu
         </Button>
       )}
       {error && <p className="w-full text-[13px] text-clay">{error}</p>}
@@ -95,7 +95,13 @@ export default function PoseDetail({ id }: { id: string }) {
         {p.english}
         {p.sanskrit ? ` · ${p.sanskrit}` : ""}
       </p>
-      <PoseImage pose={p} className="mt-5" notes />
+      <p className="mt-2 flex flex-wrap gap-2 text-[12px]">
+        <span className="rounded-full bg-surface-2 px-2.5 py-1 text-ink-2">{POSE_GROUPS.find((g) => g.id === p.group)?.label}</span>
+        <span className={p.level === 2 ? "rounded-full bg-sand/60 px-2.5 py-1 text-ink" : "rounded-full bg-sage-soft px-2.5 py-1 text-sage-deep"}>
+          {p.level === 2 ? "Średnio zaawansowana" : "Podstawowa"}
+        </span>
+      </p>
+      <PoseImage pose={p} className="mt-5" />
       <OwnPhoto poseId={p.id} name={p.name} />
       <div className="mt-4 grid grid-cols-2 gap-3">
         <Card className="p-4">

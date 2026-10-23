@@ -1,5 +1,5 @@
 /* Decompressly service worker — offline-first shell, cache-first static assets, never caches /api. */
-const VERSION = "dc-v4"; // bump whenever bundled sounds or icons change, so installed apps refresh them
+const VERSION = "dc-v5"; // bump whenever bundled sounds, icons or yoga photos change, so installed apps refresh them
 const SHELL = `${VERSION}-shell`;
 const STATIC = `${VERSION}-static`;
 
@@ -12,6 +12,8 @@ const PRECACHE = [
   "/icons/apple-touch-icon.png",
   ...["system", "nature", "jazz", "orchestral"].flatMap((s) => [`/sounds/${s}-start.mp3`, `/sounds/${s}-close.mp3`]),
   ...["nature", "jazz", "system", "orchestral"].map((s) => `/sounds/bg-${s}.mp3`),
+  // yoga photos (~300 kB), so the whole pose library works offline from the first launch
+  ...["boat", "bow", "bridge", "butterfly", "camel", "cat", "chairpose", "chaturanga", "child", "cobra", "cow", "dancer", "dolphin", "downdog", "eagle", "forwardfold", "goddess", "halflift", "halfmoon", "halfsplit", "happybaby", "headtoknee", "highlunge", "kneeschest", "legsupwall", "lizard", "locust", "lowlunge", "malasana", "mountain", "needle", "pigeon", "plank", "puppy", "pyramid", "reverseplank", "reversewarrior", "savasana", "seated", "seatedfold", "seatedtwist", "sideangle", "sideplank", "sphinx", "staff", "tree", "triangle", "twist", "updog", "upwardsalute", "warrior1", "warrior2", "warrior3", "widefold"].map((n) => `/yoga/${n}.webp`),
 ];
 
 self.addEventListener("install", (event) => {
