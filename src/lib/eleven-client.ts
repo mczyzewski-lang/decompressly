@@ -1,6 +1,7 @@
 "use client";
 
 import { getState } from "./store";
+import { modelFor } from "./voices";
 import { askConfirm } from "./ui-store";
 
 export interface ServerStatus {
@@ -71,7 +72,7 @@ export async function generateSpeech(text: string, ctx: { previous?: string; nex
     body: JSON.stringify({
       text,
       voice_id: voiceId,
-      model_id: s.eleven.modelId,
+      model_id: modelFor(s.eleven, voiceId),
       voice_settings: { stability: s.eleven.stability, similarity_boost: s.eleven.similarity, style: s.eleven.style, speed: s.eleven.speed },
       previous_text: ctx.previous,
       next_text: ctx.next,

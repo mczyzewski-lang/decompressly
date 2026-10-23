@@ -13,6 +13,7 @@ import { allGuidancePhrases, BREATH_EXHALE, BREATH_INHALE } from "@/lib/audio/ph
 import { nameForms } from "@/lib/names";
 import { segmentId } from "@/lib/audio/narration";
 import { toast } from "@/lib/ui-store";
+import { addToCollection, modelFor, parseVoiceIds } from "@/lib/voices";
 import { Button, Card, IconButton, Notice, Screen, ScreenHeader, SectionTitle, Segmented, Slider, TextField, Toggle, cn } from "../ui";
 
 const MODELS = [
@@ -31,11 +32,6 @@ const HINTS: Record<NonNullable<ServerStatus["accessHint"]>, string> = {
   chars: "Kod ma właściwą długość, ale różni się znakami. Użyj „Pokaż kod” i porównaj ze zmienną APP_ACCESS_KEY (np. 0 i O, l i 1).",
 };
 
-function addToCollection(x: { voices?: { id: string; name: string }[] }, add: { id: string; name: string }[]) {
-  const list = x.voices ?? [];
-  for (const v of add) if (!list.some((y) => y.id === v.id)) list.push(v);
-  x.voices = list;
-}
 
 const KIND_LABEL: Record<string, string> = { sfx: "Efekt", tts: "Narracja", session: "Sesja audio", import: "Import", cue: "Wskazówka głosowa", variant: "Wariant", photo: "Zdjęcie jogi" };
 
@@ -54,6 +50,7 @@ export default function ElevenSettings() {
   const [busy, setBusy] = useState<string | null>(null);
   const [showKey, setShowKey] = useState(false);
   const [newVoices, setNewVoices] = useState("");
+  const [newModel, setNewModel] = useState("");
   const [voiceScope, setVoiceScope] = useState<"mine" | "all">("mine");
   const [voiceError, setVoiceError] = useState<string | null>(null);
   const [accountModels, setAccountModels] = useState<ModelInfo[] | null>(null);
@@ -105,7 +102,9 @@ export default function ElevenSettings() {
     if (e.modelId && !base.some((b) => b.id === e.modelId)) base.push({ id: e.modelId, label: e.modelId, polish: undefined });
     return base;
   })();
-  const expressive = /^eleven_v[34]/.test(e.modelId);
+  const defaultModel = modelFor(e);
+  const expressive = /^eleven_v[34]/.test(defaultModel);
+  const modelLabel = (id: string) => modelOptions.find((m) => m.id === id)?.label.split(" — ")[0] ?? id;
 
   const testVoice = async () => {
     const text = `Cześć, ${getState().name}. Na dzisiaj wystarczy. Możesz po prostu odpocząć.`;
@@ -312,12 +311,13 @@ export default function ElevenSettings() {
           {(e.voices ?? []).length > 0 && (
             <ul className="mt-3 space-y-1.5">
               {(e.voices ?? []).map((v) => (
-                <li key={v.id} className={cn("flex items-center gap-2 rounded-xl px-2 py-1.5 ring-1", v.id === e.voiceId ? "bg-sage-soft ring-sage" : "ring-line")}>
+                <li key={v.id} className={cn("rounded-xl px-2 py-1.5 ring-1", v.id === e.voiceId ? "bg-sage-soft ring-sage" : "ring-line")}>
+                  <div className="flex items-center gap-2">
                   <IconButton label={`Ustaw jako domyślny: ${v.name}`} className="h-9 w-9" onClick={() => set((x) => void ((x.voiceId = v.id), (x.voiceName = v.name)))}>
                     <Star className={cn("h-4 w-4", v.id === e.voiceId ? "fill-clay text-clay" : "text-ink-3")} />
                   </IconButton>
                   <input
-                    className="min-w-0 flex-1 bg-transparent text-[14px] text-ink focus:outline-none"
+                    className="min-w-0 flex-1 bg-transparent text-[16px] text-ink focus:outline-none"
                     aria-label={`Nazwa głosu ${v.id}`}
                     value={v.name}
                     onChange={(ev) =>
@@ -332,13 +332,36 @@ export default function ElevenSettings() {
                   <IconButton label={`Usuń z kolekcji: ${v.name}`} className="h-9 w-9" onClick={() => set((x) => void (x.voices = (x.voices ?? []).filter((y) => y.id !== v.id)))}>
                     <Trash2 className="h-4 w-4" />
                   </IconButton>
+                  </div>
+                  <label className="flex items-center gap-2 pb-1 pl-11 pr-2">
+                    <span className="shrink-0 text-[12px] text-ink-3">Model</span>
+                    <select
+                      className="h-9 min-w-0 flex-1 rounded-lg bg-surface px-2 text-[16px] text-ink ring-1 ring-line"
+                      aria-label={`Model głosu ${v.name}`}
+                      value={v.modelId ?? ""}
+                      onChange={(ev) =>
+                        set((x) => {
+                          const c = x.voices?.find((y) => y.id === v.id);
+                          if (c) c.modelId = ev.target.value || undefined;
+                        })
+                      }
+                    >
+                      <option value="">Domyślny ({modelLabel(e.modelId)})</option>
+                      {modelOptions.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.label.split(" — ")[0]}
+                          {m.polish === false ? " (bez polskiego)" : ""}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
                 </li>
               ))}
             </ul>
           )}
           <div className="mt-3 flex gap-2">
             <input
-              className="h-11 min-w-0 flex-1 rounded-xl bg-surface px-3 text-[14px] text-ink ring-1 ring-line placeholder:text-ink-3 focus:outline-none focus:ring-2 focus:ring-sage"
+              className="h-11 min-w-0 flex-1 rounded-xl bg-surface px-3 text-[16px] text-ink ring-1 ring-line placeholder:text-ink-3 focus:outline-none focus:ring-2 focus:ring-sage"
               placeholder="ID głosu (kilka: po przecinku)"
               aria-label="Dodaj ID głosów do kolekcji"
               value={newVoices}
@@ -352,27 +375,43 @@ export default function ElevenSettings() {
               className="h-11"
               disabled={!newVoices.trim()}
               onClick={() => {
-                const ids = newVoices.split(/[\s,;]+/).map((x) => x.trim()).filter((x) => /^[A-Za-z0-9]{10,40}$/.test(x));
-                if (!ids.length) return toast("To nie wygląda na ID głosu ElevenLabs.");
+                const ids = parseVoiceIds(newVoices);
+                if (!ids.length) return toast("Nie widzę tu ID głosu ElevenLabs (ok. 20 liter i cyfr).", 4000);
                 set((x) => {
-                  addToCollection(x, ids.map((id, k) => ({ id, name: `Głos ${(x.voices?.length ?? 0) + k + 1}` })));
-                  if (!x.voiceId) x.voiceId = ids[0];
+                  const start = x.voices?.length ?? 0;
+                  addToCollection(x, ids.map((id, k) => ({ id, name: (voices ?? []).find((v) => v.id === id)?.name ?? `Głos ${start + k + 1}`, modelId: newModel || undefined })));
+                  if (!x.voiceId) {
+                    x.voiceId = ids[0];
+                    x.voiceName = x.voices?.find((v) => v.id === ids[0])?.name ?? "";
+                  }
                 });
+                toast(ids.length === 1 ? "Dodano głos do kolekcji." : `Dodano ${ids.length} głosy do kolekcji.`);
                 setNewVoices("");
               }}
             >
               Dodaj
             </Button>
           </div>
+          <label className="mt-2 flex items-center gap-2">
+            <span className="shrink-0 text-[12px] text-ink-3">Model nowego głosu</span>
+            <select className="h-9 min-w-0 flex-1 rounded-lg bg-surface px-2 text-[16px] text-ink ring-1 ring-line" aria-label="Model nowego głosu" value={newModel} onChange={(ev) => setNewModel(ev.target.value)}>
+              <option value="">Domyślny ({modelLabel(e.modelId)})</option>
+              {modelOptions.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.label.split(" — ")[0]}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
         <label className="block">
           <span className="mb-1.5 flex items-center justify-between text-[13px] text-ink-2">
-            Model
+            Model domyślny
             <button type="button" className="text-[12px] text-sage-deep" onClick={loadModels}>
               Wczytaj modele z konta
             </button>
           </span>
-          <select className="h-12 w-full rounded-2xl bg-surface px-3 text-[15px] text-ink ring-1 ring-line" value={e.modelId} onChange={(ev) => set((x) => void (x.modelId = ev.target.value))}>
+          <select className="h-12 w-full rounded-2xl bg-surface px-3 text-[16px] text-ink ring-1 ring-line" aria-label="Model domyślny" value={e.modelId} onChange={(ev) => set((x) => void (x.modelId = ev.target.value))}>
             {modelOptions.map((m) => (
               <option key={m.id} value={m.id}>
                 {m.label}
@@ -381,6 +420,7 @@ export default function ElevenSettings() {
             ))}
           </select>
         </label>
+        <p className="-mt-2 text-[12px] text-ink-3">Dla głosów bez własnego modelu w kolekcji.{defaultModel !== e.modelId ? ` Wybrany głos mówi modelem ${modelLabel(defaultModel)}.` : ""}</p>
         {modelError && <Notice tone="warn">{modelError}</Notice>}
         <Slider
           label={expressive ? "Stabilność (v3/v4: kreatywna · naturalna · stabilna)" : "Stabilność"}

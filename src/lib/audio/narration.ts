@@ -3,6 +3,7 @@
 import { deleteBlob, getBlob, putBlob } from "../db";
 import { generateSpeech } from "../eleven-client";
 import { getState } from "../store";
+import { modelFor } from "../voices";
 import type { AudioRef, Background, Motif } from "../types";
 import { decodeAny, encodeMp3, fetchDecode, renderMontage, type MontagePart } from "./render";
 import { refUrl } from "./engine";
@@ -10,7 +11,7 @@ import { speechSegments, textKey, type Segment } from "./segments";
 
 export function segmentId(text: string, voiceId?: string): string {
   const e = getState().eleven;
-  return textKey(text, voiceId || e.voiceId, e.modelId);
+  return textKey(text, voiceId || e.voiceId, modelFor(e, voiceId));
 }
 
 /** Which paragraphs still need paid generation (already generated ones are reused for free). */

@@ -403,7 +403,7 @@ function TakeEditor(props: {
   return (
     <div>
       <p className="mb-2 text-[13px] font-semibold uppercase tracking-[0.12em] text-ink-2">{props.label}</p>
-      <TextArea aria-label={`Opis dźwięku ${props.label} (po angielsku)`} rows={4} className="text-[14px]" value={props.prompt} onChange={(e) => props.onPrompt(e.target.value)} />
+      <TextArea aria-label={`Opis dźwięku ${props.label} (po angielsku)`} rows={4} className="text-[16px]" value={props.prompt} onChange={(e) => props.onPrompt(e.target.value)} />
       {props.takes.length > 0 && (
         <ul className="mt-2 space-y-1.5" aria-label={`Wersje ${props.label}`}>
           {props.takes.map((id, i) => (

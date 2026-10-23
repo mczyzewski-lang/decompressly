@@ -7,6 +7,7 @@ import { BUILTIN_SOUND_SETS, createDefaultState, STATE_VERSION } from "./default
 import { kvGet, kvSet, newId } from "./db";
 import { toISODate } from "./dates";
 import { nameForms } from "./names";
+import { addToCollection } from "./voices";
 
 interface Store {
   hydrated: boolean;
@@ -42,6 +43,15 @@ export function migrate(input: Partial<AppState> | undefined): AppState {
   if (!done.has("breath-voice-default")) {
     if (merged.breath.cue === "tone") merged.breath.cue = "voice";
     done.add("breath-voice-default");
+  }
+  // one-off: a voice added on request, speaking with Eleven v3
+  if (!done.has("voice-Hf6cweL2QiwvPv7zuh5B")) {
+    addToCollection(merged.eleven, [{ id: "Hf6cweL2QiwvPv7zuh5B", name: "Nowy głos (v3)", modelId: "eleven_v3" }]);
+    if (!merged.eleven.voiceId) {
+      merged.eleven.voiceId = "Hf6cweL2QiwvPv7zuh5B";
+      merged.eleven.voiceName = "Nowy głos (v3)";
+    }
+    done.add("voice-Hf6cweL2QiwvPv7zuh5B");
   }
   // the default voice is always part of the collection
   if (merged.eleven.voiceId && !(merged.eleven.voices ?? []).some((v) => v.id === merged.eleven.voiceId)) {

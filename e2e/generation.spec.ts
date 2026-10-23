@@ -183,3 +183,27 @@ test("path: reflection after a session is quoted (and spoken) in the next one", 
   expect(tts.length - before).toBe(1);
   expect(tts.slice(before).join(" ")).not.toContain("niedokończonych");
 });
+
+test("voice collection: pasted ID with invisible characters, own model per voice used for speech", async ({ page }) => {
+  const bodies: { voice_id: string; model_id: string }[] = [];
+  await page.route("**/api/eleven/tts", async (route) => {
+    bodies.push(route.request().postDataJSON());
+    await route.fulfill({ status: 200, contentType: "audio/mpeg", body: fakeAudio });
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Zacznij spokojnie" }).click();
+  await page.evaluate(() => (location.hash = "#/settings/eleven"));
+  await page.getByLabel("Dodaj ID głosów do kolekcji").fill("​Abcd1234Efgh5678Ijkl​ ");
+  await page.getByRole("button", { name: "Dodaj", exact: true }).click();
+  await expect(page.getByText("Dodano głos do kolekcji.")).toBeVisible();
+  await page.getByLabel("Model głosu Głos 1").selectOption("eleven_v3");
+  await page.getByRole("button", { name: "Wygeneruj próbkę głosu" }).click();
+  await expect.poll(() => bodies.length).toBe(1);
+  expect(bodies[0]).toMatchObject({ voice_id: "Abcd1234Efgh5678Ijkl", model_id: "eleven_v3" });
+
+  // every text field is at least 16px, so iOS never zooms in on focus
+  const small = await page.locator("input:not([type=range]):not([type=checkbox]):not([type=file]), textarea, select").evaluateAll((els) =>
+    els.filter((el) => parseFloat(getComputedStyle(el).fontSize) < 16).map((el) => el.getAttribute("aria-label") || el.outerHTML.slice(0, 80)),
+  );
+  expect(small).toEqual([]);
+});

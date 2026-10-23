@@ -164,7 +164,7 @@ export interface ElevenSettings {
   style: number;
   speed: number;
   /** saved voices to choose from (the default one is voiceId) */
-  voices?: { id: string; name: string }[];
+  voices?: CollectionVoice[];
   /** ask before every paid generation (off by default — generation starts right away) */
   confirmBeforeGenerate: boolean;
 }
@@ -296,4 +296,11 @@ export interface PathRun {
   finishedAt?: number;
   /** step number → reflection written after that step */
   notes: Record<number, PathNote>;
+}
+
+/** A voice in the collection; `modelId` overrides the default model for this voice */
+export interface CollectionVoice {
+  id: string;
+  name: string;
+  modelId?: string;
 }

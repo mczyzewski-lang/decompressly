@@ -406,3 +406,32 @@ describe("paths: audio → reflection → audio", () => {
     expect(sanitizeReflection("„cytat”")).toBe("cytat");
   });
 });
+
+import { modelFor, parseVoiceIds } from "@/lib/voices";
+import { migrate as migrateState } from "@/lib/store";
+
+describe("voices: collection with a model per voice", () => {
+  it("picks voice IDs out of messy pasted text", () => {
+    expect(parseVoiceIds("Hf6cweL2QiwvPv7zuh5B")).toEqual(["Hf6cweL2QiwvPv7zuh5B"]);
+    expect(parseVoiceIds("​Hf6cweL2Qiwv​Pv7zuh5B ")).toEqual(["Hf6cweL2QiwvPv7zuh5B"]);
+    expect(parseVoiceIds("https://elevenlabs.io/app/voice-library?voiceId=Hf6cweL2QiwvPv7zuh5B, abcDEF1234567890xyz")).toEqual(["Hf6cweL2QiwvPv7zuh5B", "abcDEF1234567890xyz"]);
+    expect(parseVoiceIds("Marek")).toEqual([]);
+  });
+  it("a voice speaks with its own model, otherwise the default", () => {
+    const e = { voiceId: "A", modelId: "eleven_multilingual_v2", voices: [{ id: "A", name: "a" }, { id: "B", name: "b", modelId: "eleven_v3" }] };
+    expect(modelFor(e)).toBe("eleven_multilingual_v2");
+    expect(modelFor(e, "B")).toBe("eleven_v3");
+  });
+  it("the requested voice is added to the collection with Eleven v3, keeping an existing default", () => {
+    const base = migrateState({});
+    const s = migrateState({ ...base, eleven: { ...base.eleven, voiceId: "OldVoice123456789012", voiceName: "Stary", voices: [] }, migrations: [] });
+    expect(s.eleven.voices).toContainEqual({ id: "Hf6cweL2QiwvPv7zuh5B", name: "Nowy głos (v3)", modelId: "eleven_v3" });
+    expect(s.eleven.voiceId).toBe("OldVoice123456789012");
+    expect(modelFor(s.eleven, "Hf6cweL2QiwvPv7zuh5B")).toBe("eleven_v3");
+    const fresh = migrateState({ ...base, eleven: { ...base.eleven, voiceId: "", voices: [] }, migrations: [] });
+    expect(fresh.eleven.voiceId).toBe("Hf6cweL2QiwvPv7zuh5B");
+    // runs once: removing the voice later is respected
+    const again = migrateState({ ...s, eleven: { ...s.eleven, voices: [] } });
+    expect(again.eleven.voices?.some((v) => v.id === "Hf6cweL2QiwvPv7zuh5B")).toBe(false);
+  });
+});

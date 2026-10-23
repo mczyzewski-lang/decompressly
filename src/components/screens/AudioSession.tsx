@@ -5,6 +5,7 @@ import { Pause, Play, RotateCcw, RotateCw, Download, Sparkles, Pencil, Music, Qu
 import { AUDIO_BY_ID, personalize } from "@/lib/audio/scripts";
 import { parsePathSessionId, pathAudioDef, threadFor, weaveEcho } from "@/lib/paths";
 import { PathReflection } from "../PathReflection";
+import { modelFor } from "@/lib/voices";
 import { applyPacing, DEFAULT_GAP, estimateDuration, hasScriptMotif, layoutKey, parseScript, speechSegments, textKey, totalCharacters, withMotif } from "@/lib/audio/segments";
 import { BACKGROUND_URL, generateMissing, missingSegments, renderSessionFile } from "@/lib/audio/narration";
 import { blobUrl, deleteBlob, getBlob } from "@/lib/db";
@@ -56,7 +57,7 @@ export default function AudioSession({ id }: { id: string }) {
   const voices = eleven.voices ?? [];
   const voiceId = ov?.voiceId || eleven.voiceId;
   const voiceName = voices.find((v) => v.id === voiceId)?.name || (voiceId === eleven.voiceId ? eleven.voiceName : "") || voiceId;
-  const scriptHash = textKey(speechSegments(written).join("\n"), voiceId, eleven.modelId);
+  const scriptHash = textKey(speechSegments(written).join("\n"), voiceId, modelFor(eleven, voiceId));
   const layout = `${layoutKey(segments)}|${gap}`;
   const render = ov?.render;
   const renderFresh = !!render && render.scriptHash === scriptHash;
@@ -351,7 +352,7 @@ export default function AudioSession({ id }: { id: string }) {
       </SectionTitle>
       {editing ? (
         <div>
-          <TextArea value={draft} onChange={(e) => setDraft(e.target.value)} rows={18} className="font-mono text-[14px]" aria-label="Scenariusz sesji" />
+          <TextArea value={draft} onChange={(e) => setDraft(e.target.value)} rows={18} className="font-mono text-[16px]" aria-label="Scenariusz sesji" />
           <p className="mt-2 text-[12px] leading-relaxed text-ink-3">
             Pusta linia = nowy fragment. „[pauza 8]” = 8 sekund ciszy. „[motyw start]” lub „[motyw close]” = motyw dźwiękowy w tym miejscu (zastępuje ustawienie sesji), „[motyw close 35%]” = cichy motyw w tle na 35% głośności. „{"{imię}"}” = zwrot po imieniu („{forms.voc}”), „{"{imię_m}"}” = „{forms.nom}”. {pathRef ? "„{echo}” = miejsce, w którym sesja przytacza Twoją poprzednią refleksję. " : ""}Znaczniki nie są wysyłane do syntezy mowy.
           </p>

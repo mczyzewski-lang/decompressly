@@ -96,7 +96,7 @@ function ThoughtList() {
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Szukaj w myślach"
           aria-label="Szukaj w myślach"
-          className="h-11 w-full rounded-full bg-surface pl-10 pr-10 text-[15px] text-ink ring-1 ring-line placeholder:text-ink-3 focus:outline-none focus:ring-2 focus:ring-sage"
+          className="h-11 w-full rounded-full bg-surface pl-10 pr-10 text-[16px] text-ink ring-1 ring-line placeholder:text-ink-3 focus:outline-none focus:ring-2 focus:ring-sage"
         />
         {query && (
           <button className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-ink-3" onClick={() => setQuery("")} aria-label="Wyczyść wyszukiwanie">

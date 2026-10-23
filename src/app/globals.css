@@ -78,3 +78,12 @@ input[type="time"]::-webkit-calendar-picker-indicator { opacity: 0.5; }
     scroll-behavior: auto !important;
   }
 }
+
+/* iOS Safari zooms into any form field whose text is smaller than 16px — keep every field at 16px or more */
+@supports (-webkit-touch-callout: none) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  textarea,
+  select {
+    font-size: max(16px, 1em) !important;
+  }
+}

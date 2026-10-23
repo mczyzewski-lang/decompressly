@@ -25,7 +25,7 @@ Prywatna aplikacja PWA (iPhone-first) wspierająca świadome kończenie pracy, o
 | **Mantry** | 64 mantry w 8 kategoriach (wszystkie obowiązkowe), ulubione, przypinanie, mantra na dziś, nagrania ElevenLabs, własne mantry |
 | **Moje myśli** | Prywatna biblioteka: 130 myśli w 12 kategoriach (12 wyróżnionych) + 18 pytań do refleksji. Wyszukiwanie (bez znaczenia wielkości liter i polskich znaków), ulubione, edycja każdego zdania z podglądem oryginału, ukrywanie („To nie moje”) z przywracaniem, własne myśli. Każda myśl ma metadane: kategorię, wyróżnienie i konteksty wyświetlania (poranek, koniec pracy, nowy pomysł, napięcie, rodzina, odpoczynek, wyjazd), które możesz zmienić. Ekran Dziś pokazuje najwyżej jedną myśl dobraną do chwili. Odsłuch pojedynczej myśli lub spokojna sekwencja z ciszą pomiędzy; nagrania ElevenLabs po potwierdzeniu, zapisywane offline i automatycznie nieaktualne po edycji tekstu. Pytania pojawiają się tylko, gdy sam po nie sięgniesz. Edycje są przypisane do stałych identyfikatorów (chronionych testem), więc przetrwają aktualizacje aplikacji |
 | **Tryb wyjazdu** | 5-dniowy plan; ekran Dziś pokazuje tylko mantrę, jedno ćwiczenie i opcjonalne audio |
-| **Ustawienia** | Imię, motyw jasny/ciemny, rytuały i godziny, zestawy dźwięków, głos i model ElevenLabs (z kolekcją głosów: gwiazdka = domyślny, nazwy, dodawanie po ID lub z listy „Moje głosy”), biblioteka audio, domyślny oddech, ulubiona sesja jogi, parking, refleksje, import/eksport, prywatność |
+| **Ustawienia** | Imię, motyw jasny/ciemny, rytuały i godziny, zestawy dźwięków, głos i model ElevenLabs (z kolekcją głosów: gwiazdka = domyślny, nazwy, własny model dla każdego głosu — np. jeden głos na Eleven v3, reszta na modelu domyślnym; dodawanie po ID — także wklejonym z linkiem lub niewidocznymi znakami — lub z listy „Moje głosy”), biblioteka audio, domyślny oddech, ulubiona sesja jogi, parking, refleksje, import/eksport, prywatność |
 
 ## Szybki start (lokalnie)
 
@@ -106,6 +106,7 @@ Instrukcja jest też w aplikacji: Ustawienia → Instalacja na iPhonie.
 - Sesje audio zapisane jako MP3 grają przez `<audio>` z Media Session (sterowanie z ekranu blokady). Service worker obsługuje żądania `Range`, więc pliki offline są odtwarzane poprawnie.
 - Oddech i joga trzymają ekran włączony (Wake Lock, iOS 16.4+), a po przejściu w tło **pauzują się** — czas nie jest „nadrabiany” po powrocie.
 - `prefers-reduced-motion`: koło oddechu przestaje się skalować (zostaje subtelna zmiana jasności), animacje rytuałów są natychmiastowe.
+- Pola tekstowe mają co najmniej 16 px (także wymuszone w CSS dla iOS), więc Safari nie powiększa ekranu przy wpisywaniu.
 - VoiceOver: etykiety przycisków, `aria-live` dla faz i timerów, role `radiogroup`/`switch`, opisy ilustracji.
 
 ## Dane i pamięć

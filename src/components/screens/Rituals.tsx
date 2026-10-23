@@ -21,7 +21,7 @@ export function StringListEditor({ items, onChange, label, placeholder }: { item
         <div key={i} className="flex items-center gap-2">
           <span className="tabular w-5 text-center text-[13px] text-ink-3">{i + 1}</span>
           <input
-            className="h-11 flex-1 rounded-xl bg-surface px-3 text-[15px] text-ink ring-1 ring-line focus:outline-none focus:ring-2 focus:ring-sage"
+            className="h-11 flex-1 rounded-xl bg-surface px-3 text-[16px] text-ink ring-1 ring-line focus:outline-none focus:ring-2 focus:ring-sage"
             value={s}
             aria-label={`${label} ${i + 1}`}
             onChange={(e) => onChange(items.map((x, k) => (k === i ? e.target.value : x)))}
@@ -142,13 +142,13 @@ export default function Rituals() {
                 <input
                   type="time"
                   aria-label={`Godzina: ${it.title}`}
-                  className="tabular h-11 w-[96px] rounded-xl bg-surface px-2 text-[15px] text-ink ring-1 ring-line"
+                  className="tabular h-11 w-[96px] rounded-xl bg-surface px-2 text-[16px] text-ink ring-1 ring-line"
                   value={it.time}
                   onChange={(e) => setItems((arr) => arr.map((x) => (x.id === it.id ? { ...x, time: e.target.value } : x)))}
                 />
                 <input
                   aria-label="Nazwa"
-                  className="h-11 min-w-0 flex-1 rounded-xl bg-surface px-3 text-[15px] text-ink ring-1 ring-line"
+                  className="h-11 min-w-0 flex-1 rounded-xl bg-surface px-3 text-[16px] text-ink ring-1 ring-line"
                   value={it.title}
                   onChange={(e) => setItems((arr) => arr.map((x) => (x.id === it.id ? { ...x, title: e.target.value } : x)))}
                 />
