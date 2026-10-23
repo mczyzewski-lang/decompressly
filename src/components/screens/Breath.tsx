@@ -7,6 +7,7 @@ import { getNameForms, logActivity, update, useApp } from "@/lib/store";
 import { formatClock } from "@/lib/dates";
 import { playAir, softTone, stopAir, unlockAudio } from "@/lib/audio/engine";
 import { airUrl } from "@/lib/audio/breath-air";
+import { prepareAirSamples, resolveAirUrl } from "@/lib/audio/breath-air-client";
 import { prefetchVoice, say, stopVoice, voiceConfigured } from "@/lib/audio/voice";
 import { BREATH_EXHALE, BREATH_INHALE, breathEnd, breathIntro } from "@/lib/audio/phrases";
 import { useOnHidden, useWakeLock } from "@/lib/wakelock";
@@ -25,7 +26,7 @@ export default function Breath({ params }: { params: URLSearchParams }) {
   const [custom, setCustom] = useState<BreathPattern>({ inhale: settings.customInhale, exhale: settings.customExhale });
   const [cue, setCue] = useState<BreathCue>(settings.cue);
   const [air, setAir] = useState(settings.air ?? true);
-  const [airVolume, setAirVolume] = useState(settings.airVolume ?? 0.4);
+  const [airVolume, setAirVolume] = useState(settings.airVolume ?? 0.6);
   const [session, setSession] = useState<null | { eyesClosed: boolean }>(null);
   const [preparing, setPreparing] = useState(false);
 
@@ -48,10 +49,13 @@ export default function Breath({ params }: { params: URLSearchParams }) {
 
   const begin = async (eyesClosed: boolean) => {
     await unlockAudio();
-    if ((eyesClosed || cue === "voice") && voiceConfigured()) {
-      // record (once) everything the session will say, so the voice is in time with the breath
+    const speak = (eyesClosed || cue === "voice") && voiceConfigured();
+    const realAir = air && !!pattern && voiceConfigured();
+    if (speak || realAir) {
+      // record (once) everything the session will say and the breath sounds, so they stay in time with the circle
       setPreparing(true);
-      await prefetchVoice(eyesClosed ? [breathIntro(getNameForms()), INHALE_TEXT, EXHALE_TEXT, breathEnd(getNameForms())] : [INHALE_TEXT, EXHALE_TEXT, breathEnd(getNameForms())]);
+      if (speak) await prefetchVoice(eyesClosed ? [breathIntro(getNameForms()), INHALE_TEXT, EXHALE_TEXT, breathEnd(getNameForms())] : [INHALE_TEXT, EXHALE_TEXT, breathEnd(getNameForms())]);
+      if (realAir && pattern) await prepareAirSamples(pattern);
       setPreparing(false);
     }
     update((s) => {
@@ -132,8 +136,14 @@ export default function Breath({ params }: { params: URLSearchParams }) {
                 onClick={async () => {
                   await unlockAudio();
                   const p = pattern ?? { inhale: 4, exhale: 6 };
-                  playAir(airUrl("inhale", p.inhale, airVolume));
-                  setTimeout(() => playAir(airUrl("exhale", p.exhale, airVolume)), p.inhale * 1000);
+                  if (voiceConfigured()) {
+                    setPreparing(true);
+                    await prepareAirSamples(p);
+                    setPreparing(false);
+                  }
+                  const [inUrl, exUrl] = await Promise.all([resolveAirUrl("inhale", p.inhale, airVolume), resolveAirUrl("exhale", p.exhale, airVolume)]);
+                  playAir(inUrl);
+                  setTimeout(() => playAir(exUrl), p.inhale * 1000);
                 }}
               >
                 <Wind className="h-4 w-4" /> Posłuchaj
@@ -145,7 +155,7 @@ export default function Breath({ params }: { params: URLSearchParams }) {
 
       <div className="mt-8 space-y-3">
         <Button variant="primary" size="xl" block onClick={() => begin(false)} disabled={preparing}>
-          {preparing ? "Przygotowuję głos…" : "Zacznij"}
+          {preparing ? "Przygotowuję głos i oddech…" : "Zacznij"}
         </Button>
         <Button variant="secondary" size="lg" block className="h-auto min-h-[52px] whitespace-normal py-3" onClick={() => begin(true)}>
           <EyeOff className="h-5 w-5" /> Zamknij oczy — prowadzenie głosem
@@ -197,7 +207,6 @@ function BreathSession({
   modeLabel: string;
   onExit: () => void;
 }) {
-  const voiceCues = useApp((s) => s.voiceCues);
   const clock = useRef(new SessionClock());
   const discRef = useRef<SVGCircleElement>(null);
   const innerRef = useRef<SVGCircleElement>(null);
@@ -213,6 +222,18 @@ function BreathSession({
   const [air, setAir] = useState(initialAir);
   const airRef = useRef(air);
   airRef.current = air;
+  // breath sounds resolved ahead of time (real recordings when available), so the animation loop never waits
+  const airUrls = useRef<Partial<Record<Phase, string>>>({});
+  useEffect(() => {
+    if (!pattern) return;
+    let alive = true;
+    void Promise.all([resolveAirUrl("inhale", pattern.inhale, airVolume), resolveAirUrl("exhale", pattern.exhale, airVolume)]).then(([inhale, exhale]) => {
+      if (alive) airUrls.current = { inhale, exhale };
+    });
+    return () => {
+      alive = false;
+    };
+  }, [pattern, airVolume]);
   const total = sessionLengthMs(minutes, pattern);
   const reducedMotion = typeof window !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -289,14 +310,14 @@ function BreathSession({
           const len = f.phase === "inhale" ? pattern.inhale : pattern.exhale;
           const into = f.progress * len;
           // resuming mid-phase picks the sound up where the breath is
-          playAir(airUrl(f.phase, len, airVolume), into > 0.3 ? into : 0);
+          playAir(airUrls.current[f.phase] ?? airUrl(f.phase, len, airVolume), into > 0.3 ? into : 0);
         }
         const c = cueRef.current;
         if (c === "tone") softTone(f.phase === "inhale" ? 392 : 293.66, f.phase === "inhale" ? 1.6 : 2.2, 0.06);
         else if (c === "voice") {
           // without a configured ElevenLabs voice the cue falls back to a soft tone, never to the system voice
           if (!voiceConfigured()) softTone(f.phase === "inhale" ? 392 : 293.66, f.phase === "inhale" ? 1.6 : 2.2, 0.06);
-          else void say(f.phase === "inhale" ? INHALE_TEXT : EXHALE_TEXT, { legacyId: voiceCues[f.phase], gain: 0.75 });
+          else void say(f.phase === "inhale" ? INHALE_TEXT : EXHALE_TEXT, { gain: 0.75 });
         }
       }
       const sec = Math.ceil((total - el) / 1000);
@@ -308,7 +329,7 @@ function BreathSession({
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [pattern, total, status, finish, reducedMotion, voiceCues, airVolume]);
+  }, [pattern, total, status, finish, reducedMotion, airVolume]);
 
   const toggle = () => {
     if (status === "running") {

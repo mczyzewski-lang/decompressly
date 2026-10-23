@@ -7,7 +7,7 @@ import { modelFor } from "../voices";
 import type { AudioRef, Background, Motif } from "../types";
 import { decodeAny, encodeMp3, fetchDecode, renderMontage, type MontagePart } from "./render";
 import { refUrl } from "./engine";
-import { speechSegments, textKey, type Segment } from "./segments";
+import { DEFAULT_GAP, speechSegments, textKey, type Segment } from "./segments";
 
 export function segmentId(text: string, voiceId?: string): string {
   const e = getState().eleven;
@@ -69,7 +69,7 @@ export async function motifRef(motif: Motif): Promise<AudioRef | null> {
  */
 export async function renderSessionFile(
   segments: Segment[],
-  opts: { background: Background; label: string; gap?: number; voiceId?: string },
+  opts: { background: Background; label: string; gap?: number; voiceId?: string; targetSec?: number },
   onProgress: (stage: string, p?: number) => void,
 ): Promise<{ blobId: string; durationSec: number }> {
   onProgress("Przygotowuję fragmenty…");
@@ -93,6 +93,7 @@ export async function renderSessionFile(
       parts.push({ type: "speech", buffer: await decodeAny(rec.blob) });
     }
   }
+  if (opts.targetSec) fitSilences(parts, opts.targetSec, opts.gap ?? DEFAULT_GAP);
   const bg = opts.background !== "none" ? await fetchDecode(BACKGROUND_URL[opts.background]) : null;
   onProgress("Montuję audio…");
   const mixed = await renderMontage({ parts, background: bg, backgroundGain: 0.2, gap: opts.gap, sampleRate: 22050 });
@@ -100,6 +101,23 @@ export async function renderSessionFile(
   const mp3 = await encodeMp3(mixed, 64, (p) => onProgress("Zapisuję plik…", p));
   const blobId = await putBlob(mp3, "session", opts.label, { duration: mixed.duration });
   return { blobId, durationSec: mixed.duration };
+}
+
+/**
+ * The pauses were sized from an estimate of speaking speed; now that the real recordings are known,
+ * stretch or shrink the silences (within reason) so the session lands close to the chosen length.
+ */
+export function fitSilences(parts: MontagePart[], targetSec: number, gap: number) {
+  let silence = 0;
+  let fixed = 1.5;
+  parts.forEach((p, i) => {
+    if (p.type === "silence") silence += p.seconds;
+    else if (p.type === "speech") fixed += p.buffer.duration + (parts[i + 1]?.type === "speech" ? gap : 0);
+    else if ((p.level ?? 1) >= 1) fixed += p.buffer.duration;
+  });
+  if (silence <= 0) return;
+  const f = Math.min(1.6, Math.max(0.7, (targetSec - fixed) / silence));
+  for (const p of parts) if (p.type === "silence") p.seconds = Math.round(p.seconds * f * 10) / 10;
 }
 
 /** Single short clip (voice cue, mantra, closing narration). */

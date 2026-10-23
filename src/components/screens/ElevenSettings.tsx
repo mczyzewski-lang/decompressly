@@ -149,7 +149,7 @@ export default function ElevenSettings() {
     const s = getState();
     const used =
       s.soundSets.some((x) => (x.start.kind === "blob" && x.start.id === b.id) || (x.close.kind === "blob" && x.close.id === b.id)) ||
-      Object.values(s.audio.sessions).some((o) => o.render?.blobId === b.id);
+      Object.values(s.audio.sessions).some((o) => o.render?.blobId === b.id || Object.values(o.renders ?? {}).some((r) => r.blobId === b.id));
     if (used) return toast("Ten plik jest używany przez zestaw dźwięków lub sesję. Usuń go tam.");
     update((st) => {
       for (const [k, v] of Object.entries(st.voiceCues)) if (v === b.id) delete st.voiceCues[k];

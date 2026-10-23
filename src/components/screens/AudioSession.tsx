@@ -6,7 +6,7 @@ import { AUDIO_BY_ID, personalize } from "@/lib/audio/scripts";
 import { parsePathSessionId, pathAudioDef, threadFor, weaveEcho } from "@/lib/paths";
 import { PathReflection } from "../PathReflection";
 import { modelFor } from "@/lib/voices";
-import { applyPacing, DEFAULT_GAP, estimateDuration, hasScriptMotif, layoutKey, parseScript, speechSegments, textKey, totalCharacters, withMotif } from "@/lib/audio/segments";
+import { applyPacing, DEFAULT_GAP, defaultLength, estimateDuration, fitPauseScale, hasScriptMotif, layoutKey, LENGTHS, parseScript, selectLength, speechSegments, textKey, totalCharacters, withMotif } from "@/lib/audio/segments";
 import { BACKGROUND_URL, generateMissing, missingSegments, renderSessionFile } from "@/lib/audio/narration";
 import { blobUrl, deleteBlob, getBlob } from "@/lib/db";
 import { confirmPaid, describeChars } from "@/lib/eleven-client";
@@ -34,7 +34,6 @@ export default function AudioSession({ id }: { id: string }) {
   const forms = useNameForms();
   const ov = useApp((s) => s.audio.sessions[id]);
   const eleven = useApp((s) => s.eleven);
-  const globalPause = useApp((s) => s.audio.pauseScale ?? 1);
   const globalGap = useApp((s) => s.audio.gap ?? DEFAULT_GAP);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
@@ -42,16 +41,17 @@ export default function AudioSession({ id }: { id: string }) {
   const [progress, setProgress] = useState<number | null>(null);
 
   const rawScript = ov?.script ?? def?.script ?? "";
-  const script = personalize(pathRef ? weaveEcho(rawScript, pathRef.step, run) : rawScript, forms);
-  const pauseScale = ov?.pauseScale ?? globalPause;
+  // chosen length: "[od 20]" blocks join in, and silences stretch so the session lands near that length
+  const length = ov?.length ?? defaultLength(def?.minutes ?? 15);
+  const script = selectLength(personalize(pathRef ? weaveEcho(rawScript, pathRef.step, run) : rawScript, forms), length);
   const gap = ov?.gap ?? globalGap;
   const written = useMemo(() => parseScript(script), [script]);
-  // pacing only changes silences, so the spoken paragraphs (and their recordings) stay the same
   const background: Background = ov?.background ?? def?.suggestedBackground ?? "none";
   const motif: Motif = ov?.motif ?? def?.suggestedMotif ?? "none";
   const scriptMotifs = hasScriptMotif(written);
-  // the timeline: pauses scaled, motif placed (by the script markers or the session setting)
+  // the timeline: pauses scaled to the length, motif placed (by the script markers or the session setting)
   const ramp = ov?.motifRamp ?? true;
+  const pauseScale = useMemo(() => fitPauseScale(withMotif(written, motif), length, gap), [written, motif, length, gap]);
   const segments = useMemo(() => withMotif(applyPacing(written, { pauseScale, gap }), motif, { ramp, gap }), [written, pauseScale, gap, motif, ramp]);
   // a recording depends on the spoken words only; silences and motifs are re-montaged for free
   const voices = eleven.voices ?? [];
@@ -59,7 +59,7 @@ export default function AudioSession({ id }: { id: string }) {
   const voiceName = voices.find((v) => v.id === voiceId)?.name || (voiceId === eleven.voiceId ? eleven.voiceName : "") || voiceId;
   const scriptHash = textKey(speechSegments(written).join("\n"), voiceId, modelFor(eleven, voiceId));
   const layout = `${layoutKey(segments)}|${gap}`;
-  const render = ov?.render;
+  const render = ov?.renders?.[String(length)] ?? ov?.render;
   const renderFresh = !!render && render.scriptHash === scriptHash;
   const remixNeeded = renderFresh && (render.background !== background || render.layout !== layout);
 
@@ -122,15 +122,16 @@ export default function AudioSession({ id }: { id: string }) {
   const remix = async () => {
     setBusy("Montuję audio…");
     setProgress(null);
-    const res = await renderSessionFile(segments, { background, label: def.title, gap, voiceId }, (stage, p) => {
+    const res = await renderSessionFile(segments, { background, label: def.title, gap, voiceId, targetSec: length * 60 }, (stage, p) => {
       setBusy(stage);
       setProgress(p ?? null);
     });
-    const old = ov?.render?.blobId;
+    const old = [ov?.renders?.[String(length)]?.blobId, ov?.render?.blobId].filter(Boolean) as string[];
     setOv((o) => {
-      o.render = { blobId: res.blobId, voiceId, scriptHash, createdAt: Date.now(), durationSec: res.durationSec, background, motif, pauseScale, gap, layout };
+      (o.renders ??= {})[String(length)] = { blobId: res.blobId, voiceId, scriptHash, createdAt: Date.now(), durationSec: res.durationSec, background, motif, pauseScale, gap, layout, length };
+      delete o.render; // the recording from before lengths existed is replaced now
     });
-    if (old && old !== res.blobId) await deleteBlob(old);
+    for (const b of old) if (b !== res.blobId) await deleteBlob(b);
     toast("Narracja zapisana na urządzeniu. Działa offline.");
   };
 
@@ -154,9 +155,19 @@ export default function AudioSession({ id }: { id: string }) {
         </button>
       )}
       <h1 className="font-display text-[30px] leading-tight tracking-tight text-ink">{def.title}</h1>
-      <p className="mt-1 text-[15px] text-ink-2">
-        ok. {Math.round(est / 60)} min · {def.description}
-      </p>
+      <p className="mt-1 text-[15px] text-ink-2">{def.description}</p>
+
+      <div className="mt-5">
+        <Segmented<number>
+          label="Długość sesji"
+          value={length}
+          onChange={(v) => setOv((o) => void (o.length = v))}
+          options={LENGTHS.map((l) => ({ value: l, label: `${l} min` }))}
+        />
+        <p className="mt-2 px-1 text-[12px] text-ink-3">
+          Ok. {Math.round(est / 60)} min. Dłuższa sesja to głębsze wprowadzenie i więcej ciszy. Każda długość ma własne nagranie — wcześniej nagrane fragmenty są używane ponownie bez kosztów.
+        </p>
+      </div>
 
       {pathRef && pathRef.step.n > 1 && <PathThread pathId={pathRef.path.id} n={pathRef.step.n} />}
 
@@ -230,19 +241,6 @@ export default function AudioSession({ id }: { id: string }) {
             onChange={(v) => setOv((o) => void (o.motifRamp = v))}
           />
         )}
-        <p className="mb-2 mt-5 text-[13px] text-ink-2">Długość pauz w scenariuszu</p>
-        <Segmented<number>
-          label="Długość pauz"
-          size="sm"
-          value={pauseScale}
-          onChange={(v) => setOv((o) => void (o.pauseScale = v))}
-          options={[
-            { value: 1, label: "Jak w tekście" },
-            { value: 1.5, label: "×1,5" },
-            { value: 2, label: "×2" },
-            { value: 3, label: "×3" },
-          ]}
-        />
         <p className="mb-2 mt-4 text-[13px] text-ink-2">Cisza między akapitami</p>
         <Segmented<number>
           label="Cisza między akapitami"
@@ -255,19 +253,15 @@ export default function AudioSession({ id }: { id: string }) {
           className="mt-3 text-[13px] text-sage-deep"
           onClick={() =>
             update((s) => {
-              s.audio.pauseScale = pauseScale;
               s.audio.gap = gap;
-              for (const o of Object.values(s.audio.sessions)) {
-                delete o.pauseScale;
-                delete o.gap;
-              }
+              for (const o of Object.values(s.audio.sessions)) delete o.gap;
             })
           }
         >
           Ustaw tak dla wszystkich sesji
         </button>
         <p className="mt-3 text-[12px] text-ink-3">
-          Zmiana pauz nie wymaga nowej generacji głosu — zapisany plik zostanie tylko ponownie zmontowany. Pojedynczą pauzę wydłużysz też w scenariuszu, np. „[pauza 60]”.
+          Zmiana ciszy nie wymaga nowej generacji głosu — zapisany plik zostanie tylko ponownie zmontowany. Pojedynczą pauzę wydłużysz też w scenariuszu, np. „[pauza 60]”.
         </p>
         <p className="mt-3 text-[12px] text-ink-3">
           {scriptMotifs
@@ -354,7 +348,7 @@ export default function AudioSession({ id }: { id: string }) {
         <div>
           <TextArea value={draft} onChange={(e) => setDraft(e.target.value)} rows={18} className="font-mono text-[16px]" aria-label="Scenariusz sesji" />
           <p className="mt-2 text-[12px] leading-relaxed text-ink-3">
-            Pusta linia = nowy fragment. „[pauza 8]” = 8 sekund ciszy. „[motyw start]” lub „[motyw close]” = motyw dźwiękowy w tym miejscu (zastępuje ustawienie sesji), „[motyw close 35%]” = cichy motyw w tle na 35% głośności. „{"{imię}"}” = zwrot po imieniu („{forms.voc}”), „{"{imię_m}"}” = „{forms.nom}”. {pathRef ? "„{echo}” = miejsce, w którym sesja przytacza Twoją poprzednią refleksję. " : ""}Znaczniki nie są wysyłane do syntezy mowy.
+            Pusta linia = nowy fragment. „[pauza 8]” = 8 sekund ciszy. „[motyw start]” lub „[motyw close]” = motyw dźwiękowy w tym miejscu (zastępuje ustawienie sesji), „[motyw close 35%]” = cichy motyw w tle na 35% głośności. „[od 20]” … „[/od]” = fragment tylko w sesjach od 20 minut, „[do 15]” … „[/do]” = tylko do 15 minut. „{"{imię}"}” = zwrot po imieniu („{forms.voc}”), „{"{imię_m}"}” = „{forms.nom}”. {pathRef ? "„{echo}” = miejsce, w którym sesja przytacza Twoją poprzednią refleksję. " : ""}Znaczniki nie są wysyłane do syntezy mowy.
           </p>
           <div className="mt-3 flex gap-2">
             <Button variant="primary" onClick={() => (setOv((o) => void (o.script = draft === def.script ? undefined : draft)), setEditing(false))}>

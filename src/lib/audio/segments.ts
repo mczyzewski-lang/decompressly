@@ -8,8 +8,46 @@
 /** level < 1 = a quiet echo that plays under the following silence (does not add time) */
 export type Segment = { kind: "speech"; text: string } | { kind: "pause"; seconds: number } | { kind: "motif"; which: "start" | "close"; level?: number };
 
-/** Quiet echoes of the motif in the second half, then the full motif at the end. */
-export const MOTIF_RAMP = [0.2, 0.35, 0.5, 0.6];
+/** Quiet echoes of the motif in the second half (softest → a little louder), then the full motif at the end. */
+export const MOTIF_ECHO_MIN = 0.1;
+export const MOTIF_ECHO_MAX = 0.25;
+/** Echoes never come more often than this (and the last one keeps this distance from the final motif). */
+export const MOTIF_ECHO_SPACING = 120;
+
+/** Session lengths offered for every recording, in minutes. */
+export const LENGTHS = [10, 15, 20, 30] as const;
+
+/** The offered length closest to a session's natural length (rounding up). */
+export function defaultLength(minutes: number): number {
+  return LENGTHS.find((l) => l >= minutes) ?? LENGTHS[LENGTHS.length - 1];
+}
+
+/**
+ * Length variants in one script: "[od 20]" … "[/od]" is spoken only in sessions of 20 minutes or more,
+ * "[do 15]" … "[/do]" only in sessions of 15 minutes or less. Markers stand on their own lines.
+ */
+export function selectLength(script: string, minutes: number): string {
+  let out = script;
+  // innermost blocks first, so blocks can be nested
+  const re = /^[ \t]*\[(od|do)\s+(\d+)\][ \t]*\n((?:(?!^[ \t]*\[(?:od|do)\s+\d+\])[\s\S])*?)^[ \t]*\[\/(?:od|do)\][ \t]*$/im;
+  for (let guard = 0; guard < 500; guard++) {
+    const m = re.exec(out);
+    if (!m) break;
+    const n = Number(m[2]);
+    const keep = m[1].toLowerCase() === "od" ? minutes >= n : minutes <= n;
+    out = out.slice(0, m.index) + (keep ? m[3] : "") + out.slice(m.index + m[0].length);
+  }
+  return out.replace(/^[ \t]*\[\/?(?:od|do)(?:\s+\d+)?\][ \t]*$/gim, "").replace(/\n{3,}/g, "\n\n").trim();
+}
+
+/** Pause multiplier that brings the whole session close to the chosen length (roughly — it is not a stopwatch). */
+export function fitPauseScale(segments: Segment[], minutes: number, gap = DEFAULT_GAP): number {
+  const pauses = segments.reduce((a, s) => a + (s.kind === "pause" ? s.seconds : 0), 0);
+  if (pauses <= 0) return 1;
+  const fixed = estimateDuration(segments, gap) - pauses;
+  const scale = (minutes * 60 - fixed) / pauses;
+  return Math.round(Math.min(4, Math.max(0.6, scale)) * 100) / 100;
+}
 
 /** How much a motif adds to the timeline (sound length minus the overlap with the next words). */
 export const MOTIF_SECONDS = 17.5;
@@ -103,7 +141,8 @@ export function withMotif(segments: Segment[], motif: "none" | "start" | "close"
   if (segments.some((s) => s.kind === "motif") || motif === "none") return segments;
   if (motif === "start") return [{ kind: "motif", which: "start" }, ...segments];
   if (!opts.ramp) return [...segments, { kind: "motif", which: "close" }];
-  // growing echoes: at the longer silences of the second half, quiet → louder, full at the very end
+  // growing echoes: at long silences of the second half, never closer than MOTIF_ECHO_SPACING to each other or
+  // to the final motif — e.g. a 5-minute second half gets two quiet echoes
   const total = estimateDuration(segments, opts.gap);
   const gap = opts.gap ?? DEFAULT_GAP;
   const starts: number[] = [];
@@ -113,13 +152,27 @@ export function withMotif(segments: Segment[], motif: "none" | "start" | "close"
     if (s.kind === "pause") t += s.seconds;
     else if (s.kind === "speech") t += estimateSpeechSeconds(s.text) + (segments[i + 1]?.kind === "speech" ? gap : 0);
   });
+  const half = total / 2;
+  const END_GAP = 60; // the last echo keeps a little distance from the full motif
   const candidates = segments
     .map((s, i) => ({ s, i, at: starts[i] }))
-    .filter((c) => c.s.kind === "pause" && c.s.seconds >= 8 && c.at >= total / 2);
+    .filter((c) => c.s.kind === "pause" && c.s.seconds >= 8 && c.at >= half && total - c.at >= END_GAP);
+  let n = Math.floor(half / MOTIF_ECHO_SPACING);
+  while (n > 0 && half - END_GAP - (n - 1) * MOTIF_ECHO_SPACING < 0) n--;
+  const slack = half - END_GAP - (n - 1) * MOTIF_ECHO_SPACING;
   const picks: number[] = [];
-  const n = Math.min(MOTIF_RAMP.length, candidates.length);
-  for (let k = 0; k < n; k++) picks.push(candidates[Math.round(((k + 0.5) * candidates.length) / n - 0.5)].i);
-  const levels = MOTIF_RAMP.slice(MOTIF_RAMP.length - n);
+  let last = -Infinity;
+  for (let k = 0; k < n; k++) {
+    const target = Math.max(half + slack / 2 + k * MOTIF_ECHO_SPACING, last + MOTIF_ECHO_SPACING);
+    const ok = candidates.filter((c) => c.at - last >= MOTIF_ECHO_SPACING);
+    const best = ok.find((c) => c.at >= target) ?? ok.filter((c) => c.at < target).at(-1);
+    if (!best) continue;
+    picks.push(best.i);
+    last = best.at;
+  }
+  picks.sort((a, b) => a - b);
+  const levels = picks.map((_, k) => (picks.length === 1 ? MOTIF_ECHO_MIN : MOTIF_ECHO_MIN + ((MOTIF_ECHO_MAX - MOTIF_ECHO_MIN) * k) / (picks.length - 1)));
+  levels.forEach((l, k) => (levels[k] = Math.round(l * 100) / 100));
   const out: Segment[] = [];
   segments.forEach((s, i) => {
     const k = picks.indexOf(i);

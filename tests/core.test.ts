@@ -85,22 +85,39 @@ describe("audio scripts", () => {
       { kind: "pause", seconds: 2 },
     ]);
   });
-  it("has 7 complete sessions close to their target length, addressed to Marek", () => {
-    expect(AUDIO_SESSIONS.length).toBeGreaterThanOrEqual(7);
-    for (const s of AUDIO_SESSIONS) {
-      const segs = parseScript(personalize(s.script, { nom: "Marek", voc: "Marku" }));
-      const est = estimateDuration(segs);
-      expect(Math.abs(est - s.minutes * 60) / (s.minutes * 60), s.id).toBeLessThan(0.12);
-      for (const t of speechSegments(segs)) {
-        expect(t).not.toMatch(/\[|\{name\}/);
-        expect(t.length).toBeLessThan(2500);
+  it("every session and path step fits 10, 15, 20 and 30 minutes, hypnotic and addressed to Marek", async () => {
+    const { selectLength, fitPauseScale, applyPacing, withMotif } = await import("@/lib/audio/segments");
+    const { PATHS, weaveEcho } = await import("@/lib/paths");
+    const forms = { nom: "Marek", voc: "Marku" };
+    const all = [
+      ...AUDIO_SESSIONS.map((x) => ({ id: x.id, script: x.script, motif: x.suggestedMotif })),
+      ...PATHS[0].steps.map((st) => ({ id: `p${st.n}`, script: weaveEcho(st.script, st, { id: "r", pathId: "x", startedAt: 0, notes: { 1: { text: "Myśl", at: 1 }, 2: { text: "Druga", at: 2 } } }), motif: "close" as const })),
+    ];
+    expect(AUDIO_SESSIONS.map((x) => x.id)).toEqual(expect.arrayContaining(["nidra", "restart"]));
+    for (const x of all) {
+      let lastSpeech = 0;
+      for (const minutes of [10, 15, 20, 30]) {
+        const text = selectLength(personalize(x.script, forms), minutes);
+        const segs = withMotif(parseScript(text), x.motif);
+        const fitted = applyPacing(segs, { pauseScale: fitPauseScale(segs, minutes), gap: 1.2 });
+        const est = estimateDuration(fitted);
+        expect(Math.abs(est - minutes * 60) / (minutes * 60), `${x.id} ${minutes} min: ${Math.round(est / 60)} min`).toBeLessThan(0.15);
+        const speech = speechSegments(segs);
+        for (const t of speech) {
+          expect(t, x.id).not.toMatch(/\[|\]|\{|\}/);
+          expect(t.length).toBeLessThan(2500);
+        }
+        expect(text, x.id).toContain("Marku");
+        expect(text, x.id).toMatch(/Bardzo dobrze/);
+        const chars = speech.join(" ").length;
+        expect(chars, `${x.id}: longer sessions say more`).toBeGreaterThanOrEqual(lastSpeech);
+        lastSpeech = chars;
       }
-      expect(personalize(s.script, { nom: "Marek", voc: "Marku" })).toContain("Marku");
     }
   });
-  it("main session contains the requested core passage", () => {
+  it("main session keeps its core passages", () => {
     const demob = AUDIO_SESSIONS.find((s) => s.id === "demob")!.script;
-    for (const line of ["Wyobraź sobie leżak w Esteponie.", "Za chwilę możesz pójść na spacer z Leonem.", "Możesz po prostu być", "Twoja kreatywność nigdzie nie znika.", "To jest ten czas, {imię}."]) expect(demob).toContain(line);
+    for (const line of ["leżak w Esteponie", "Za chwilę możesz pójść na spacer z Leonem.", "Możesz po prostu być", "Twoja kreatywność nigdzie nie znika.", "Enjoy what you've built."]) expect(demob).toContain(line);
   });
 });
 
@@ -304,54 +321,71 @@ describe("motifs in the script", () => {
   });
 });
 
-import { MOTIF_RAMP } from "@/lib/audio/segments";
+import { MOTIF_ECHO_MAX, MOTIF_ECHO_MIN, MOTIF_ECHO_SPACING, selectLength, fitPauseScale } from "@/lib/audio/segments";
 import { AUDIO_BY_ID } from "@/lib/audio/scripts";
 
+/** A synthetic session: N minutes of 20-second pauses between short sentences. */
+const longScript = (minutes: number) => Array.from({ length: Math.round((minutes * 60) / 22) }, (_, i) => `Zdanie numer ${i}.\n\n[pauza 20]`).join("\n\n");
+
 describe("growing motif", () => {
-  it("echoes the CLOSE motif quietly in the second half and plays it fully at the end", () => {
-    const segs = withMotif(parseScript(personalize(AUDIO_BY_ID.demob.script, { nom: "Marek", voc: "Marku" })), "close", { ramp: true });
-    const motifs = segs.filter((s): s is { kind: "motif"; which: "close" | "start"; level?: number } => s.kind === "motif");
-    expect(motifs.map((m) => m.level ?? 1)).toEqual([...MOTIF_RAMP, 1]);
-    expect(segs.at(-1)).toEqual({ kind: "motif", which: "close" });
-    // the first echo sits in the second half
-    const firstIdx = segs.findIndex((s) => s.kind === "motif");
-    expect(estimateDuration(segs.slice(0, firstIdx))).toBeGreaterThan(estimateDuration(segs) / 2 - 30);
+  it("quiet echoes in the second half, at most one per two minutes, full motif at the end", () => {
+    for (const minutes of [10, 15, 20, 30]) {
+      const segs = withMotif(parseScript(longScript(minutes)), "close", { ramp: true });
+      const total = estimateDuration(segs);
+      const times: number[] = [];
+      let t = 0;
+      for (const s of segs) {
+        if (s.kind === "motif" && (s.level ?? 1) < 1) times.push(t);
+        t += estimateDuration([s]);
+      }
+      const echoes = segs.filter((s) => s.kind === "motif" && (s.level ?? 1) < 1) as { level: number }[];
+      const limit = Math.floor(total / 2 / MOTIF_ECHO_SPACING);
+      expect(echoes.length).toBeLessThanOrEqual(limit);
+      expect(echoes.length).toBeGreaterThanOrEqual(limit - 1);
+      for (let i = 1; i < times.length; i++) expect(times[i] - times[i - 1]).toBeGreaterThanOrEqual(MOTIF_ECHO_SPACING);
+      for (const at of times) expect(at).toBeGreaterThanOrEqual(total / 2);
+      for (const e of echoes) expect(e.level).toBeGreaterThanOrEqual(MOTIF_ECHO_MIN), expect(e.level).toBeLessThanOrEqual(MOTIF_ECHO_MAX);
+      expect(segs.at(-1)).toEqual({ kind: "motif", which: "close" });
+    }
+  });
+  it("a 5-minute second half gets two echoes", () => {
+    const segs = withMotif(parseScript(longScript(10)), "close", { ramp: true });
+    expect(segs.filter((s) => s.kind === "motif" && (s.level ?? 1) < 1)).toHaveLength(2);
   });
   it("markers can set the level", () => {
     expect(parseScript("[motyw close 35%]")).toEqual([{ kind: "motif", which: "close", level: 0.35 }]);
   });
 });
 
-import { airEnvelope, airLevel, encodeWav, renderAir, AIR_RATE } from "@/lib/audio/breath-air";
+import { airEnvelope, airLevel, encodeWav, renderAir, shapeRecording, AIR_RATE } from "@/lib/audio/breath-air";
 
 describe("breath air sound", () => {
-  it("is soft, smooth at the edges and exactly one phase long", () => {
+  it("is smooth at the edges, exactly one phase long and within the level", () => {
     for (const phase of ["inhale", "exhale"] as const) {
-      const x = renderAir(phase, 4, airLevel(0.4));
+      const x = renderAir(phase, 4, airLevel(0.6));
       expect(x.length).toBe(4 * AIR_RATE);
       let peak = 0;
       for (const v of x) {
         expect(Number.isFinite(v)).toBe(true);
         peak = Math.max(peak, Math.abs(v));
       }
-      expect(peak).toBeLessThanOrEqual(airLevel(0.4) + 1e-6);
-      expect(peak).toBeLessThan(0.2);
+      expect(peak).toBeLessThanOrEqual(airLevel(0.6) + 1e-6);
+      expect(peak).toBeGreaterThan(0.2); // audible
       expect(Math.abs(x[0])).toBeLessThan(1e-3);
       expect(Math.abs(x[x.length - 1])).toBeLessThan(1e-3);
     }
   });
-  it("inhale peaks late, exhale early", () => {
-    const peakAt = (ph: "inhale" | "exhale") => {
-      let best = 0, at = 0;
-      for (let p = 0; p <= 1; p += 0.01) if (airEnvelope(ph, p) > best) [best, at] = [airEnvelope(ph, p), p];
-      return at;
-    };
-    expect(peakAt("inhale")).toBeGreaterThan(0.6);
-    expect(peakAt("exhale")).toBeLessThan(0.3);
+  it("follows airflow: quick start, the exhale fades while the inhale carries on", () => {
+    expect(airEnvelope("inhale", 0.2)).toBeGreaterThan(0.8);
+    expect(airEnvelope("exhale", 0.1)).toBeGreaterThan(0.8);
+    expect(airEnvelope("exhale", 0.75)).toBeLessThan(airEnvelope("inhale", 0.75));
   });
-  it("never exceeds a gentle ceiling, even at 100%", () => {
-    expect(airLevel(1)).toBeLessThanOrEqual(0.45);
+  it("never louder than ~75% of full scale; recordings are peak-normalized with a fade", () => {
+    expect(airLevel(1)).toBeLessThanOrEqual(0.75);
     expect(encodeWav(new Float32Array(10)).byteLength).toBe(64);
+    const wav = new DataView(shapeRecording([new Float32Array(1000).fill(0.5), new Float32Array(1000).fill(-0.1)], 1000, 0.5));
+    expect(wav.getInt16(44, true) / 0x7fff).toBeCloseTo(0.5, 2);
+    expect(Math.abs(wav.getInt16(44 + 999 * 2, true))).toBeLessThan(200);
   });
 });
 
@@ -364,7 +398,7 @@ describe("paths: audio → reflection → audio", () => {
 
   it("every step has an {echo} place, a question, and parses as a session id", () => {
     for (const s of path.steps) {
-      expect(s.script).toContain("{echo}");
+      if (s.n > 1) expect(s.script).toContain("{echo}");
       expect(s.question.length).toBeGreaterThan(5);
       expect(parsePathSessionId(`p.${path.id}.${s.n}`)?.step.n).toBe(s.n);
     }
@@ -433,5 +467,21 @@ describe("voices: collection with a model per voice", () => {
     // runs once: removing the voice later is respected
     const again = migrateState({ ...s, eleven: { ...s.eleven, voices: [] } });
     expect(again.eleven.voices?.some((v) => v.id === "Hf6cweL2QiwvPv7zuh5B")).toBe(false);
+  });
+});
+
+describe("session length", () => {
+  it("[od N] and [do N] blocks follow the chosen length, also nested", () => {
+    const src = "A.\n\n[od 15]\nB.\n\n[od 30]\nC.\n[/od]\n[/od]\n\n[do 10]\nKrótko.\n[/do]\n\nD.";
+    expect(parseScript(selectLength(src, 10)).map((s) => (s as { text: string }).text)).toEqual(["A.", "Krótko.", "D."]);
+    expect(parseScript(selectLength(src, 20)).map((s) => (s as { text: string }).text)).toEqual(["A.", "B.", "D."]);
+    expect(parseScript(selectLength(src, 30)).map((s) => (s as { text: string }).text)).toEqual(["A.", "B.", "C.", "D."]);
+  });
+  it("silences stretch so the session lands near the chosen length", () => {
+    const segs = parseScript(longScript(8));
+    for (const minutes of [10, 15]) {
+      const scaled = applyPacing(segs, { pauseScale: fitPauseScale(segs, minutes), gap: 1.2 });
+      expect(Math.abs(estimateDuration(scaled) - minutes * 60)).toBeLessThan(30);
+    }
   });
 });

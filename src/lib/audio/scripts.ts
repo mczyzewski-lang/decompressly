@@ -1,13 +1,16 @@
 import { fillName, type NameForms } from "../names";
+import { INDUKCJA, KOTWICA, POGLEBIENIE, POWROT, POWROT_SEN, ZEJSCIE } from "./hypno";
 
 /**
- * Original guided-relaxation scripts. "{imię}" becomes the vocative form of the name ("Marku"),
- * "{imię_m}" the nominative ("Marek") — both configurable in Settings.
- * Inspired by relaxation and gentle hypnosis language, but not a clinical treatment.
+ * Original guided sessions in the language of relaxation hypnosis. "{imię}" becomes the vocative form
+ * of the name ("Marku"), "{imię_m}" the nominative ("Marek") — both configurable in Settings.
+ * Every session can be 10, 15, 20 or 30 minutes: "[od N]" blocks deepen longer sessions and the
+ * silences stretch to the chosen length. Not a clinical treatment.
  */
 export interface AudioSessionDef {
   id: string;
   title: string;
+  /** default length in minutes (10, 15, 20 or 30) */
   minutes: number;
   description: string;
   suggestedMotif: "start" | "close" | "none";
@@ -15,507 +18,710 @@ export interface AudioSessionDef {
   script: string;
 }
 
-const demob = `Cześć, {imię}.
-
-Usiądź albo połóż się tak, żeby ciało miało pełne podparcie. Nie musisz układać się idealnie. Wystarczy, że jest wygodnie.
-
-Jeśli chcesz, zamknij oczy. Jeśli wolisz, zostaw je półotwarte i patrz miękko w jeden punkt.
-
-[pauza 6]
-
-To jest ten czas, {imię}. Przez najbliższe kilkanaście minut nie masz nic do zrobienia. Nie ma tu zadania. Nie ma dobrego ani złego wykonania. Możesz po prostu słuchać, a jeśli myśli odpłyną gdzieś dalej, to też jest w porządku.
-
-[pauza 11]
-
-Zauważ, jak oddychasz. Nie zmieniaj niczego. Oddech płynie sam, tak jak płynął przez cały dzień, kiedy nie zwracałeś na niego uwagi.
-
-[pauza 14]
-
-Teraz pozwól, żeby wydech był odrobinę dłuższy. Bez wysiłku. Tak, jakbyś powoli wypuszczał powietrze po długim dniu.
-
-[pauza 17]
-
-{imię}, przez ostatnie miesiące wiele od siebie wymagałeś.
-
-Podejmowałeś decyzje.
-
-Budowałeś.
-
-Rozwiązywałeś trudne problemy.
+const demob = `Cześć, {imię}. To jest Twój czas na głęboką demobilizację. Przez najbliższe minuty nie masz nic do zrobienia. Nie ma tu zadania i nie ma złego wykonania.
 
 [pauza 4]
 
-Brałeś na siebie odpowiedzialność, kiedy nie było jeszcze wiadomo, jak to wszystko się skończy. Byłeś czujny. Byłeś gotowy. Twoje ciało i Twoja uwaga długo pracowały w trybie mobilizacji.
+${INDUKCJA}
 
-[pauza 6]
+${ZEJSCIE}
 
-Teraz możesz dać sobie chwilę, {imię}.
+${POGLEBIENIE}
+
+{imię}, przez ostatnie miesiące wiele od siebie wymagałeś. Podejmowałeś decyzje. Budowałeś. Rozwiązywałeś trudne problemy.
 
 [pauza 5]
 
-Nie musisz natychmiast zaczynać kolejnego projektu.
+Brałeś na siebie odpowiedzialność, kiedy nie było jeszcze wiadomo, jak to wszystko się skończy. Twoje ciało i Twoja uwaga długo pracowały w trybie mobilizacji. Czujne. Gotowe.
 
-[pauza 3]
+[pauza 8]
 
-Twoja kreatywność nigdzie nie znika.
+I teraz, właśnie teraz, możesz to wszystko powoli odłożyć. Tak, jak odkłada się ciężki plecak po długiej drodze.
 
-[pauza 3]
+[pauza 10]
 
-Twoje możliwości nie znikają.
-
-[pauza 3]
-
-Możesz pozwolić sobie odpocząć.
-
-[pauza 21]
-
-Przenieś uwagę na twarz. Na czoło. Pozwól, żeby czoło stało się gładkie i szerokie.
-
-[pauza 6]
-
-Okolice oczu. Powieki mogą być ciężkie. Oczy nie muszą niczego wypatrywać.
-
-[pauza 6]
-
-Szczęka. Pozwól zębom lekko się rozsunąć. Język może swobodnie leżeć.
-
-[pauza 11]
-
-Barki. Zauważ, czy nie są uniesione choć trochę. Jeśli są, pozwól im opaść. Jeszcze odrobinę. Nie trzeba ich dźwigać.
+Twoja kreatywność nigdzie nie znika. Twoje możliwości nie znikają. Są bezpieczne. Możesz pozwolić sobie odpocząć.
 
 [pauza 14]
 
-Ręce stają się cięższe. Dłonie mogą się otworzyć.
+Bardzo dobrze, {imię}.
 
-[pauza 11]
+[pauza 6]
 
-Klatka piersiowa i brzuch poruszają się w rytm oddechu. Brzuch może być miękki. Nie musisz go trzymać.
+[od 20]
+Wyobraź sobie, że w Twoim ciele jest przełącznik. Przez wiele miesięcy był ustawiony na „działaj”. Nie musisz go szarpać. Wystarczy, że położysz na nim dłoń.
+
+[pauza 8]
+
+I powoli, bardzo powoli, przesuwasz go w stronę „odpoczywaj”. Z każdym wydechem odrobinę dalej.
+
+[pauza 12]
+
+Zauważ, co zmienia się w ciele, kiedy przełącznik się przesuwa. Może cieplej robi się w brzuchu. Może ramiona stają się cięższe. Może oddech sam się wydłuża.
+
+[pauza 16]
+
+Właśnie tak. Ciało pamięta, jak odpoczywać. Czasem potrzebuje tylko pozwolenia. A Ty właśnie mu go dajesz.
+
+[pauza 14]
+[/od]
+
+Wyobraź sobie teraz leżak w Esteponie. Czujesz przyjemne ciepło słońca na twarzy. Słyszysz morze.
+
+[pauza 10]
+
+Fale przychodzą i odchodzą. Z każdą falą, która cofa się po piasku, możesz zapaść się odrobinę głębiej w leżak.
 
 [pauza 14]
 
-Plecy opierają się o podłoże. Pozwól, żeby to podłoże Cię niosło. Nie musisz się trzymać.
+Nie masz potrzeby sprawdzania wiadomości. Nie musisz podejmować żadnej decyzji. Za chwilę możesz pójść na spacer z Leonem. Możesz zjeść coś dobrego. Albo po prostu zostać tutaj.
 
-[pauza 11]
+[pauza 18]
 
-Zauważ, że nie musisz robić rozluźnienia. Ono dzieje się samo, kiedy przestajesz się pilnować. Ciało dobrze wie, jak odpoczywać. Czasem potrzebuje tylko pozwolenia.
+[od 15]
+Poczuj, jak słońce rozgrzewa Twoją twarz. Jak ciepło schodzi na ramiona, na klatkę piersiową, na brzuch. Nikt niczego od Ciebie nie oczekuje.
 
-[pauza 14]
+[pauza 20]
+[/od]
 
-Nogi. Uda, kolana, łydki, stopy. Ciężkie i spokojne.
+Jeśli pojawi się myśl o pracy, o pomyśle, o czymś, co można by zbudować, możesz ją zauważyć. Powiedz jej w myślach: dziękuję, zapiszę cię później. I wróć do słońca. Do dźwięku morza.
 
-[pauza 21]
+[pauza 16]
 
-Wyobraź sobie leżak w Esteponie.
+Twoje pomysły są jak łodzie zacumowane w porcie. Są bezpieczne. Nikt ich nie zabierze. Możesz na nie patrzeć z brzegu i nie musisz żadną z nich wypływać.
 
-[pauza 3]
+[pauza 18]
 
-Czujesz przyjemne ciepło słońca.
-
-[pauza 3]
-
-Słyszysz morze.
-
-[pauza 5]
-
-Nie masz potrzeby sprawdzania wiadomości.
-
-[pauza 3]
-
-Nie musisz podejmować żadnej decyzji.
-
-[pauza 5]
-
-Za chwilę możesz pójść na spacer z Leonem.
-
-Możesz zjeść coś dobrego.
-
-Możesz po prostu zostać tutaj.
-
-[pauza 28]
-
-Poczuj, jak słońce rozgrzewa Twoją twarz. Jak ciepło schodzi na ramiona, na klatkę piersiową, na brzuch. Fale przychodzą i odchodzą. Nikt niczego od Ciebie nie oczekuje.
-
-[pauza 28]
-
-To uczucie nie musi pojawiać się tylko w Hiszpanii.
-
-[pauza 3]
-
-Możesz stopniowo uczyć się odnajdywać je również w zwykłych dniach. Przy porannej kawie. W drodze do domu. Wieczorem, kiedy Gaja opowiada Ci o swoim dniu.
-
-[pauza 5]
-
-Nie musisz się do tego zmuszać.
-
-[pauza 3]
-
-Nie musisz sprawdzać, czy już jesteś zrelaksowany.
-
-[pauza 4]
-
-Możesz po prostu być, {imię}.
-
-[pauza 42]
-
-Jeśli pojawi się myśl o pracy, o pomyśle, o czymś, co można by zbudować, możesz ją zauważyć. Możesz powiedzieć jej w myślach: dziękuję, zapiszę cię później. I wrócić do słońca. Do dźwięku morza. Do ciężaru ciała.
-
-[pauza 35]
-
-Twoje pomysły są jak łodzie zacumowane w porcie. Są bezpieczne. Nikt ich nie zabierze. Możesz na nie patrzeć z brzegu i nie musisz żadną z nich wypływać. Dzisiaj możesz po prostu siedzieć na plaży.
-
-[pauza 28]
-
+[od 20]
 Przez dziewięć miesięcy byłeś na wojnie. Teraz ta wojna dobiega końca. Nie musisz od razu budować kolejnego miasta. Możesz wrócić do domu. Możesz cieszyć się pokojem.
 
+[pauza 18]
+[/od]
+
+To uczucie nie musi pojawiać się tylko w Hiszpanii. Twoja głębsza część już wie, jak je odnaleźć. Przy porannej kawie. W drodze do domu. Wieczorem, kiedy Gaja opowiada Ci o swoim dniu.
+
 [pauza 14]
+
+I im częściej do niego wracasz, tym łatwiej przychodzi. Samo. Bez wysiłku.
+
+[pauza 12]
+
+${KOTWICA}
+
+[od 30]
+Zostań teraz w tej ciszy. Ja przez chwilę nic nie będę mówić. Możesz po prostu być. Ciało w tym czasie samo wykona swoją pracę.
+
+[pauza 120]
+
+Bardzo dobrze, {imię}. Głęboko i spokojnie.
+
+[pauza 60]
+[/od]
 
 Enjoy what you've built.
 
-[pauza 84]
+[pauza 20]
 
-Zostań w tej ciszy jeszcze chwilę. Nic się nie dzieje i nic nie musi się dziać.
+Możesz po prostu być, {imię}.
 
-[pauza 84]
+[pauza 40]
 
-{imię}, powoli zacznij wracać. Nie spiesz się.
-
-[pauza 4]
-
-Weź jeden głębszy, ale wygodny oddech.
-
-[pauza 6]
-
-Poruszaj palcami dłoni. Palcami stóp. Jeśli masz ochotę, przeciągnij się.
-
-[pauza 11]
-
-Kiedy będziesz gotowy, otwórz oczy. Zabierz ze sobą trochę tego spokoju. Nie musisz go pilnować. Wystarczy, że wiesz, gdzie go szukać.
-
-[pauza 4]
+${POWROT}
 
 Na dzisiaj wystarczy, {imię}.`;
 
-const ideas = `{imię}, ta krótka sesja jest na chwile, w których pojawia się nowy pomysł i od razu czujesz, że chcesz zacząć.
-
-Usiądź wygodnie. Połóż jedną dłoń na brzuchu albo na klatce piersiowej.
+const restart = `Cześć, {imię}. To jest Deep Restart. Czas, w którym Twój układ nerwowy może się zatrzymać, wyciszyć i zregenerować. Nic tu nie musisz osiągać. Wystarczy, że pozwolisz się prowadzić.
 
 [pauza 5]
 
-Zauważ, co się teraz dzieje w ciele. Może jest tam ekscytacja. Lekkie przyspieszenie. Energia, która chce się gdzieś ruszyć. To przyjemne uczucie. Nie ma w nim nic złego.
-
-[pauza 13]
-
-Pozwól mu po prostu być, bez wykonywania żadnego ruchu.
-
-[pauza 16]
-
-Ekscytacja często przychodzi razem z myślą: teraz albo nigdy. Ta myśl brzmi przekonująco, ale rzadko jest prawdziwa. Dobre pomysły nie psują się w ciągu jednej nocy. Często po kilku dniach są nawet lepsze, bo zdążyły dojrzeć.
-
-[pauza 19]
-
-Wydłuż odrobinę wydech. Jakbyś wypuszczał powietrze przez lekko uchylone usta. Spokojnie. Bez pośpiechu.
-
-[pauza 19]
-
-Twój umysł jest świetny w znajdowaniu możliwości. To jedna z rzeczy, które w sobie lubisz. Dzięki temu zbudowałeś tak wiele.
-
-[pauza 4]
-
-Ale nie każda możliwość wymaga realizacji, {imię}.
-
-[pauza 6]
-
-To, że coś możesz zrobić, nie oznacza, że musisz. I nie oznacza, że musisz dzisiaj.
-
-[pauza 16]
-
-Wyobraź sobie, że Twój pomysł zapisujesz na małej kartce. Jednym zdaniem. Składasz ją i kładziesz w bezpiecznym miejscu. Na półce, w szufladzie, w parkingu pomysłów.
-
-[pauza 6]
-
-Pomysł jest bezpieczny. Nie zniknie. Będzie tam, kiedy zechcesz do niego wrócić. Może za tydzień. Może w grudniu. Może okaże się, że już go nie potrzebujesz. To też jest dobre zakończenie.
-
-[pauza 24]
-
-Teraz zauważ, co jest wokół Ciebie. Jakie dźwięki słyszysz. Co czujesz pod stopami.
-
-[pauza 16]
-
-Zapytaj siebie spokojnie: czy chcę teraz świadomie tworzyć? Czy może automatycznie wypełniam wolny czas kolejnym projektem?
-
-[pauza 24]
-
-Obie odpowiedzi są w porządku. Ważne jest tylko to, że wybierasz Ty, a nie ekscytacja.
-
-[pauza 16]
-
-Jeśli wybierasz odpoczynek, możesz poczuć ulgę. Nic nie tracisz. Twoja kreatywność nie zniknie przez kilka dni, ani przez miesiąc odpoczynku.
-
-[pauza 19]
-
-Pomyśl, co mógłbyś dzisiaj zrobić zamiast tego. Coś, co nie ma celu. Spacer bez trasy. Rozmowa bez tematu. Kilka minut na kanapie z Leonem albo z Gają. Herbata przy oknie.
-
-[pauza 24]
-
-Mogę odczuwać ekscytację i nie podejmować działania.
-
-[pauza 13]
-
-Nie każda myśl wymaga działania.
-
-[pauza 13]
-
-Nie muszę dzisiaj budować kolejnego miasta.
-
-[pauza 32]
-
-Weź jeszcze jeden spokojny oddech z dłuższym wydechem.
-
-[pauza 16]
-
-Wróć do tego, co robiłeś wcześniej. Albo do niczego. Możesz też po prostu pójść do rodziny.
-
-[pauza 4]
-
-Pomysł poczeka. Ty możesz żyć dalej, {imię}.`;
-
-const morning = `Dzień dobry, {imię}.
-
-Zanim zaczniesz dzień, daj sobie kilka minut. Bez telefonu. Bez listy zadań.
-
-[pauza 5]
-
-Jeśli masz przed sobą kawę, poczuj ciepło kubka w dłoniach. Zauważ zapach. Pierwszy łyk może być powolny.
-
-[pauza 20]
-
-Poczuj, jak siedzisz. Stopy na podłodze. Ciężar ciała na krześle.
-
-[pauza 14]
-
-Weź kilka spokojnych oddechów. Wdech nosem. Wydech odrobinę dłuższy. Nie musisz oddychać głęboko. Wystarczy wygodnie.
-
-[pauza 26]
-
-Zauważ, jak jest teraz w Twoim ciele. Może jesteś jeszcze trochę zaspany. Może głowa już zaczyna planować. Cokolwiek tam jest, możesz to po prostu zauważyć. Nie trzeba tego zmieniać.
-
-[pauza 20]
-
-Rozluźnij barki. Rozluźnij twarz. Pozwól szczęce lekko opaść.
-
-[pauza 17]
-
-{imię}, dzisiaj możesz działać z ciekawością, ale bez pośpiechu.
-
-[pauza 6]
-
-Nie musisz zrobić wszystkiego. Wystarczy, że zrobisz to, co ważne, i zrobisz to spokojnie.
-
-[pauza 17]
-
-Możesz wybrać jedną, najważniejszą rzecz na dzisiaj. Tylko jedną. Resztę potraktuj jako dodatek, a nie obowiązek. Jeśli pojawi się nowy pomysł, zapiszesz go i wrócisz do swojego dnia.
-
-[pauza 20]
-
-Pomyśl przez chwilę o jednej rzeczy, na którą możesz się dzisiaj cieszyć. Nie musi być wielka. Spacer. Rozmowa z Moniką. Kolacja z dziećmi. Ciepła herbata wieczorem.
-
-[pauza 26]
-
-Twój dzień ma początek. Ma też koniec. Około szesnastej możesz zamknąć pracę i wrócić do domu, nawet jeśli nie wszystko będzie gotowe.
-
-[pauza 14]
-
-Weź jeszcze jeden oddech.
-
-[pauza 6]
-
-Kiedy będziesz gotowy, możesz uruchomić START. Albo po prostu dopić kawę.
-
-[pauza 3]
-
-Miłego dnia, {imię}.`;
-
-const evening = `Dobry wieczór, {imię}.
-
-Dzień pracy jest już za Tobą. Teraz możesz powoli go odłożyć.
-
-Połóż się albo usiądź wygodnie. Pozwól, żeby światło wokół było przyciemnione.
+Zanim zamkniesz oczy, rozejrzyj się powoli po miejscu, w którym jesteś. Bez pośpiechu. Pozwól oczom zatrzymać się na kilku przedmiotach. Na świetle. Na kolorach.
 
 [pauza 10]
 
-Zauważ, że Twoje ciało wciąż może nosić w sobie trochę dnia. Rozmowy. Decyzje. Ekrany. To naturalne. Nie musisz się tego od razu pozbywać.
+To prosty sygnał dla ciała: jest bezpiecznie. Nic się nie dzieje. Możesz zwolnić.
+
+[pauza 6]
+
+Teraz zrób podwójny wdech nosem. Jeden wdech, i na jego szczycie jeszcze jeden, krótki. A potem długi, powolny wydech ustami.
+
+[pauza 9]
+
+Jeszcze raz. Podwójny wdech nosem. I długi wydech, aż do końca.
+
+[pauza 9]
+
+I trzeci raz. Wdech, dopełnienie. I bardzo długi wydech.
+
+[pauza 10]
+
+Bardzo dobrze, {imię}. Teraz pozwól oddechowi płynąć swobodnie.
+
+[pauza 6]
+
+${INDUKCJA}
+
+[od 15]
+Teraz, jeśli masz ochotę, zamknij usta i zanuć cicho, na wydechu. Mmmm. Poczuj delikatne drgania w gardle i w klatce piersiowej.
+
+[pauza 10]
+
+Jeszcze raz, na długim wydechu. Mmmm.
+
+[pauza 10]
+
+I trzeci raz. Mmmm. Te drgania są jak delikatny masaż od środka. Twoje ciało dobrze je rozumie.
+
+[pauza 12]
+[/od]
+
+${ZEJSCIE}
+
+${POGLEBIENIE}
+
+Poczuj teraz podłoże pod sobą. Wszystkie miejsca, w których ciało jest podparte. Plecy. Głowa. Ręce. Nogi.
+
+[pauza 10]
+
+Podłoże Cię trzyma. Nie musisz się trzymać sam. Możesz oddać mu cały ciężar.
 
 [pauza 12]
 
-Zacznij od oddechu. Wdech spokojny. Wydech trochę dłuższy, jakbyś powoli wypuszczał powietrze z balonu.
+Powtarzaj w myślach za mną, powoli. Moje ręce są ciężkie.
+
+[pauza 10]
+
+Moje ręce są ciężkie i ciepłe.
+
+[pauza 12]
+
+Moje nogi są ciężkie i ciepłe.
+
+[pauza 12]
+
+Moje serce bije spokojnie i równo.
+
+[pauza 12]
+
+Oddech płynie sam. Spokojnie.
+
+[pauza 12]
+
+Brzuch jest ciepły i miękki.
+
+[pauza 12]
+
+Czoło jest przyjemnie chłodne.
+
+[pauza 14]
+
+Bardzo dobrze, {imię}. Właśnie tak.
+
+[pauza 8]
+
+[od 20]
+Teraz poszukaj w ciele miejsca, które jest dziś najbardziej spokojne. Może to dłonie. Może stopy. Może miejsce, w którym plecy dotykają podłoża. Zatrzymaj tam uwagę.
+
+[pauza 14]
+
+Poczuj, jak tam jest. Ciepło. Ciężar. Spokój.
+
+[pauza 12]
+
+A teraz, tylko na moment, zauważ miejsce, w którym jest trochę napięcia. Nie zmieniaj go. Po prostu je zauważ.
+
+[pauza 10]
+
+I wróć do miejsca spokoju. Pozwól mu się rozszerzyć. Jak plama ciepła, która powoli rozlewa się dalej.
+
+[pauza 16]
+
+Twój układ nerwowy uczy się teraz czegoś ważnego. Że może dotknąć napięcia i wrócić do spokoju. Że zawsze jest droga powrotna.
+
+[pauza 16]
+[/od]
+
+Wyobraź sobie, że Twoje ciało przełącza się teraz w tryb regeneracji. Jak komputer, który po długiej pracy robi pełny restart. Zamyka wszystkie okna. Czyści to, co niepotrzebne.
+
+[pauza 14]
+
+Z każdym wydechem kolejne okno się zamyka. Kolejna sprawa odkłada się na bok.
+
+[pauza 16]
+
+W tym czasie Twoje komórki robią to, co potrafią najlepiej. Odpoczywają. Naprawiają. Odbudowują zapasy.
 
 [pauza 18]
+
+Nie musisz tego kontrolować. Nie musisz pilnować. To dzieje się samo, kiedy jesteś bezpieczny i spokojny. A teraz jesteś.
+
+[pauza 20]
+
+[od 30]
+Wyobraź sobie miękkie, ciepłe światło, które powoli przepływa przez ciało. Od czubka głowy, przez twarz, szyję i ramiona. Przez klatkę piersiową i brzuch. Przez nogi, aż do stóp.
+
+[pauza 20]
+
+Tam, gdzie światło przepływa, ciało robi się lżejsze. Czystsze. Odnowione.
+
+[pauza 20]
+
+Teraz przez chwilę nic nie będę mówić. To jest czas głębokiej regeneracji. Pozwól sobie po prostu być.
+
+[pauza 180]
+
+Bardzo dobrze, {imię}.
+
+[pauza 30]
+[/od]
+
+[od 15]
+Pozostań w tej ciszy. Twój układ nerwowy pracuje teraz dla Ciebie.
+
+[pauza 60]
+[/od]
+
+${KOTWICA}
+
+Restart jest prawie zakończony. Za chwilę wrócisz, i zabierzesz ze sobą świeżość, spokój i nową energię. Tak, jakby wszystko w Tobie zostało delikatnie poukładane od nowa.
+
+[pauza 10]
+
+${POWROT}
+
+Twój układ nerwowy zasługuje na takie chwile, {imię}. Możesz do nich wracać, kiedy tylko zechcesz.`;
+
+const nidra = `Cześć, {imię}. To jest joga nidra. Sen świadomości. Ciało głęboko odpoczywa, a uwaga pozostaje delikatnie obecna. Jeśli zaśniesz, to też jest w porządku.
+
+[pauza 5]
+
+Połóż się na plecach. Nogi lekko rozsunięte, stopy opadają na boki. Ręce wzdłuż ciała, dłonie zwrócone ku górze. Jeśli potrzebujesz, podłóż poduszkę pod głowę albo kolana. Okryj się kocem.
+
+[pauza 10]
+
+Zamknij oczy. Poruszaj się jeszcze chwilę, aż znajdziesz pozycję, w której możesz zostać bez ruchu.
+
+[pauza 10]
+
+Od teraz postanawiasz nie poruszać ciałem. Ciało odpoczywa. Ty słuchasz mojego głosu.
+
+[pauza 6]
+
+Weź głęboki wdech. I powoli wypuść powietrze. Jeszcze raz. Głęboki wdech. I długi wydech.
+
+[pauza 10]
+
+Zauważ dźwięki wokół siebie. Te dalekie. I te bliskie. Nie oceniaj ich. Pozwól im przychodzić i odchodzić.
+
+[pauza 12]
+
+Poczuj ciało leżące na podłożu. Całe ciało. Ciężkie i spokojne.
+
+[pauza 10]
+
+${ZEJSCIE}
+
+Teraz czas na Twoje postanowienie. Sankalpę. Krótkie zdanie, prawdziwe dla Ciebie, wypowiedziane w czasie teraźniejszym. Jeśli nie masz własnego, możesz przyjąć to: jestem spokojny, a mój spokój wystarcza.
+
+[pauza 6]
+
+Powtórz je w myślach trzy razy. Powoli. Z pełnym przekonaniem.
+
+[pauza 20]
+
+Bardzo dobrze, {imię}. Postanowienie zostało zasiane. Możesz je teraz zostawić.
+
+[pauza 6]
+
+Teraz przeprowadzę Twoją uwagę przez ciało. Gdy usłyszysz nazwę miejsca, po prostu je poczuj. Nie musisz się ruszać. Tylko uwaga płynie z miejsca na miejsce.
+
+[pauza 4]
+
+Prawa dłoń. Kciuk. Palec wskazujący. Środkowy. Serdeczny. Mały palec. Wnętrze dłoni. Grzbiet dłoni. Nadgarstek. Przedramię. Łokieć. Ramię. Bark. Prawy bok. Biodro. Udo. Kolano. Łydka. Kostka. Pięta. Podeszwa stopy. Palce prawej stopy.
+
+[pauza 6]
+
+Lewa dłoń. Kciuk. Palec wskazujący. Środkowy. Serdeczny. Mały palec. Wnętrze dłoni. Grzbiet dłoni. Nadgarstek. Przedramię. Łokieć. Ramię. Bark. Lewy bok. Biodro. Udo. Kolano. Łydka. Kostka. Pięta. Podeszwa stopy. Palce lewej stopy.
+
+[pauza 6]
+
+[od 15]
+Tył ciała. Pięty. Łydki. Tył kolan. Tył ud. Pośladki. Dolna część pleców. Środek pleców. Łopatki. Kark. Tył głowy. Czubek głowy.
+
+[pauza 6]
+
+Przód ciała. Czoło. Prawa brew. Lewa brew. Przestrzeń między brwiami. Prawe oko. Lewe oko. Prawy policzek. Lewy policzek. Nos. Górna warga. Dolna warga. Broda. Gardło. Prawa strona klatki piersiowej. Lewa strona. Środek klatki piersiowej. Brzuch. Pępek. Podbrzusze.
+
+[pauza 6]
+[/od]
+
+Całe ciało. Cała prawa strona. Cała lewa strona. Całe ciało naraz. Całe ciało.
+
+[pauza 12]
+
+Bardzo dobrze, {imię}.
+
+[pauza 5]
+
+Teraz uświadom sobie oddech. Naturalny, spokojny oddech. Poczuj, jak powietrze wpływa przez nozdrza, chłodniejsze, i wypływa, cieplejsze.
+
+[pauza 12]
+
+[do 10]
+Policz w myślach oddechy, od jedenastu do jednego. Wdech, wydech, jedenaście. Wdech, wydech, dziesięć. I tak dalej, aż do jednego. Jeśli się pomylisz, zacznij spokojnie od początku.
+
+[pauza 60]
+[/do]
+[od 15]
+Policz w myślach oddechy, od dwudziestu siedmiu do jednego. Wdech, wydech, dwadzieścia siedem. Wdech, wydech, dwadzieścia sześć. I tak dalej. Jeśli się pomylisz, zacznij spokojnie od początku. Nie ma tu błędu.
+
+[pauza 120]
+[/od]
+
+Zostaw liczenie. Oddech płynie sam.
+
+[pauza 8]
+
+[od 20]
+Teraz przywołaj uczucie ciężkości. Całe ciało staje się ciężkie. Bardzo ciężkie. Jakby zapadało się w podłoże. Ręce ciężkie. Nogi ciężkie. Głowa ciężka.
+
+[pauza 20]
+
+A teraz uczucie lekkości. Ciało staje się lekkie. Bardzo lekkie. Jakby unosiło się odrobinę nad podłożem. Lekkie jak piórko.
+
+[pauza 20]
+
+Uczucie ciepła. Jakbyś leżał w słońcu, w ciepły letni dzień. Ciepło na skórze. Ciepło w środku.
+
+[pauza 20]
+
+Uczucie chłodu. Jakbyś stał boso na chłodnej trawie wczesnym rankiem. Chłodne powietrze na twarzy.
+
+[pauza 20]
+
+I zostaw te uczucia. Wróć do zwykłego, spokojnego ciała.
+
+[pauza 10]
+
+Teraz pozwól, żeby przed Twoimi oczami przepływały obrazy. Nie zatrzymuj ich. Tylko zobacz.
+
+[pauza 4]
+
+Spokojne morze o świcie.
+
+[pauza 5]
+
+Płonąca świeca.
+
+[pauza 5]
+
+Śnieżny szczyt góry.
+
+[pauza 5]
+
+Ścieżka w lesie.
+
+[pauza 5]
+
+Kubek gorącej herbaty.
+
+[pauza 5]
+
+Śmiejące się dzieci.
+
+[pauza 5]
+
+Ognisko w nocy.
+
+[pauza 5]
+
+Gwiaździste niebo.
+
+[pauza 5]
+
+Leżak na ciepłej plaży.
+
+[pauza 5]
+
+Spokojna twarz kogoś bliskiego.
+
+[pauza 8]
+
+Teraz wyobraź sobie bezkresne, ciemne, spokojne niebo. Przestrzeń bez końca. Odpoczywaj w niej.
+
+[pauza 30]
+[/od]
+
+[od 30]
+Bądź teraz świadkiem wszystkiego, co się pojawia. Myśli, obrazy, odczucia. Pozwól im przepływać. Ty po prostu jesteś.
+
+[pauza 180]
+[/od]
+
+Wróć do swojego postanowienia. Tego samego, które wypowiedziałeś na początku. Powtórz je w myślach trzy razy. Z pełnym przekonaniem. Teraz trafia na bardzo podatny grunt.
+
+[pauza 20]
+
+Bardzo dobrze, {imię}.
+
+[pauza 6]
+
+Joga nidra dobiega końca. Uświadom sobie oddech. Ciało leżące na podłożu. Dźwięki w pomieszczeniu.
+
+[pauza 10]
+
+Zacznij delikatnie poruszać palcami dłoni i stóp. Przeciągnij się powoli, jeśli masz ochotę.
+
+[pauza 10]
+
+Kiedy będziesz gotowy, przekręć się na prawy bok i poleż tak chwilę. A potem powoli usiądź i otwórz oczy.
+
+[pauza 10]
+
+Joga nidra zakończona, {imię}.`;
+
+const evening = `Dobry wieczór, {imię}. Dzień pracy jest już za Tobą. Teraz możesz go powoli odłożyć.
+
+[pauza 5]
+
+${INDUKCJA}
+
+${ZEJSCIE}
+
+${POGLEBIENIE}
+
+Twoje ciało może wciąż nosić w sobie trochę dnia. Rozmowy. Decyzje. Ekrany. To naturalne. I z każdym wydechem ten dzień może odpływać coraz dalej.
+
+[pauza 12]
 
 Przypomnij sobie jedną rzecz, którą dziś zrobiłeś. Nie musi być duża. Wystarczy, że się wydarzyła. Możesz ją docenić.
 
-[pauza 15]
-
-A teraz pomyśl o tym, co zostało niedokończone. Wyobraź sobie, że wkładasz te sprawy do pudełka. Zamykasz pokrywę. Pudełko stoi na biurku. Poczeka do jutra.
-
-[pauza 15]
-
-Nie musisz go pilnować w nocy.
-
-[pauza 18]
-
-Jeśli coś jeszcze krąży w głowie, możesz to nazwać jednym słowem. Na przykład: decyzja. Albo: rozmowa. Albo: pomysł. Nazwane myśli często robią się cichsze. Nie trzeba ich teraz rozwiązywać.
-
-[pauza 18]
-
-Przenieś uwagę na stopy. Pozwól im zrobić się ciężkimi i ciepłymi.
-
-[pauza 10]
-
-Łydki i kolana. Miękkie.
-
-[pauza 10]
-
-Uda i biodra. Opadają w stronę podłoża.
-
-[pauza 10]
-
-Brzuch. Może poruszać się swobodnie, razem z oddechem.
-
-[pauza 12]
-
-Plecy. Każdy oddech pozwala im rozłożyć się trochę szerzej.
-
-[pauza 12]
-
-Barki opadają. Ręce są ciężkie. Dłonie otwarte.
-
-[pauza 12]
-
-Szyja. Twarz. Czoło. Szczęka luźna. Oczy odpoczywają.
-
-[pauza 24]
-
-Jeśli pojawiają się myśli o jutrze, możesz je zauważyć i pozwolić im przepłynąć. Jak chmury. Nie musisz za nimi iść.
-
-[pauza 37]
-
-Na dzisiaj wystarczy, {imię}.
-
-[pauza 12]
-
-Zrobiłeś dość, {imię}. Jesteś wystarczający, także wtedy, kiedy nic nie robisz.
-
-[pauza 49]
-
-Pomyśl przez chwilę o swoich bliskich. O Monice. O Leonie i Gai. Nie musisz niczego planować. Wystarczy, że poczujesz, że są blisko. Że ten dom jest spokojnym miejscem.
-
-[pauza 37]
-
-Każdy wydech pozwala Ci zapaść się odrobinę głębiej w miękkość łóżka albo fotela. Nie musisz niczego pilnować. Noc zajmie się resztą.
-
-[pauza 49]
-
-Pozostań w tym spokoju tak długo, jak chcesz. Jeśli zasypiasz, pozwól sobie zasnąć.
-
-[pauza 73]
-
-Dobranoc, {imię}.`;
-
-const present = `{imię}, zatrzymaj się na chwilę.
-
-Nie musisz niczego kończyć, zanim zaczniesz te trzy minuty.
-
-[pauza 4]
-
-Poczuj stopy na podłodze. Poczuj, gdzie ciało dotyka krzesła albo ziemi.
-
-[pauza 11]
-
-Rozejrzyj się powoli. Znajdź wzrokiem trzy rzeczy, które widzisz. Nazwij je w myślach.
-
-[pauza 17]
-
-Teraz posłuchaj. Jakie dwa dźwięki słyszysz? Blisko i daleko.
-
-[pauza 17]
-
-Poczuj jedną rzecz pod palcami. Fakturę. Temperaturę.
-
 [pauza 14]
 
-Weź spokojny oddech. Wydech trochę dłuższy.
-
-[pauza 11]
-
-I jeszcze jeden.
-
-[pauza 14]
-
-Zauważ swoje barki. Jeśli są uniesione, pozwól im opaść. Zauważ szczękę. Jeśli jest zaciśnięta, pozwól jej się rozluźnić.
-
-[pauza 17]
-
-Jesteś tutaj, {imię}. W tym miejscu. W tej chwili. Ta chwila nie potrzebuje ulepszenia.
-
-[pauza 21]
-
-Możesz wrócić do swojego dnia. Wolniej niż przed chwilą.`;
-
-const jacobson = `Cześć, {imię}. To jest relaksacja mięśni według Jacobsona.
-
-Będziemy po kolei lekko napinać i rozluźniać kolejne grupy mięśni. Napięcie ma być delikatne, mniej więcej na trzydzieści procent siły. Nigdy do bólu. Jeśli jakaś część ciała jest obolała albo kontuzjowana, po prostu ją pomiń i tylko wyobraź sobie rozluźnienie.
-
-Połóż się albo usiądź wygodnie, z podparciem pleców i głowy.
-
-[pauza 6]
-
-Weź kilka spokojnych oddechów. Nie spiesz się.
+A teraz wyobraź sobie, że wszystko, co zostało niedokończone, wkładasz do pudełka. Jedna sprawa. Druga. Trzecia. Zamykasz pokrywę. Pudełko stoi na biurku. Poczeka do jutra.
 
 [pauza 16]
 
-Za każdym razem, kiedy usłyszysz słowa „i puść”, rozluźnij mięśnie od razu, całkowicie. A potem po prostu obserwuj, co się dzieje w tym miejscu. Ciepło, ciężar, mrowienie. Albo nic szczególnego. Każde odczucie jest w porządku.
+Nie musisz go pilnować w nocy. Bardzo dobrze, {imię}.
 
-[pauza 11]
+[pauza 10]
 
-Zaczynamy od dłoni. Zaciśnij delikatnie obie dłonie w pięści. Poczuj napięcie w dłoniach i przedramionach.
+[od 20]
+Wyobraź sobie teraz cichą windę. Drzwi otwierają się, wchodzisz do środka. Ściany są miękkie, światło ciepłe i przytłumione.
+
+[pauza 8]
+
+Winda zjeżdża powoli w dół. Piętro pod piętrem. Z każdym piętrem dzień jest dalej, a spokój bliżej.
+
+[pauza 14]
+
+Drzwi otwierają się na dole. Za nimi jest przestrzeń wieczornego spokoju. Ciepła. Cicha. Twoja.
+
+[pauza 16]
+[/od]
+
+Jeśli coś jeszcze krąży w głowie, możesz to nazwać jednym słowem. Decyzja. Rozmowa. Pomysł. Nazwane myśli robią się cichsze. Jak chmury, które przepływają po wieczornym niebie.
+
+[pauza 18]
+
+Na dzisiaj wystarczy, {imię}. Zrobiłeś dość. Jesteś wystarczający, także wtedy, kiedy nic nie robisz.
+
+[pauza 20]
+
+Pomyśl przez chwilę o swoich bliskich. O Monice. O Leonie i Gai. Nie musisz niczego planować. Wystarczy, że poczujesz, że są blisko. Że ten dom jest spokojnym miejscem.
+
+[pauza 22]
+
+[od 15]
+Każdy wydech pozwala Ci zapaść się odrobinę głębiej w miękkość łóżka albo fotela. Głębiej i głębiej. Noc zajmie się resztą.
+
+[pauza 30]
+[/od]
+
+[od 30]
+Teraz przez dłuższą chwilę nic nie będę mówić. Możesz po prostu odpływać. Spokojnie. Coraz dalej.
+
+[pauza 180]
+[/od]
+
+${POWROT_SEN}
+
+Dobranoc, {imię}.`;
+
+const estepona = `{imię}, ta wizualizacja zabierze Cię w znajome miejsce. Nie musisz niczego dokładnie wyobrażać. Wystarczy, że pozwolisz obrazom przychodzić tak, jak chcą.
+
+[pauza 5]
+
+${INDUKCJA}
+
+Jest późne przedpołudnie w Esteponie. Stoisz na górze drewnianych schodków, które prowadzą na plażę. Dziesięć ciepłych stopni w dół, do piasku.
 
 [pauza 6]
+
+Schodzisz powoli. Dziesięć. Dziewięć. Osiem. Z każdym stopniem słońce grzeje mocniej, a ciało robi się cięższe.
+
+[pauza 6]
+
+Siedem. Sześć. Pięć. Słyszysz morze coraz wyraźniej.
+
+[pauza 6]
+
+Cztery. Trzy. Dwa. Jeden. Twoje stopy dotykają ciepłego piasku. Bardzo dobrze, {imię}.
+
+[pauza 8]
+
+${POGLEBIENIE}
+
+Kładziesz się na leżaku. Pod plecami czujesz miękki materiał. Ciało jest ciężkie i rozgrzane.
+
+[pauza 12]
+
+Słońce dotyka Twojej skóry. Najpierw twarzy. Potem ramion. Potem nóg. Ciepło jest przyjemne, nie za mocne. Rozlewa się powoli po całym ciele.
+
+[pauza 16]
+
+Słyszysz fale. Przychodzą i odchodzą. Z każdą falą, która cofa się po piasku, możesz zapaść się odrobinę głębiej.
+
+[pauza 18]
+
+Gdzieś niedaleko słychać śmiech dzieci. Może to Leon. Może Gaja. Monika leży obok z książką. Czasem coś powie, czasem jest cicho. Wszystko jest na swoim miejscu.
+
+[pauza 18]
+
+Twój telefon leży głęboko w torbie. Nie ma takiej wiadomości, która nie mogłaby poczekać.
+
+[pauza 14]
+
+[od 20]
+Wstajesz powoli i idziesz w stronę wody. Morze jest ciepłe, przejrzyste. Wchodzisz do niego krok po kroku.
+
+[pauza 10]
+
+Kładziesz się na plecach. Woda Cię niesie. Nie musisz nic robić. Morze trzyma Cię całego.
+
+[pauza 16]
+
+Kołyszesz się delikatnie na falach. Nad Tobą błękitne niebo. Każde kołysanie zabiera Cię głębiej w spokój.
+
+[pauza 20]
+
+A potem wracasz powoli na brzeg i kładziesz się z powrotem na leżaku. Ciepły. Lekki. Spokojny.
+
+[pauza 14]
+[/od]
+
+Zauważ, {imię}, jak to jest nie potrzebować niczego więcej. Nic nie trzeba poprawić. Nic nie trzeba zbudować. Nic nie trzeba zdobyć.
+
+[pauza 22]
+
+Przypomnij sobie, ile wysiłku kosztowało dojście do tego miejsca. Ile decyzji, ile pracy, ile odwagi. Teraz to wszystko może zostać za Tobą. Jak droga, którą przeszedłeś, żeby dotrzeć na plażę.
+
+[pauza 18]
+
+Zbudowałeś coś, z czego możesz się cieszyć. Enjoy what you've built.
+
+[pauza 18]
+
+To uczucie ma swój adres w Twoim ciele. Może jest w rozluźnionych barkach. Może w ciepłym brzuchu. Może w miękkiej twarzy. Zauważ, gdzie go czujesz.
+
+[pauza 18]
+
+${KOTWICA}
+
+Możesz do niego wracać, kiedy zechcesz, {imię}. Nie tylko w Hiszpanii. Także w zwykły wtorek po pracy. Na kanapie. W samochodzie, czekając na dzieci.
+
+[pauza 16]
+
+[od 30]
+Zostań teraz na leżaku. Słońce. Morze. Rodzina obok. Ja przez chwilę nic nie będę mówić.
+
+[pauza 180]
+[/od]
+
+Słońce. Morze. Spokój, który nie musi być niczym więcej.
+
+[pauza 40]
+
+${POWROT}
+
+Mam prawo cieszyć się tym, co już zbudowałem.`;
+
+const jacobson = `Cześć, {imię}. To jest relaksacja mięśni według Jacobsona, połączona z głębokim wyciszeniem.
+
+Będziemy po kolei lekko napinać i rozluźniać kolejne części ciała. Napięcie ma być delikatne, mniej więcej na trzydzieści procent siły. Nigdy do bólu. Jeśli jakaś część ciała jest obolała, pomiń ją i tylko wyobraź sobie rozluźnienie.
+
+[pauza 6]
+
+${INDUKCJA}
+
+Za każdym razem, kiedy usłyszysz słowa „i puść”, rozluźnij mięśnie od razu, całkowicie. A potem obserwuj, co dzieje się w tym miejscu. Ciepło. Ciężar. Mrowienie. Każde odczucie jest w porządku.
+
+[pauza 8]
+
+[do 10]
+Zaciśnij delikatnie obie dłonie w pięści i napnij ramiona.
+
+[pauza 5]
+
+I puść. Ręce opadają, ciężkie i ciepłe. Bardzo dobrze.
+
+[pauza 18]
+
+Unieś barki w stronę uszu i lekko zmarszcz twarz.
+
+[pauza 5]
+
+I puść. Barki opadają niżej niż przedtem. Twarz się wygładza.
+
+[pauza 18]
+
+Napnij lekko brzuch i ściągnij łopatki do siebie.
+
+[pauza 5]
+
+I puść. Brzuch mięknie. Plecy rozkładają się szeroko.
+
+[pauza 18]
+
+Wyprostuj nogi i delikatnie przyciągnij palce stóp do siebie.
+
+[pauza 5]
+
+I puść. Nogi stają się ciężkie. Całe ciało jest teraz luźne. Bardzo dobrze, {imię}.
+
+[pauza 20]
+[/do]
+[od 15]
+Zaczynamy od dłoni. Zaciśnij delikatnie obie dłonie w pięści. Poczuj napięcie w dłoniach i przedramionach.
+
+[pauza 5]
 
 I puść. Pozwól dłoniom się otworzyć. Zauważ różnicę między napięciem a rozluźnieniem.
 
-[pauza 27]
+[pauza 20]
 
-Teraz ramiona. Zegnij ręce w łokciach i delikatnie napnij mięśnie ramion, jakbyś pokazywał biceps.
+Teraz ramiona. Zegnij ręce w łokciach i delikatnie napnij mięśnie ramion.
 
-[pauza 6]
+[pauza 5]
 
 I puść. Ręce opadają swobodnie. Ciężkie i ciepłe.
 
-[pauza 27]
+[pauza 20]
 
-Barki. Unieś barki w stronę uszu. Delikatnie. Poczuj napięcie.
-
-[pauza 5]
-
-I opuść. Pozwól im opaść niżej, niż były na początku.
-
-[pauza 27]
-
-Twarz. Zmarszcz lekko czoło, unosząc brwi.
+Barki. Unieś barki w stronę uszu. Delikatnie.
 
 [pauza 5]
 
-I puść. Czoło wygładza się.
+I opuść. Pozwól im opaść niżej, niż były na początku. Bardzo dobrze.
 
 [pauza 20]
 
-Zaciśnij delikatnie powieki.
+Twarz. Zmarszcz lekko czoło i zaciśnij delikatnie powieki.
 
 [pauza 5]
 
-I puść. Oczy odpoczywają.
+I puść. Czoło się wygładza. Oczy odpoczywają.
 
-[pauza 20]
+[pauza 18]
 
 Zaciśnij lekko zęby i poczuj napięcie w szczęce.
 
@@ -523,192 +729,376 @@ Zaciśnij lekko zęby i poczuj napięcie w szczęce.
 
 I puść. Zęby się rozsuwają. Język leży swobodnie. To miejsce, w którym wiele osób nosi napięcie dnia.
 
-[pauza 27]
+[pauza 20]
 
-Kark. Bardzo delikatnie dociśnij tył głowy do podłoża albo oparcia. Tylko odrobinę.
+Kark. Bardzo delikatnie dociśnij tył głowy do podłoża albo oparcia.
 
 [pauza 5]
 
 I puść. Szyja może odpocząć.
 
-[pauza 27]
+[pauza 20]
 
-Klatka piersiowa i plecy. Ściągnij delikatnie łopatki do siebie.
+Plecy. Ściągnij delikatnie łopatki do siebie.
 
 [pauza 5]
 
-I puść. Plecy rozkładają się szeroko.
+I puść. Plecy rozkładają się szeroko. Głębiej i spokojniej.
 
-[pauza 27]
+[pauza 20]
 
-Brzuch. Napnij lekko mięśnie brzucha, jakbyś przygotowywał się na delikatny dotyk.
+Brzuch. Napnij lekko mięśnie brzucha.
 
 [pauza 5]
 
 I puść. Brzuch staje się miękki. Oddech płynie swobodnie.
 
-[pauza 27]
+[pauza 20]
 
-Pośladki. Napnij je delikatnie.
-
-[pauza 5]
-
-I puść. Miednica opada ciężko w stronę podłoża.
-
-[pauza 27]
-
-Uda. Wyprostuj nogi i lekko napnij mięśnie ud.
+Pośladki i uda. Napnij je delikatnie.
 
 [pauza 5]
 
-I puść. Nogi stają się ciężkie.
+I puść. Miednica i nogi opadają ciężko w stronę podłoża.
 
-[pauza 27]
+[pauza 20]
 
-Łydki. Delikatnie przyciągnij palce stóp w swoją stronę. Bez skurczu, tylko odrobinę.
-
-[pauza 5]
-
-I puść. Stopy opadają swobodnie.
-
-[pauza 27]
-
-Stopy. Lekko podwiń palce stóp.
+Łydki i stopy. Delikatnie przyciągnij palce stóp w swoją stronę. Bez skurczu, tylko odrobinę.
 
 [pauza 5]
 
-I puść.
+I puść. Stopy opadają swobodnie. Bardzo dobrze, {imię}.
 
-[pauza 27]
+[pauza 22]
+[/od]
 
-Teraz przejdź uwagą przez całe ciało, od stóp do głowy. Jeśli gdzieś zostało trochę napięcia, nie walcz z nim. Po prostu zauważ je i pozwól mu być. Z każdym wydechem może odpuścić samo.
+${ZEJSCIE}
 
-[pauza 41]
+Teraz przejdź uwagą przez całe ciało, od stóp do głowy. Jeśli gdzieś zostało trochę napięcia, nie walcz z nim. Z każdym wydechem może odpuścić samo.
+
+[pauza 24]
+
+[od 20]
+Wyobraź sobie, że ciało jest jak ciężki, ciepły koc, który powoli rozkłada się na podłożu. Każdy mięsień jest miękki. Każdy staw luźny.
+
+[pauza 20]
+
+I im bardziej ciało się rozluźnia, tym spokojniejszy staje się umysł. Jedno prowadzi do drugiego. Samo.
+
+[pauza 20]
+[/od]
+
+${POGLEBIENIE}
 
 Całe ciało jest ciężkie i spokojne, {imię}. Podłoże niesie Cię w całości.
 
-[pauza 81]
+[pauza 30]
 
-Zostań w tym rozluźnieniu. Nic nie musisz.
+${KOTWICA}
 
-[pauza 122]
+[od 30]
+Zostań teraz w tym rozluźnieniu. Nic nie musisz. Ja przez chwilę nic nie będę mówić.
 
-Powoli zacznij wracać. Poruszaj palcami dłoni i stóp.
+[pauza 180]
+[/od]
 
-[pauza 6]
+Zostań jeszcze chwilę w tym uczuciu.
 
-Przeciągnij się, jeśli masz ochotę.
+[pauza 40]
 
-[pauza 6]
-
-Kiedy będziesz gotowy, przekręć się na bok i spokojnie usiądź. Zabierz ze sobą to uczucie ciężkości i spokoju.
-
-[pauza 3]
+${POWROT}
 
 Dziękuję, {imię}.`;
 
-const estepona = `{imię}, połóż się wygodnie. Jeśli możesz, zamknij oczy.
+const ideas = `{imię}, ta sesja jest na chwile, w których pojawia się nowy pomysł i od razu czujesz, że chcesz zacząć. Daj sobie te kilka minut. Pomysł poczeka.
 
-Ta wizualizacja zabierze Cię w znajome miejsce. Nie musisz niczego dokładnie wyobrażać. Wystarczy, że pozwolisz obrazom przychodzić tak, jak chcą.
+[pauza 4]
+
+${INDUKCJA}
+
+${ZEJSCIE}
+
+Zauważ teraz, co dzieje się w ciele, kiedy myślisz o tym pomyśle. Może jest tam ekscytacja. Lekkie przyspieszenie. Energia, która chce się gdzieś ruszyć. To przyjemne uczucie. Nie ma w nim nic złego.
+
+[pauza 12]
+
+Pozwól mu po prostu być. Bez wykonywania żadnego ruchu. Bardzo dobrze.
+
+[pauza 12]
+
+Ekscytacja często przychodzi razem z myślą: teraz albo nigdy. Ta myśl brzmi przekonująco, ale rzadko jest prawdziwa. Dobre pomysły nie psują się w ciągu jednej nocy. Często po kilku dniach są nawet lepsze, bo zdążyły dojrzeć.
+
+[pauza 16]
+
+Z każdym wydechem ta energia może opadać, jak fala, która uspokaja się przy brzegu. Coraz niżej. Coraz łagodniej.
+
+[pauza 16]
+
+Twój umysł jest świetny w znajdowaniu możliwości. Dzięki temu zbudowałeś tak wiele. Ale nie każda możliwość wymaga realizacji, {imię}. To, że coś możesz zrobić, nie oznacza, że musisz. I nie oznacza, że musisz dzisiaj.
+
+[pauza 16]
+
+Wyobraź sobie, że Twój pomysł zapisujesz na małej kartce. Jednym zdaniem. Składasz ją i kładziesz w bezpiecznym miejscu. Na półce, w szufladzie, w parkingu pomysłów.
 
 [pauza 10]
 
-Weź spokojny oddech. Wydech odrobinę dłuższy.
+Pomysł jest bezpieczny. Nie zniknie. Będzie tam, kiedy zechcesz do niego wrócić. Może za tydzień. Może w grudniu. Może okaże się, że już go nie potrzebujesz. To też jest dobre zakończenie.
 
-[pauza 13]
+[pauza 18]
 
-Jest późne przedpołudnie w Esteponie. Leżysz na leżaku. Pod plecami czujesz miękki materiał. Ciało jest ciężkie i rozgrzane.
+[od 15]
+Wyobraź sobie port wieczorem. Przy nabrzeżu stoją łodzie. Każda z nich to jeden z Twoich pomysłów. Kołyszą się spokojnie, bezpiecznie przycumowane.
 
-[pauza 13]
+[pauza 14]
 
-Słońce dotyka Twojej skóry. Najpierw twarzy. Potem ramion. Potem nóg. Ciepło jest przyjemne, nie za mocne. Rozlewa się powoli po całym ciele.
+Możesz na nie patrzeć z brzegu. Możesz je podziwiać. I nie musisz żadną z nich wypływać. Port jest po to, żeby łodzie mogły czekać.
 
-[pauza 19]
+[pauza 16]
+[/od]
 
-Słyszysz morze. Fale przychodzą i odchodzą. Nie musisz ich liczyć. Każda fala przychodzi sama i sama odchodzi.
+[od 20]
+Teraz zwróć się do tej części siebie, która kocha tworzyć. Podziękuj jej. Za energię. Za odwagę. Za wszystko, co dzięki niej powstało.
 
-[pauza 19]
+[pauza 14]
 
-Możesz dopasować oddech do fal, jeśli masz ochotę. Wdech, kiedy fala nadchodzi. Wydech, kiedy cofa się po piasku. A jeśli nie masz ochoty, po prostu słuchaj.
+I zapytaj ją spokojnie: czy możesz teraz odpocząć, wiedząc, że pomysły są bezpieczne?
 
-[pauza 25]
+[pauza 18]
 
-Gdzieś niedaleko słychać śmiech dzieci. Może to Leon. Może Gaja. Monika leży obok z książką. Czasem coś powie, czasem jest cicho. Wszystko jest na swoim miejscu.
+Może poczujesz ulgę. Może lekkość. Ta część Ciebie też zasługuje na wakacje.
 
-[pauza 19]
+[pauza 16]
+[/od]
 
-Twój telefon leży głęboko w torbie. Nie musisz po niego sięgać. Nie ma takiej wiadomości, która nie mogłaby poczekać.
+Zapytaj siebie spokojnie: czy chcę teraz świadomie tworzyć? Czy może automatycznie wypełniam wolny czas kolejnym projektem?
 
-[pauza 15]
+[pauza 18]
 
-Poczuj lekki wiatr od morza. Zapach soli. Ciepło piasku pod stopami, kiedy zsuwasz je z leżaka.
+Obie odpowiedzi są w porządku. Ważne jest tylko to, że wybierasz Ty, a nie ekscytacja.
 
-[pauza 19]
+[pauza 12]
 
-Nie masz żadnego planu na resztę dnia. Może pójdziesz z Leonem nad wodę. Może zjecie razem coś dobrego. Może po prostu zostaniesz tutaj.
+I od teraz, za każdym razem, kiedy pojawi się nowy pomysł, Twoje ciało samo zrobi krótką pauzę. Jeden spokojny oddech. Jedno zdanie zapisane na kartce. I powrót do swojego dnia. Coraz łatwiej. Coraz naturalniej.
 
-[pauza 25]
+[pauza 14]
 
-Zauważ, {imię}, jak to jest nie potrzebować niczego więcej.
+Mogę odczuwać ekscytację i nie podejmować działania.
 
-[pauza 13]
+[pauza 10]
 
-Nic nie trzeba poprawić. Nic nie trzeba zbudować. Nic nie trzeba zdobyć.
+Nie każda myśl wymaga działania.
 
-[pauza 38]
+[pauza 10]
 
-Przypomnij sobie, ile wysiłku kosztowało dojście do tego miejsca. Ile decyzji, ile pracy, ile odwagi. Teraz to wszystko może zostać za Tobą. Jak droga, którą przeszedłeś, żeby dotrzeć na plażę. Nie musisz iść nią z powrotem. Nie musisz też od razu szukać nowej drogi.
+Nie muszę dzisiaj budować kolejnego miasta.
 
-[pauza 25]
+[pauza 16]
 
-Zbudowałeś coś, z czego możesz się cieszyć. Enjoy what you've built.
+${KOTWICA}
 
-[pauza 25]
+[od 30]
+Zostań teraz chwilę w ciszy. Bez planów. Bez projektów. Tylko oddech.
 
-To uczucie ma swój adres w Twoim ciele. Może jest w rozluźnionych barkach. Może w ciepłym brzuchu. Może w miękkiej twarzy. Zauważ, gdzie go czujesz.
+[pauza 150]
+[/od]
 
-[pauza 25]
+${POWROT}
 
-Możesz do niego wracać, kiedy zechcesz, {imię}. Nie tylko w Hiszpanii. Także w zwykły wtorek po pracy. Na kanapie. W ogrodzie. W samochodzie, czekając na dzieci.
+Pomysł poczeka. Ty możesz żyć dalej, {imię}.`;
 
-[pauza 19]
+const morning = `Dzień dobry, {imię}. Zanim zaczniesz dzień, daj sobie tę chwilę. Bez telefonu. Bez listy zadań.
 
-Nie musisz się do tego zmuszać. Nie musisz sprawdzać, czy już się udało. Możesz po prostu być.
+[pauza 4]
 
-[pauza 76]
-
-Słońce. Morze. Rodzina obok. Spokój, który nie musi być niczym więcej.
-
-[pauza 114]
-
-Powoli zacznij wracać do pokoju, w którym jesteś. Zabierz ze sobą ciepło słońca.
-
-[pauza 6]
-
-Poruszaj palcami. Weź głębszy oddech.
+Jeśli masz przed sobą kawę, poczuj jeszcze ciepło kubka w dłoniach. A potem odstaw go i ułóż się wygodnie.
 
 [pauza 6]
 
-Kiedy będziesz gotowy, otwórz oczy.
+${INDUKCJA}
 
-[pauza 3]
+${ZEJSCIE}
 
-Mam prawo cieszyć się tym, co już zbudowałem.`;
+Zauważ, jak jest teraz w Twoim ciele. Może jesteś jeszcze trochę zaspany. Może głowa już zaczyna planować. Cokolwiek tam jest, możesz to po prostu zauważyć.
+
+[pauza 12]
+
+{imię}, dzisiaj możesz działać z ciekawością, ale bez pośpiechu. Nie musisz zrobić wszystkiego. Wystarczy, że zrobisz to, co ważne. I zrobisz to spokojnie.
+
+[pauza 14]
+
+Wybierz jedną, najważniejszą rzecz na dzisiaj. Tylko jedną. Resztę potraktuj jako dodatek, a nie obowiązek.
+
+[pauza 14]
+
+[od 15]
+Wyobraź sobie teraz swój dzień, jakbyś oglądał go na spokojnym filmie. Widzisz siebie przy pracy. Skupionego. Spokojnego. Robisz jedną rzecz naraz.
+
+[pauza 14]
+
+Widzisz moment, w którym pojawia się nowy pomysł. Zauważasz go. Zapisujesz jednym zdaniem. I wracasz do tego, co robiłeś. Lekko. Bez napięcia.
+
+[pauza 14]
+
+Widzisz, jak około szesnastej zamykasz pracę. Nawet jeśli nie wszystko jest gotowe. I wracasz do domu, do Moniki, do Leona i Gai. Obecny. Spokojny.
+
+[pauza 16]
+
+Bardzo dobrze, {imię}. Ten dzień już się zaczyna dobrze.
+
+[pauza 8]
+[/od]
+
+[od 20]
+Wyobraź sobie teraz poranne światło, które powoli wpływa do ciała. Ciepłe, jasne. Wchodzi przez czubek głowy i rozlewa się dalej. Przez twarz. Przez ramiona. Przez klatkę piersiową.
+
+[pauza 14]
+
+Tam, gdzie płynie, budzi spokojną energię. Nie pośpiech. Nie napięcie. Tylko świeżość i gotowość.
+
+[pauza 16]
+[/od]
+
+Pomyśl przez chwilę o jednej rzeczy, na którą możesz się dzisiaj cieszyć. Nie musi być wielka. Spacer. Rozmowa z Moniką. Kolacja z dziećmi. Ciepła herbata wieczorem.
+
+[pauza 18]
+
+Twój dzień ma początek. Ma też koniec. I każda jego chwila może być trochę spokojniejsza, niż się spodziewasz.
+
+[pauza 12]
+
+${KOTWICA}
+
+[od 30]
+Zostań teraz chwilę w ciszy. Niech ten spokój dobrze się zakorzeni, zanim zaczniesz dzień.
+
+[pauza 150]
+[/od]
+
+${POWROT}
+
+Kiedy będziesz gotowy, możesz uruchomić START. Albo po prostu dopić kawę. Miłego dnia, {imię}.`;
+
+const present = `{imię}, zatrzymaj się na chwilę. Nie musisz niczego kończyć, zanim zaczniesz.
+
+[pauza 4]
+
+Poczuj stopy na podłodze. Poczuj, gdzie ciało dotyka krzesła albo ziemi.
+
+[pauza 8]
+
+Rozejrzyj się powoli. Znajdź wzrokiem trzy rzeczy, które widzisz. Nazwij je w myślach.
+
+[pauza 12]
+
+Teraz posłuchaj. Jakie dwa dźwięki słyszysz? Jeden blisko i jeden daleko.
+
+[pauza 12]
+
+Poczuj jedną rzecz pod palcami. Fakturę. Temperaturę.
+
+[pauza 10]
+
+Bardzo dobrze, {imię}. Jesteś tutaj.
+
+[pauza 5]
+
+${INDUKCJA}
+
+${ZEJSCIE}
+
+Zauważ swoje barki. Jeśli są uniesione, pozwól im opaść. Zauważ szczękę. Jeśli jest zaciśnięta, pozwól jej się rozluźnić.
+
+[pauza 12]
+
+Jesteś tutaj, {imię}. W tym miejscu. W tej chwili. Ta chwila nie potrzebuje ulepszenia.
+
+[pauza 16]
+
+[od 15]
+Przeszłość jest za Tobą. Przyszłość poczeka. Teraz jest tylko ten oddech. I następny.
+
+[pauza 16]
+
+Z każdym wdechem jesteś bardziej tutaj. Z każdym wydechem spokojniej.
+
+[pauza 18]
+[/od]
+
+${POGLEBIENIE}
+
+${KOTWICA}
+
+[od 30]
+Zostań w tej chwili. Ja przez dłuższy moment nic nie będę mówić.
+
+[pauza 180]
+[/od]
+
+[pauza 20]
+
+${POWROT}
+
+Możesz wrócić do swojego dnia. Wolniej niż przed chwilą.`;
 
 export const AUDIO_SESSIONS: AudioSessionDef[] = [
   {
     id: "demob",
     title: "Głęboka demobilizacja",
     minutes: 15,
-    description: "Po długim okresie mobilizacji. Ciało, oddech i leżak w Esteponie.",
+    description: "Po długim okresie mobilizacji. Zejście w spokój, ciało, oddech i leżak w Esteponie.",
     suggestedMotif: "close",
     suggestedBackground: "nature",
     script: demob,
   },
   {
+    id: "restart",
+    title: "Deep Restart",
+    minutes: 20,
+    description: "Restart i regeneracja układu nerwowego: oddech, ciężar, ciepło, bezpieczeństwo, odnowa.",
+    suggestedMotif: "close",
+    suggestedBackground: "orchestral",
+    script: restart,
+  },
+  {
+    id: "nidra",
+    title: "Joga nidra",
+    minutes: 20,
+    description: "Sen świadomości: postanowienie, podróż przez ciało, oddech, przeciwieństwa i obrazy.",
+    suggestedMotif: "none",
+    suggestedBackground: "none",
+    script: nidra,
+  },
+  {
+    id: "evening",
+    title: "Wieczorne odpuszczanie",
+    minutes: 15,
+    description: "Odkładanie dnia i miękkie przejście w sen.",
+    suggestedMotif: "close",
+    suggestedBackground: "orchestral",
+    script: evening,
+  },
+  {
+    id: "estepona",
+    title: "Leżak w Esteponie",
+    minutes: 15,
+    description: "Wizualizacja: schodki na plażę, słońce, morze i nic więcej do zrobienia.",
+    suggestedMotif: "none",
+    suggestedBackground: "nature",
+    script: estepona,
+  },
+  {
+    id: "jacobson",
+    title: "Relaksacja Jacobsona",
+    minutes: 15,
+    description: "Łagodne napinanie i rozluźnianie mięśni, potem głębokie wyciszenie.",
+    suggestedMotif: "none",
+    suggestedBackground: "nature",
+    script: jacobson,
+  },
+  {
     id: "ideas",
     title: "Nie muszę realizować każdego pomysłu",
-    minutes: 8,
+    minutes: 10,
     description: "Kiedy ekscytacja ciągnie do kolejnego projektu.",
     suggestedMotif: "none",
     suggestedBackground: "system",
@@ -717,47 +1107,20 @@ export const AUDIO_SESSIONS: AudioSessionDef[] = [
   {
     id: "morning",
     title: "Spokojny poranek",
-    minutes: 5,
-    description: "Kawa, oddech i dzień bez pośpiechu.",
+    minutes: 10,
+    description: "Spokojny start i dzień przeżyty z wyprzedzeniem — bez pośpiechu.",
     suggestedMotif: "start",
     suggestedBackground: "jazz",
     script: morning,
   },
   {
-    id: "evening",
-    title: "Wieczorne odpuszczanie",
-    minutes: 10,
-    description: "Odkładanie dnia przed snem.",
-    suggestedMotif: "close",
-    suggestedBackground: "orchestral",
-    script: evening,
-  },
-  {
     id: "present",
     title: "Powrót do chwili obecnej",
-    minutes: 3,
-    description: "Krótka chwila uziemienia w środku dnia.",
+    minutes: 10,
+    description: "Uziemienie zmysłami i krótkie zejście w spokój w środku dnia.",
     suggestedMotif: "none",
     suggestedBackground: "none",
     script: present,
-  },
-  {
-    id: "jacobson",
-    title: "Relaksacja Jacobsona",
-    minutes: 15,
-    description: "Łagodne napinanie i rozluźnianie kolejnych mięśni.",
-    suggestedMotif: "none",
-    suggestedBackground: "nature",
-    script: jacobson,
-  },
-  {
-    id: "estepona",
-    title: "Leżak w Esteponie",
-    minutes: 12,
-    description: "Wizualizacja: słońce, morze i nic więcej do zrobienia.",
-    suggestedMotif: "none",
-    suggestedBackground: "nature",
-    script: estepona,
   },
 ];
 

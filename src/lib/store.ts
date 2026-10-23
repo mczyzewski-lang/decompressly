@@ -44,6 +44,11 @@ export function migrate(input: Partial<AppState> | undefined): AppState {
     if (merged.breath.cue === "tone") merged.breath.cue = "voice";
     done.add("breath-voice-default");
   }
+  // one-off: the breath sound was too quiet to hear
+  if (!done.has("air-louder")) {
+    if ((merged.breath.airVolume ?? 0) < 0.6) merged.breath.airVolume = 0.6;
+    done.add("air-louder");
+  }
   // one-off: a voice added on request, speaking with Eleven v3
   if (!done.has("voice-Hf6cweL2QiwvPv7zuh5B")) {
     addToCollection(merged.eleven, [{ id: "Hf6cweL2QiwvPv7zuh5B", name: "Nowy głos (v3)", modelId: "eleven_v3" }]);

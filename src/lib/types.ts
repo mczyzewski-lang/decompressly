@@ -191,7 +191,12 @@ export interface AudioSessionOverride {
   script?: string;
   background?: Background;
   motif?: Motif;
-  render?: { blobId: string; voiceId: string; scriptHash: string; createdAt: number; durationSec: number; background: Background; motif: Motif; pauseScale?: number; gap?: number; layout?: string };
+  /** recording made before lengths existed (kept until a new recording replaces it) */
+  render?: SessionRender;
+  /** recordings per chosen length in minutes ("10", "15", "20", "30") */
+  renders?: Record<string, SessionRender>;
+  /** chosen length in minutes */
+  length?: number;
   /** ElevenLabs voice for this session (empty = default voice) */
   voiceId?: string;
   /** CLOSE motif returns quietly in the second half and ends at full volume (default on) */
@@ -303,4 +308,18 @@ export interface CollectionVoice {
   id: string;
   name: string;
   modelId?: string;
+}
+
+export interface SessionRender {
+  blobId: string;
+  voiceId: string;
+  scriptHash: string;
+  createdAt: number;
+  durationSec: number;
+  background: Background;
+  motif: Motif;
+  pauseScale?: number;
+  gap?: number;
+  layout?: string;
+  length?: number;
 }

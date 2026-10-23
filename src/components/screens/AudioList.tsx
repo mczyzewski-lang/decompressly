@@ -3,6 +3,7 @@
 import { ChevronRight, Route } from "lucide-react";
 import { AUDIO_SESSIONS } from "@/lib/audio/scripts";
 import { PATHS, currentStep } from "@/lib/paths";
+import { defaultLength } from "@/lib/audio/segments";
 import { useApp } from "@/lib/store";
 import { navigate } from "@/lib/router";
 import { Screen } from "../ui";
@@ -44,12 +45,12 @@ export default function AudioList() {
       </div>
       <ul className="mt-3 space-y-3">
         {AUDIO_SESSIONS.map((s) => {
-          const ready = !!overrides[s.id]?.render;
+          const ready = !!overrides[s.id]?.render || Object.keys(overrides[s.id]?.renders ?? {}).length > 0;
           return (
             <li key={s.id}>
               <button onClick={() => navigate(`audio/${s.id}`)} className="flex w-full items-center gap-4 rounded-3xl bg-surface p-5 text-left shadow-soft ring-1 ring-line/60 active:scale-[0.99]">
                 <div className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-2xl bg-sage-soft">
-                  <span className="tabular font-display text-[22px] leading-none text-sage-deep">{s.minutes}</span>
+                  <span className="tabular font-display text-[22px] leading-none text-sage-deep">{overrides[s.id]?.length ?? defaultLength(s.minutes)}</span>
                   <span className="text-[10px] uppercase tracking-wide text-sage-deep/80">min</span>
                 </div>
                 <div className="min-w-0 flex-1">
@@ -64,7 +65,7 @@ export default function AudioList() {
         })}
       </ul>
       <p className="mt-8 px-2 text-center text-[12px] leading-relaxed text-ink-3">
-        Sesje inspirowane relaksacją i łagodną hipnozą relaksacyjną. To narzędzie wspierające odpoczynek, nie forma leczenia.
+        Sesje w języku hipnozy relaksacyjnej, do wyboru 10, 15, 20 lub 30 minut. To narzędzie wspierające odpoczynek, nie forma leczenia. Nie słuchaj podczas prowadzenia samochodu.
       </p>
     </Screen>
   );

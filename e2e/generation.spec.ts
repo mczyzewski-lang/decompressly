@@ -6,6 +6,7 @@ import { readFileSync } from "node:fs";
 const fakeAudio = readFileSync("public/sounds/nature-start.mp3");
 
 test("narration pipeline: confirm, generate paragraphs, montage, save offline", async ({ page }) => {
+  test.setTimeout(240_000);
   const ttsBodies: { text: string }[] = [];
   await page.route("**/api/eleven/tts", async (route) => {
     const body = route.request().postDataJSON();
@@ -32,11 +33,19 @@ test("narration pipeline: confirm, generate paragraphs, montage, save offline", 
   // longer pauses / another background are a free automatic re-montage, no new TTS calls
   const before = ttsBodies.length;
   const durBefore = await page.getByText(/^\d+:\d\d$/).last().textContent();
-  await page.getByRole("radio", { name: "×3" }).click();
   await page.getByRole("radio", { name: "10 s" }).click();
   await expect(page.getByText("Plik zapisany na urządzeniu")).toBeVisible({ timeout: 45_000 });
   await expect(page.getByText(/^\d+:\d\d$/).last()).not.toHaveText(durBefore ?? "", { timeout: 45_000 });
   expect(ttsBodies.length).toBe(before);
+
+  // a longer session adds the deeper passages; paragraphs recorded before are reused
+  await page.getByRole("radio", { name: "15 min" }).click();
+  await page.getByRole("button", { name: "Wygeneruj narrację" }).first().click();
+  await expect.poll(() => ttsBodies.length, { timeout: 30_000 }).toBeGreaterThan(before);
+  await expect(page.getByText(/^Zapisana narracja: /)).toBeVisible({ timeout: 90_000 });
+  const texts = ttsBodies.map((b) => b.text);
+  expect(new Set(texts).size).toBe(texts.length); // nothing recorded twice
+  expect(texts.some((t) => t.includes("schody"))).toBe(true); // the staircase descent of longer sessions
 });
 
 test("sound studio: generate START, derive CLOSE locally, save and activate", async ({ page }) => {
@@ -92,6 +101,11 @@ test("breath voice guidance uses only the ElevenLabs voice, recorded once", asyn
     texts.push(route.request().postDataJSON().text);
     await route.fulfill({ status: 200, contentType: "audio/mpeg", body: fakeAudio });
   });
+  const sounds: { text: string; duration_seconds: number }[] = [];
+  await page.route("**/api/eleven/sound", async (route) => {
+    sounds.push(route.request().postDataJSON());
+    await route.fulfill({ status: 200, contentType: "audio/mpeg", body: fakeAudio });
+  });
   await page.goto("/");
   await page.getByRole("button", { name: "Zacznij spokojnie" }).click();
   await page.evaluate(() => (location.hash = "#/settings/eleven"));
@@ -101,7 +115,11 @@ test("breath voice guidance uses only the ElevenLabs voice, recorded once", asyn
   await page.getByRole("button", { name: "Zacznij", exact: true }).click();
   await expect(page.getByText("Wdech", { exact: true })).toBeVisible({ timeout: 15_000 });
   await page.waitForTimeout(1500);
-  expect(texts).toEqual(expect.arrayContaining(["Wdech.", "Wydech.", "Możesz wrócić do swojego dnia, Marku."]));
+  expect(texts).toEqual(expect.arrayContaining(["Spokojnie wciągnij powietrze.", "I powoli je wypuść.", "Możesz wrócić do swojego dnia, Marku."]));
+  expect(texts.some((t) => /^(Wdech|Wydech)\.$/.test(t))).toBe(false); // lone words were read in English
+  // real breath sounds: one recording per phase, exactly as long as the phase (calm rhythm: 4 s / 6 s)
+  expect(sounds.map((x) => x.duration_seconds).sort()).toEqual([4, 6]);
+  expect(sounds.every((x) => /inhale|exhale/.test(x.text))).toBe(true);
   expect(new Set(texts).size).toBe(texts.length); // each phrase generated once
   expect(errors.filter((e) => e.includes("system voice"))).toEqual([]);
 });

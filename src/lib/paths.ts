@@ -1,4 +1,5 @@
 import type { AudioSessionDef } from "./audio/scripts";
+import { INDUKCJA, KOTWICA, POGLEBIENIE, POWROT, ZEJSCIE } from "./audio/hypno";
 import type { PathRun } from "./types";
 
 /**
@@ -38,24 +39,32 @@ const oczyszczenie: PathStep[] = [
   {
     n: 1,
     title: "Zauważyć, co noszę",
-    theme: "Bez naprawiania. Tylko zobaczyć, co leży na wierzchu.",
-    minutes: 7,
+    theme: "Zejść w spokój i bez naprawiania zobaczyć, co leży na wierzchu.",
+    minutes: 15,
     background: "nature",
     question: "Co noszę w sobie najciężej? Jedno zdanie wystarczy.",
     placeholder: "np. Ciągle wracam myślami do rzeczy, których nie zdążyłem zrobić.",
     noEcho: "",
     echo: "",
-    script: `{imię}, to pierwszy etap Ścieżki oczyszczenia. Nie musisz nic naprawiać. Dziś tylko zauważasz.
+    script: `{imię}, to pierwszy etap Ścieżki oczyszczenia. Nie musisz dziś nic naprawiać. Dziś tylko schodzisz w spokój i zauważasz.
 
-Usiądź albo połóż się wygodnie. Pozwól, żeby podłoże przejęło ciężar ciała.
+[pauza 4]
 
-[pauza 6]
+${INDUKCJA}
 
-Zrób trzy spokojne oddechy. Wdech nosem. I dłuższy, cichy wydech.
+${ZEJSCIE}
 
-[pauza 14]
+${POGLEBIENIE}
 
-Wyobraź sobie, że masz przy sobie plecak. Nosisz go od dawna, więc przestałeś zauważać, ile waży. Dziś po prostu zdejmujesz go na chwilę i stawiasz obok siebie.
+Jesteś teraz w miejscu głębokiego spokoju. Tutaj możesz patrzeć na różne rzeczy z pewnej odległości. Spokojnie. Bezpiecznie.
+
+[pauza 10]
+
+Wyobraź sobie, że masz przy sobie plecak. Nosisz go od dawna, więc przestałeś zauważać, ile waży. Teraz zdejmujesz go powoli z ramion i stawiasz obok siebie.
+
+[pauza 12]
+
+Zauważ, jak lżej robi się w barkach. Nawet odrobinę. Bardzo dobrze, {imię}.
 
 [pauza 10]
 
@@ -67,35 +76,55 @@ Nie wyjmuj wszystkiego naraz. Zobacz tylko, co leży na samym wierzchu. Co jest 
 
 [pauza 20]
 
+[od 15]
+Może to przyjść jako słowo. Jako obraz. Jako uczucie gdzieś w ciele. Każda forma jest dobra. Twoja głębsza część wie, co pokazać jako pierwsze.
+
+[pauza 18]
+[/od]
+
 Jeśli coś się pojawiło, nie oceniaj tego. Nie tłumacz się z tego. Powiedz w myślach po prostu: widzę cię.
 
 [pauza 14]
 
-{echo}
-
+[od 20]
 Zauważ, jak oddychasz, kiedy na to patrzysz. Może oddech jest płytszy. Może ramiona odrobinę się uniosły. To w porządku. Ciało mówi tylko, że to ważne.
 
 [pauza 12]
 
-Połóż dłoń tam, gdzie jest Ci najprzyjemniej. Na sercu, na brzuchu albo na udzie. Poczuj ciepło własnej dłoni.
+Weź teraz jeden dłuższy wydech. I zauważ, że możesz patrzeć na to, co ciężkie, i jednocześnie być spokojny. Jedno nie wyklucza drugiego.
 
 [pauza 16]
 
-Nie musisz dziś niczego rozwiązywać, {imię}. Samo zauważenie jest pierwszym krokiem. Plecak może jeszcze chwilę postać obok.
+Bardzo dobrze, {imię}. Właśnie tak.
+
+[pauza 8]
+[/od]
+
+Połóż dłoń tam, gdzie jest Ci najprzyjemniej. Na sercu, na brzuchu albo na udzie. Poczuj ciepło własnej dłoni.
 
 [pauza 14]
 
-Za moment zapiszesz jedno zdanie. O tym, co zobaczyłeś na wierzchu. Nie musi być mądre ani pełne. Wystarczy, że będzie prawdziwe.
+Nie musisz dziś niczego rozwiązywać, {imię}. Samo zauważenie jest pierwszym krokiem. A Twoja głębsza część już zaczyna nad tym pracować. Spokojnie. W swoim tempie. Także wtedy, kiedy nie będziesz o tym myśleć.
+
+[pauza 16]
+
+[od 30]
+Zostań teraz chwilę w ciszy, z plecakiem obok. Ja przez dłuższy moment nic nie będę mówić.
+
+[pauza 150]
+[/od]
+
+Za chwilę wrócisz i zapiszesz jedno zdanie. O tym, co zobaczyłeś na wierzchu. Nie musi być mądre ani pełne. Wystarczy, że będzie prawdziwe.
 
 [pauza 6]
 
-Weź głębszy oddech. Porusz palcami dłoni i stóp. Kiedy będziesz gotowy, otwórz oczy.`,
+${POWROT}`,
   },
   {
     n: 2,
     title: "Przyjrzeć się z życzliwością",
-    theme: "Zrozumieć, przed czym ta ciężkość próbuje chronić.",
-    minutes: 8,
+    theme: "Zejść głęboko i zrozumieć, przed czym ta ciężkość próbuje chronić.",
+    minutes: 15,
     background: "nature",
     question: "Przed czym ta ciężkość próbuje mnie chronić? Czego mnie uczy?",
     placeholder: "np. Chyba chroni mnie przed poczuciem, że kogoś zawiodę.",
@@ -103,35 +132,53 @@ Weź głębszy oddech. Porusz palcami dłoni i stóp. Kiedy będziesz gotowy, ot
 
 [pauza 10]
 
-Nie musisz ich teraz poprawiać ani rozumieć do końca. Pozwól im po prostu wybrzmieć.`,
+Nie musisz ich teraz poprawiać ani rozumieć do końca. Pozwól im po prostu wybrzmieć. Bardzo dobrze.`,
     noEcho: `Przypomnij sobie to, co ostatnio było najcięższe. Nie musisz tego nazywać słowami. Wystarczy, że wiesz, o co chodzi.
 
 [pauza 10]`,
-    script: `Witaj z powrotem, {imię}. To drugi etap. Dziś przyglądasz się temu, co zauważyłeś ostatnio. Z życzliwością, nie z oceną.
+    script: `Witaj z powrotem, {imię}. To drugi etap. Dziś przyglądasz się temu, co zauważyłeś ostatnio. Z życzliwością, nie z oceną. I im głębiej zejdziesz, tym łatwiej będzie to zobaczyć.
 
-Usiądź wygodnie. Pozwól, żeby oczy się zamknęły albo spoczęły nisko, na jednym punkcie.
+[pauza 4]
 
-[pauza 6]
+${INDUKCJA}
 
-Kilka spokojnych oddechów. Każdy wydech odrobinę dłuższy od wdechu.
+${ZEJSCIE}
 
-[pauza 14]
+${POGLEBIENIE}
+
+Bardzo dobrze, {imię}. Jesteś teraz głęboko. Bezpiecznie. Stąd wszystko widać spokojniej.
+
+[pauza 8]
 
 {echo}
 
 [pauza 6]
 
-Wyobraź sobie, że ta myśl siedzi obok Ciebie na ławce. Nie musisz jej przytulać ani wyganiać. Siedzicie razem i patrzycie w tę samą stronę.
+Wyobraź sobie, że ta myśl siedzi obok Ciebie na ławce. Gdzieś w spokojnym parku, w ciepłe popołudnie. Nie musisz jej przytulać ani wyganiać. Siedzicie razem i patrzycie w tę samą stronę.
 
 [pauza 16]
 
-Zapytaj ją spokojnie: od kiedy ze mną jesteś?
+Zauważ, że możesz siedzieć obok niej i pozostać spokojny. Z każdym oddechem trochę spokojniejszy.
 
-[pauza 16]
+[pauza 12]
+
+Zapytaj ją łagodnie: od kiedy ze mną jesteś?
+
+[pauza 18]
 
 I jeszcze: przed czym próbujesz mnie chronić?
 
+[pauza 22]
+
+[od 20]
+Może odpowiedź przyjdzie jako obraz z przeszłości. Może jako jedno słowo. Może jako uczucie. Nie musisz jej szukać. Twoja głębsza część pokaże to, co ważne. A jeśli nic nie przyjdzie, to też jest odpowiedź. Na dziś wystarczająca.
+
 [pauza 20]
+
+Zapytaj ją jeszcze: czego potrzebujesz ode mnie, żeby móc trochę odpocząć?
+
+[pauza 22]
+[/od]
 
 Często to, co ciąży, próbuje o coś zadbać. O bezpieczeństwo. O bliskich. O to, żeby nic nie umknęło. Nie musisz się z nią zgadzać, żeby ją zrozumieć.
 
@@ -141,21 +188,39 @@ Powiedz jej w myślach: dziękuję, że się o mnie troszczysz. Teraz ja się ty
 
 [pauza 14]
 
-Zauważ, czy coś w ciele się zmieniło. Choćby odrobinę. Szczęka. Ramiona. Brzuch.
+Bardzo dobrze, {imię}. Zauważ, czy coś w ciele się zmieniło. Choćby odrobinę. Szczęka. Ramiona. Brzuch.
 
 [pauza 14]
 
-Za chwilę zapiszesz jedno zdanie. O tym, przed czym ta ciężkość Cię chroni albo czego próbuje Cię nauczyć.
+[od 15]
+Ta myśl może teraz wstać z ławki i odejść kilka kroków dalej. Nie znika. Po prostu daje Ci więcej miejsca. Więcej powietrza.
+
+[pauza 16]
+
+I możesz zauważyć, że od teraz łatwiej Ci będzie patrzeć na nią z tej odległości. Spokojnie. Z życzliwością. Za każdym razem trochę łatwiej.
+
+[pauza 14]
+[/od]
+
+${KOTWICA}
+
+[od 30]
+Zostań teraz chwilę na ławce, w ciepłym popołudniu. Ja przez dłuższy moment nic nie będę mówić.
+
+[pauza 150]
+[/od]
+
+Za chwilę wrócisz i zapiszesz jedno zdanie. O tym, przed czym ta ciężkość Cię chroni albo czego próbuje Cię nauczyć.
 
 [pauza 5]
 
-Głębszy oddech. Delikatny ruch głową w prawo i w lewo. Otwórz oczy, kiedy zechcesz.`,
+${POWROT}`,
   },
   {
     n: 3,
     title: "Gdzie to mieszka w ciele",
     theme: "Odnaleźć to w ciele i dać temu miejscu oddech.",
-    minutes: 8,
+    minutes: 15,
     background: "orchestral",
     question: "Czego potrzebuję, kiedy to czuję?",
     placeholder: "np. Potrzebuję chwili ciszy i tego, żeby ktoś mnie wysłuchał.",
@@ -169,13 +234,13 @@ Przyjmij te słowa jak krótki list od siebie samego. Dziś sprawdzisz, gdzie mi
 [pauza 10]`,
     script: `{imię}, to trzeci etap. Dziś słuchasz ciała, bo ono często wie wcześniej niż głowa.
 
-Ułóż się wygodnie. Stopy oparte, dłonie luźno.
+[pauza 4]
 
-[pauza 6]
+${INDUKCJA}
 
-Oddychaj spokojnie. Wdech, i długi wydech, jak westchnienie ulgi.
+${ZEJSCIE}
 
-[pauza 14]
+${POGLEBIENIE}
 
 {echo}
 
@@ -197,13 +262,27 @@ Brzuch.
 
 [pauza 8]
 
-Zatrzymaj się tam, gdzie czujesz najwięcej. Ucisk, ciepło, napięcie, a może pustkę. Cokolwiek tam jest, jest w porządku.
+Zatrzymaj się tam, gdzie czujesz najwięcej. Ucisk, ciepło, napięcie, a może pustkę. Cokolwiek tam jest, jest w porządku. Bardzo dobrze, {imię}.
 
 [pauza 18]
 
 Wyobraź sobie, że kierujesz oddech prosto w to miejsce. Wdech przynosi trochę przestrzeni. Wydech niczego nie wymusza. Tylko zmiękcza brzegi.
 
 [pauza 20]
+
+[od 20]
+Jeśli to uczucie miałoby kształt, jaki by miało? Jeśli miałoby kolor? Temperaturę? Nie wymyślaj. Pozwól, żeby odpowiedź przyszła sama.
+
+[pauza 20]
+
+A teraz wyobraź sobie, że z każdym wydechem ten kształt staje się odrobinę mniejszy. Kolor łagodniejszy. Temperatura przyjemniejsza.
+
+[pauza 22]
+
+Właśnie tak. Ciało dobrze wie, jak to zrobić. Ty tylko mu pozwalasz.
+
+[pauza 14]
+[/od]
 
 Jeśli chcesz, połóż tam dłoń. Jakbyś mówił temu miejscu: jestem tu.
 
@@ -213,21 +292,29 @@ Zapytaj to miejsce bez słów: czego potrzebujesz?
 
 [pauza 22]
 
-Może odpowiedź przyjdzie od razu. Może nie przyjdzie wcale. Jedno i drugie jest w porządku, {imię}.
+Może odpowiedź przyjdzie od razu. Może nie przyjdzie wcale. Jedno i drugie jest w porządku, {imię}. Twoja głębsza część usłyszała pytanie i będzie nad nim pracować.
 
-[pauza 12]
+[pauza 14]
 
-Za chwilę zapiszesz jedno zdanie o tym, czego potrzebujesz, kiedy to czujesz.
+${KOTWICA}
+
+[od 30]
+Zostań teraz w ciszy, z dłonią na tym miejscu. Ja przez dłuższy moment nic nie będę mówić.
+
+[pauza 150]
+[/od]
+
+Za chwilę wrócisz i zapiszesz jedno zdanie o tym, czego potrzebujesz, kiedy to czujesz.
 
 [pauza 5]
 
-Weź głębszy oddech. Przeciągnij się delikatnie. Otwórz oczy, kiedy zechcesz.`,
+${POWROT}`,
   },
   {
     n: 4,
     title: "Łagodność wobec siebie",
     theme: "Potraktować siebie tak, jak potraktowałbyś przyjaciela.",
-    minutes: 8,
+    minutes: 15,
     background: "nature",
     question: "Co mogę odłożyć? Co już nie jest moje do niesienia?",
     placeholder: "np. Mogę odłożyć przekonanie, że wszystko musi zależeć ode mnie.",
@@ -241,13 +328,13 @@ To ważna informacja, {imię}. Potrzeba nie jest słabością. Jest wskazówką.
 [pauza 10]`,
     script: `Witaj, {imię}. To czwarty etap, środek drogi. Dziś ćwiczysz łagodność wobec siebie.
 
-Usiądź wygodnie i pozwól, żeby barki opadły odrobinę niżej.
+[pauza 4]
 
-[pauza 6]
+${INDUKCJA}
 
-Trzy spokojne oddechy. Bez liczenia, bez wysiłku.
+${ZEJSCIE}
 
-[pauza 14]
+${POGLEBIENIE}
 
 {echo}
 
@@ -261,7 +348,7 @@ Co byś mu powiedział? Jakim tonem? Może położyłbyś mu rękę na ramieniu.
 
 [pauza 20]
 
-A teraz spróbuj powiedzieć to samo sobie. Tym samym tonem. Nawet jeśli brzmi to na początku trochę obco.
+A teraz spróbuj powiedzieć to samo sobie. Tym samym tonem. Nawet jeśli na początku brzmi to trochę obco. Bardzo dobrze, {imię}.
 
 [pauza 20]
 
@@ -273,25 +360,47 @@ Robię, co mogę. I to wystarczy na dziś.
 
 [pauza 16]
 
+[od 20]
+Wyobraź sobie siebie sprzed kilku lat. W trudnym momencie. Zmęczonego. Niepewnego. Stoisz teraz obok niego.
+
+[pauza 14]
+
+Co chciałbyś mu powiedzieć? Że dał radę. Że wszystko, co wtedy było takie ciężkie, doprowadziło go tutaj.
+
+[pauza 20]
+
+I zauważ, że ten sam spokój, którym możesz obdarzyć siebie z przeszłości, możesz dać sobie także dziś.
+
+[pauza 16]
+[/od]
+
 Połóż dłoń na sercu albo na brzuchu. Poczuj ciepło i lekki nacisk. Ciało rozumie ten gest bez słów.
 
 [pauza 18]
 
-Zauważ, że nie wszystko, co niesiesz, należy do Ciebie. Część to cudze oczekiwania. Część to stare zasady, które kiedyś miały sens.
+Zauważ, że nie wszystko, co niesiesz, należy do Ciebie. Część to cudze oczekiwania. Część to stare zasady, które kiedyś miały sens. I możesz to zauważyć spokojnie, bez pośpiechu.
 
 [pauza 16]
 
-Za chwilę zapiszesz jedno zdanie. Co możesz odłożyć. Co już nie jest Twoje do niesienia.
+${KOTWICA}
+
+[od 30]
+Zostań teraz chwilę w tej łagodności. Ja przez dłuższy moment nic nie będę mówić.
+
+[pauza 150]
+[/od]
+
+Za chwilę wrócisz i zapiszesz jedno zdanie. Co możesz odłożyć. Co już nie jest Twoje do niesienia.
 
 [pauza 5]
 
-Głęboki oddech. Porusz dłońmi. Otwórz oczy, kiedy będziesz gotowy.`,
+${POWROT}`,
   },
   {
     n: 5,
     title: "Odłożyć na brzegu",
     theme: "Odłożyć to, co już nie jest moje. Nie wyrzucić na siłę — odłożyć.",
-    minutes: 9,
+    minutes: 15,
     background: "nature",
     question: "Co jest teraz lżejsze? Co zostaje, kiedy to odkładam?",
     placeholder: "np. Lżej mi w ramionach. Zostaje ciekawość, co będzie dalej.",
@@ -305,9 +414,13 @@ Dziś możesz to odłożyć, {imię}. Nie wyrzucić na siłę. Po prostu odłoż
 [pauza 10]`,
     script: `{imię}, to piąty etap. Dziś odkładasz.
 
-Ułóż się wygodnie. Pozwól, żeby oddech zwolnił sam.
+[pauza 4]
 
-[pauza 8]
+${INDUKCJA}
+
+${ZEJSCIE}
+
+${POGLEBIENIE}
 
 {echo}
 
@@ -317,7 +430,7 @@ Wyobraź sobie wieczorną plażę. Piasek jest jeszcze ciepły od słońca. Morz
 
 [pauza 14]
 
-Idziesz powoli brzegiem. Pod stopami czujesz chłodny, wilgotny piasek.
+Idziesz powoli brzegiem. Z każdym krokiem jesteś spokojniejszy. Pod stopami czujesz chłodny, wilgotny piasek.
 
 [pauza 12]
 
@@ -333,7 +446,7 @@ Kiedy będziesz gotowy, pochyl się i połóż kamień na piasku, tuż przy wodz
 
 [pauza 14]
 
-Wyprostuj się. Zauważ dłonie, które są teraz puste. I ramiona.
+Wyprostuj się. Zauważ dłonie, które są teraz puste. I ramiona. Bardzo dobrze, {imię}.
 
 [pauza 14]
 
@@ -341,29 +454,47 @@ Przychodzi fala. Delikatnie obmywa kamień. Odchodzi. Przychodzi następna.
 
 [pauza 18]
 
-Nie musisz patrzeć, co się z nim stanie. Morze ma swój czas. Ty możesz już iść dalej.
+[od 20]
+Z każdą falą kamień zapada się odrobinę głębiej w mokry piasek. Coraz mniej go widać. Morze ma swój czas i swoją cierpliwość.
 
-[pauza 16]
+[pauza 18]
 
-Odwróć się i zrób kilka kroków. Lżej. Wolniej. Wydech może być teraz dłuższy niż kiedykolwiek dziś.
+A Ty, z każdą falą, czujesz się odrobinę lżejszy. Jakby razem z kamieniem odpływało też napięcie, które nosiłeś w ciele.
 
 [pauza 20]
+[/od]
 
-Gdyby to, co odłożyłeś, chciało wrócić, to w porządku. Możesz je odkładać tyle razy, ile trzeba. Każde odłożenie się liczy.
+Nie musisz patrzeć, co się z nim stanie. Ty możesz już iść dalej.
 
 [pauza 14]
 
-Za chwilę zapiszesz jedno zdanie. Co jest teraz lżejsze. Co zostaje.
+Odwróć się i zrób kilka kroków. Lżej. Wolniej. Wydech może być teraz dłuższy niż kiedykolwiek dziś.
+
+[pauza 18]
+
+Gdyby to, co odłożyłeś, chciało wrócić, to w porządku. Możesz je odkładać tyle razy, ile trzeba. Każde odłożenie się liczy. I za każdym razem będzie łatwiej.
+
+[pauza 14]
+
+${KOTWICA}
+
+[od 30]
+Zostań teraz chwilę na wieczornej plaży. Ja przez dłuższy moment nic nie będę mówić.
+
+[pauza 150]
+[/od]
+
+Za chwilę wrócisz i zapiszesz jedno zdanie. Co jest teraz lżejsze. Co zostaje.
 
 [pauza 5]
 
-Weź głęboki oddech. Poczuj podłoże pod sobą. Otwórz oczy, kiedy zechcesz.`,
+${POWROT}`,
   },
   {
     n: 6,
     title: "Nowa przestrzeń",
     theme: "Zauważyć, co może wejść w zwolnione miejsce.",
-    minutes: 8,
+    minutes: 15,
     background: "orchestral",
     question: "Jakie jedno zdanie chcę zabrać ze sobą dalej?",
     placeholder: "np. Mogę budować spokojnie i nadal być blisko swoich.",
@@ -377,13 +508,13 @@ Zauważ, że w miejscu, z którego coś odłożyłeś, zrobiło się trochę prz
 [pauza 10]`,
     script: `Witaj, {imię}. To szósty etap. Dziś nie odkładasz już niczego. Dziś zauważasz, co jest.
 
-Usiądź albo połóż się. Pozwól ciału być ciężkim i spokojnym.
+[pauza 4]
 
-[pauza 6]
+${INDUKCJA}
 
-Kilka oddechów. Wdech przez nos, powolny wydech ustami.
+${ZEJSCIE}
 
-[pauza 14]
+${POGLEBIENIE}
 
 {echo}
 
@@ -393,7 +524,7 @@ Ta przestrzeń nie musi być od razu niczym wypełniona. Możesz po prostu w nie
 
 [pauza 18]
 
-Poczuj powietrze, które wpada przez to okno. Świeże. Trochę chłodne.
+Poczuj powietrze, które wpada przez to okno. Świeże. Trochę chłodne. Bardzo dobrze, {imię}.
 
 [pauza 14]
 
@@ -409,25 +540,43 @@ Wybierz jedno. Tylko jedno. Wyobraź sobie, jak powoli wchodzi do tego pokoju i 
 
 [pauza 20]
 
-Zauważ, co czujesz w ciele, kiedy na to patrzysz. Może ciepło. Może lekkość w klatce piersiowej.
+[od 20]
+Teraz zobacz siebie za kilka tygodni. Ten pokój jest już urządzony po Twojemu. Widzisz, jak żyjesz z tym, co wpuściłeś. Jak wygląda Twój zwykły dzień. Jak brzmi Twój głos. Jak się poruszasz.
+
+[pauza 22]
+
+Zauważ, co czujesz, kiedy na to patrzysz. I wiedz, że ta przyszłość już się zaczęła. Właśnie teraz.
+
+[pauza 18]
+[/od]
+
+Zauważ, co czujesz w ciele. Może ciepło. Może lekkość w klatce piersiowej.
 
 [pauza 16]
 
-To miejsce jest Twoje, {imię}. Możesz do niego wracać.
+To miejsce jest Twoje, {imię}. Możesz do niego wracać. Za każdym razem łatwiej.
 
 [pauza 12]
 
-Za chwilę zapiszesz jedno zdanie, które chcesz zabrać ze sobą dalej.
+${KOTWICA}
+
+[od 30]
+Zostań teraz chwilę w tym pokoju z otwartym oknem. Ja przez dłuższy moment nic nie będę mówić.
+
+[pauza 150]
+[/od]
+
+Za chwilę wrócisz i zapiszesz jedno zdanie, które chcesz zabrać ze sobą dalej.
 
 [pauza 5]
 
-Głębszy oddech. Delikatny ruch ramion. Otwórz oczy, kiedy zechcesz.`,
+${POWROT}`,
   },
   {
     n: 7,
     title: "Domknięcie",
     theme: "Zobaczyć całą drogę i podziękować sobie.",
-    minutes: 8,
+    minutes: 15,
     background: "orchestral",
     question: "Co chcę sobie powiedzieć na koniec tej drogi?",
     placeholder: "np. Dobrze, że się zatrzymałem. Mogę to robić częściej.",
@@ -450,15 +599,19 @@ Pozwól mu wybrzmieć jeszcze raz. To Twoje zdanie na dalszą drogę.`,
 [pauza 12]`,
     script: `{imię}, to ostatni etap Ścieżki oczyszczenia. Dziś domykasz.
 
-Ułóż się wygodnie. Pozwól, żeby oddech płynął sam.
+[pauza 4]
 
-[pauza 8]
+${INDUKCJA}
+
+${ZEJSCIE}
+
+${POGLEBIENIE}
 
 {echo}
 
 [pauza 8]
 
-Przez kilka ostatnich sesji robiłeś coś, czego nie robi się często. Zatrzymywałeś się. Patrzyłeś na to, co trudne. Odkładałeś to, co nie było Twoje.
+Przez kilka ostatnich sesji robiłeś coś, czego nie robi się często. Zatrzymywałeś się. Patrzyłeś na to, co trudne. Odkładałeś to, co nie było Twoje. Bardzo dobrze, {imię}.
 
 [pauza 16]
 
@@ -469,6 +622,16 @@ Podziękuj sobie za to. W myślach, prostymi słowami. Dziękuję, że się zatr
 Wyobraź sobie, że stoisz na końcu ścieżki i odwracasz się. Widzisz ławkę, na której siedziałeś ze swoją myślą. Brzeg, na którym zostawiłeś kamień. Pokój z otwartym oknem.
 
 [pauza 20]
+
+[od 20]
+Przejdź jeszcze raz, powoli, tą drogą w wyobraźni. Zatrzymaj się na chwilę przy ławce. Przy plaży. Przy oknie. Zauważ, co w każdym z tych miejsc jest dziś inne.
+
+[pauza 30]
+
+Wszystko, czego się tam nauczyłeś, zostaje w Tobie. Pracuje dalej. Także wtedy, kiedy o tym nie myślisz.
+
+[pauza 16]
+[/od]
 
 Wszystkie te miejsca zostają w Tobie. Możesz do nich wrócić, kiedy zechcesz.
 
@@ -482,11 +645,19 @@ Niczego nie trzeba dziś kończyć na zawsze. Oczyszczanie to nie jednorazowy wy
 
 [pauza 16]
 
-Za chwilę zapiszesz ostatnie zdanie tej drogi. Coś, co chcesz sobie powiedzieć.
+${KOTWICA}
+
+[od 30]
+Zostań teraz chwilę w ciszy, na końcu tej drogi. Ja przez dłuższy moment nic nie będę mówić.
+
+[pauza 150]
+[/od]
+
+Za chwilę wrócisz i zapiszesz ostatnie zdanie tej drogi. Coś, co chcesz sobie powiedzieć.
 
 [pauza 6]
 
-Weź głęboki oddech. Poczuj całe ciało. Otwórz oczy, kiedy będziesz gotowy.`,
+${POWROT}`,
   },
 ];
 
@@ -494,7 +665,7 @@ export const PATHS: PathDef[] = [
   {
     id: "oczyszczenie",
     title: "Ścieżka oczyszczenia",
-    subtitle: "7 sesji · audio → refleksja → audio",
+    subtitle: "7 sesji po 10–30 min · audio → refleksja → audio",
     description:
       "Każda sesja kończy się jednym zdaniem od Ciebie. Kolejna sesja przytacza je głosem i pracuje z nim dalej: zauważyć, zrozumieć, poczuć, odłożyć, zrobić miejsce, domknąć.",
     steps: oczyszczenie,

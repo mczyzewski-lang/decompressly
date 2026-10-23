@@ -17,6 +17,7 @@ const NO_RUNS: PathRun[] = [];
 export default function PathScreen({ id }: { id?: string }) {
   const path = PATH_BY_ID[id ?? ""] ?? PATHS[0];
   const run = useApp((s) => s.paths?.[path.id]);
+  const sessions = useApp((s) => s.audio.sessions);
   const archive = (useApp((s) => s.pathArchive) ?? NO_RUNS).filter((r) => r.pathId === path.id);
   const current = currentStep(path, run);
   const finished = !!run && current === null;
@@ -81,7 +82,7 @@ export default function PathScreen({ id }: { id?: string }) {
                   <span className="min-w-0 flex-1">
                     <span className="block text-[16px] leading-snug text-ink">{step.title}</span>
                     <span className="mt-0.5 block text-[13px] text-ink-3">
-                      ok. {step.minutes} min · {step.theme}
+                      {sessions[pathSessionId(path.id, step.n)]?.length ?? step.minutes} min · {step.theme}
                     </span>
                   </span>
                   {open && <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-ink-3" />}

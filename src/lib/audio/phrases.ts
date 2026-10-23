@@ -7,8 +7,9 @@ import type { NameForms } from "../names";
  * used for playback and for recording ahead of time. The name (in the vocative, "Marku") appears
  * now and then — at the start, at the end and occasionally in between — never in every sentence.
  */
-export const BREATH_INHALE = "Wdech.";
-export const BREATH_EXHALE = "Wydech.";
+// full Polish sentences: a lone "Wydech." was read with English pronunciation ("why-dec")
+export const BREATH_INHALE = "Spokojnie wciągnij powietrze.";
+export const BREATH_EXHALE = "I powoli je wypuść.";
 export const breathIntro = (n: NameForms) => `${n.voc}, zamknij oczy. To jest Twój czas. Oddychaj spokojnie i wygodnie, będę prowadzić Cię głosem.`;
 export const breathEnd = (n: NameForms) => `Możesz wrócić do swojego dnia, ${n.voc}.`;
 
