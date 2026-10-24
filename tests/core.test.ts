@@ -508,3 +508,40 @@ describe("session length", () => {
     }
   });
 });
+
+describe("generation under rate limits", () => {
+  it("the server limit is roomy for long sessions and says how long to wait", async () => {
+    const { rateLimited } = await import("@/lib/server/rate-limit");
+    const t0 = 1_000_000;
+    for (let i = 0; i < 240; i++) expect(rateLimited("paid:test", 240, 60_000, t0 + i * 10)).toBe(0);
+    const wait = rateLimited("paid:test", 240, 60_000, t0 + 3000);
+    expect(wait).toBeGreaterThan(0);
+    expect(wait).toBeLessThanOrEqual(60);
+    expect(rateLimited("paid:test", 240, 60_000, t0 + 61_000)).toBe(0); // the window moves on
+  });
+  it("a 429 waits (Retry-After or backoff) and the request goes through", async () => {
+    const { postWithRetry } = await import("@/lib/eleven-client");
+    const replies = [new Response("{}", { status: 429, headers: { "Retry-After": "3" } }), new Response("{}", { status: 429 }), new Response("ok", { status: 200 })];
+    const orig = globalThis.fetch;
+    globalThis.fetch = (async () => replies.shift()!) as typeof fetch;
+    const waits: number[] = [];
+    try {
+      const r = await postWithRetry("/x", { method: "POST" }, { wait: async (ms) => void waits.push(ms) });
+      expect(r.status).toBe(200);
+      expect(waits).toEqual([3000, 4000]);
+    } finally {
+      globalThis.fetch = orig;
+    }
+  });
+  it("gives up after a few attempts with the last answer", async () => {
+    const { postWithRetry } = await import("@/lib/eleven-client");
+    const orig = globalThis.fetch;
+    globalThis.fetch = (async () => new Response("{}", { status: 429 })) as typeof fetch;
+    try {
+      const r = await postWithRetry("/x", { method: "POST" }, { attempts: 3, wait: async () => {} });
+      expect(r.status).toBe(429);
+    } finally {
+      globalThis.fetch = orig;
+    }
+  });
+});

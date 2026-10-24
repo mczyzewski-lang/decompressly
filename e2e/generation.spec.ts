@@ -225,3 +225,28 @@ test("voice collection: pasted ID with invisible characters, own model per voice
   );
   expect(small).toEqual([]);
 });
+
+test("rate limit mid-generation: waits, resumes and finishes without an error", async ({ page }) => {
+  test.setTimeout(180_000);
+  let calls = 0;
+  let limited = 0;
+  await page.route("**/api/eleven/tts", async (route) => {
+    calls++;
+    if (calls % 7 === 0 && limited < 3) {
+      limited++;
+      await route.fulfill({ status: 429, contentType: "application/json", headers: { "Retry-After": "1" }, body: JSON.stringify({ error: "Zbyt wiele żądań naraz." }) });
+      return;
+    }
+    await route.fulfill({ status: 200, contentType: "audio/mpeg", body: fakeAudio });
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Zacznij spokojnie" }).click();
+  await page.evaluate(() => (location.hash = "#/settings/eleven"));
+  await page.getByLabel("lub ID głosu").fill("TestVoice1234567890");
+  await page.evaluate(() => (location.hash = "#/audio/present"));
+  await page.getByRole("button", { name: "Wygeneruj narrację" }).click();
+  await expect(page.getByText(/Chwila przerwy dla ElevenLabs/)).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText("Plik zapisany na urządzeniu")).toBeVisible({ timeout: 150_000 });
+  expect(limited).toBe(3);
+  await expect(page.getByText(/Zbyt wiele żądań/)).toHaveCount(0);
+});

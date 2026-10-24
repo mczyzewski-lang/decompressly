@@ -42,6 +42,37 @@ async function errorText(r: Response): Promise<string> {
 
 export class ElevenError extends Error {}
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * POST that waits and tries again when the server or ElevenLabs asks to slow down (429),
+ * honouring Retry-After — a long session then simply pauses for a moment instead of failing.
+ */
+export async function postWithRetry(
+  url: string,
+  init: RequestInit,
+  opts: { attempts?: number; onWait?: (seconds: number) => void; wait?: (ms: number) => Promise<void> } = {},
+): Promise<Response> {
+  const attempts = opts.attempts ?? 6;
+  const wait = opts.wait ?? sleep;
+  for (let i = 0; ; i++) {
+    const r = await fetch(url, init);
+    if (r.status !== 429 || i >= attempts - 1) return r;
+    const header = Number(r.headers.get("retry-after"));
+    const seconds = Math.min(60, header > 0 ? header : 2 ** (i + 1));
+    opts.onWait?.(seconds);
+    await wait(seconds * 1000);
+  }
+}
+
+/** One quiet notice while a generation waits for its turn (not a toast per paragraph). */
+let lastWaitNotice = 0;
+function noticeWait(seconds: number) {
+  if (Date.now() - lastWaitNotice < 20_000) return;
+  lastWaitNotice = Date.now();
+  void import("./ui-store").then(({ toast }) => toast(`Chwila przerwy dla ElevenLabs — generowanie wznowi się samo za ${seconds} s.`, 4000));
+}
+
 /**
  * Every paid call goes through an explicit confirmation. `approved` lets a caller that has
  * already confirmed a batch (e.g. all paragraphs of one session) skip per-request dialogs.
@@ -53,11 +84,15 @@ export async function confirmPaid(what: string, detail: string): Promise<boolean
 }
 
 export async function generateSound(text: string, opts: { duration?: number; promptInfluence?: number; loop?: boolean }): Promise<Blob> {
-  const r = await fetch("/api/eleven/sound", {
-    method: "POST",
-    headers: headers(true),
-    body: JSON.stringify({ text, duration_seconds: opts.duration ?? 10, prompt_influence: opts.promptInfluence ?? 0.5, loop: opts.loop ?? false }),
-  });
+  const r = await postWithRetry(
+    "/api/eleven/sound",
+    {
+      method: "POST",
+      headers: headers(true),
+      body: JSON.stringify({ text, duration_seconds: opts.duration ?? 10, prompt_influence: opts.promptInfluence ?? 0.5, loop: opts.loop ?? false }),
+    },
+    { onWait: noticeWait },
+  );
   if (!r.ok) throw new ElevenError(await errorText(r));
   return r.blob();
 }
@@ -66,7 +101,7 @@ export async function generateSpeech(text: string, ctx: { previous?: string; nex
   const s = getState();
   const voiceId = ctx.voiceId || s.eleven.voiceId;
   if (!voiceId) throw new ElevenError("Najpierw wybierz głos w Ustawieniach → ElevenLabs.");
-  const r = await fetch("/api/eleven/tts", {
+  const r = await postWithRetry("/api/eleven/tts", {
     method: "POST",
     headers: headers(true),
     body: JSON.stringify({
@@ -78,7 +113,7 @@ export async function generateSpeech(text: string, ctx: { previous?: string; nex
       next_text: ctx.next,
       enable_logging: s.privacy.elevenLogging,
     }),
-  });
+  }, { onWait: noticeWait });
   if (!r.ok) throw new ElevenError(await errorText(r));
   return r.blob();
 }

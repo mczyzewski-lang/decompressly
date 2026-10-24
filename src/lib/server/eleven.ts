@@ -2,6 +2,7 @@ import "server-only";
 import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { normalizeKey } from "./access";
+import { rateLimited } from "./rate-limit";
 
 export { normalizeKey, mismatchHint } from "./access";
 
@@ -40,20 +41,17 @@ export function accessRequired(): boolean {
   return Boolean(configuredKey()) || process.env.NODE_ENV === "production";
 }
 
-const hits = new Map<string, number[]>();
-
-function rateLimited(ip: string, limit = 30, windowMs = 60_000): boolean {
-  const now = Date.now();
-  const arr = (hits.get(ip) ?? []).filter((t) => now - t < windowMs);
-  arr.push(now);
-  hits.set(ip, arr);
-  return arr.length > limit;
-}
-
 /** Returns an error response, or null when the request may proceed. */
 export function guard(req: Request, opts: { paid: boolean }): NextResponse | null {
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
-  if (rateLimited(ip)) return NextResponse.json({ error: "Zbyt wiele żądań. Spróbuj za chwilę." }, { status: 429 });
+  const limit = Number(process.env.RATE_LIMIT_PER_MIN) || (opts.paid ? 240 : 120);
+  const wait = rateLimited(`${opts.paid ? "paid" : "free"}:${ip}`, limit);
+  if (wait) {
+    return NextResponse.json(
+      { error: `Zbyt wiele żądań naraz. Generowanie wznowi się za ${wait} s.`, code: "rate_limited" },
+      { status: 429, headers: { "Retry-After": String(wait) } },
+    );
+  }
 
   const required = configuredKey();
   if (accessRequired()) {
@@ -123,8 +121,17 @@ export async function elevenError(upstream: Response): Promise<NextResponse> {
     error = "Nie znaleziono głosu o tym ID na Twoim koncie ElevenLabs.";
   } else if (status === "quota_exceeded" || /quota/i.test(message)) {
     error = "Brak kredytów na koncie ElevenLabs.";
+  } else if (upstream.status === 429 || status === "too_many_concurrent_requests" || status === "system_busy") {
+    error = "ElevenLabs jest chwilowo zajęty (limit równoczesnych żądań). Generowanie wznowi się za chwilę.";
   }
-  return NextResponse.json({ error, code: status || undefined }, { status: upstream.status === 401 || upstream.status === 403 ? 502 : upstream.status });
+  const headers: Record<string, string> = {};
+  const retry = upstream.headers.get("retry-after");
+  if (retry) headers["Retry-After"] = retry;
+  const busy = upstream.status === 429 || status === "system_busy";
+  return NextResponse.json(
+    { error, code: status || undefined },
+    { status: busy ? 429 : upstream.status === 401 || upstream.status === 403 ? 502 : upstream.status, headers },
+  );
 }
 
 export async function relayAudio(upstream: Response): Promise<Response> {
