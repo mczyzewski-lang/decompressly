@@ -292,6 +292,10 @@ export interface PathNote {
   at: number;
   /** kept for yourself only — never woven into the next recording */
   private?: boolean;
+  /** the reflection retold in the second person, spoken by the next session instead of a quote */
+  paraphrase?: string;
+  /** the exact text the paraphrase was made from (an edit of the reflection makes it stale) */
+  paraphraseOf?: string;
 }
 
 export interface PathRun {

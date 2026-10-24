@@ -1,6 +1,6 @@
 import type { AudioSessionDef } from "./audio/scripts";
 import { INDUKCJA, KOTWICA, POGLEBIENIE, POWROT, ZEJSCIE } from "./audio/hypno";
-import type { PathRun } from "./types";
+import type { PathNote, PathRun } from "./types";
 
 /**
  * "Ścieżki" — a sequence of audio sessions that carry a thread: after each session you write one
@@ -8,7 +8,9 @@ import type { PathRun } from "./types";
  * Written in the language of relaxation and self-compassion practice; not therapy, nothing is diagnosed.
  *
  * Script markers: everything from the audio scripts, plus a paragraph "{echo}" — the place where the
- * previous reflection is woven in. "{myśl}" is the most recent shared reflection, "{pierwsza}" the first one.
+ * previous reflection is woven in. "{myśl}" is the most recent shared reflection, "{pierwsza}" the first one —
+ * each stands for whole sentences: a paraphrase in the second person (made by Claude on the server), or,
+ * when none is available, the reflection quoted ("Zapisałeś wtedy: „…”.").
  */
 export interface PathStep {
   n: number;
@@ -128,11 +130,11 @@ ${POWROT}`,
     background: "nature",
     question: "Przed czym ta ciężkość próbuje mnie chronić? Czego mnie uczy?",
     placeholder: "np. Chyba chroni mnie przed poczuciem, że kogoś zawiodę.",
-    echo: `Po ostatniej sesji zostały takie słowa: „{myśl}”.
+    echo: `Wróć na chwilę do tego, co zostało po ostatniej sesji. {myśl}
 
 [pauza 10]
 
-Nie musisz ich teraz poprawiać ani rozumieć do końca. Pozwól im po prostu wybrzmieć. Bardzo dobrze.`,
+Nie musisz tego teraz poprawiać ani rozumieć do końca. Pozwól temu po prostu wybrzmieć. Bardzo dobrze.`,
     noEcho: `Przypomnij sobie to, co ostatnio było najcięższe. Nie musisz tego nazywać słowami. Wystarczy, że wiesz, o co chodzi.
 
 [pauza 10]`,
@@ -224,11 +226,11 @@ ${POWROT}`,
     background: "orchestral",
     question: "Czego potrzebuję, kiedy to czuję?",
     placeholder: "np. Potrzebuję chwili ciszy i tego, żeby ktoś mnie wysłuchał.",
-    echo: `Ostatnio zapisałeś: „{myśl}”.
+    echo: `Przypomnij sobie ostatnią sesję. {myśl}
 
 [pauza 10]
 
-Przyjmij te słowa jak krótki list od siebie samego. Dziś sprawdzisz, gdzie mieszkają w ciele.`,
+Przyjmij to jak krótki list od siebie samego. Dziś sprawdzisz, gdzie to mieszka w ciele.`,
     noEcho: `Pomyśl przez chwilę o tym, czemu przyglądałeś się ostatnio. Bez szczegółów. Tylko ogólny kształt.
 
 [pauza 10]`,
@@ -318,7 +320,7 @@ ${POWROT}`,
     background: "nature",
     question: "Co mogę odłożyć? Co już nie jest moje do niesienia?",
     placeholder: "np. Mogę odłożyć przekonanie, że wszystko musi zależeć ode mnie.",
-    echo: `Twoja ostatnia odpowiedź brzmiała: „{myśl}”.
+    echo: `Po ostatniej sesji pojawiła się ważna odpowiedź. {myśl}
 
 [pauza 10]
 
@@ -404,7 +406,7 @@ ${POWROT}`,
     background: "nature",
     question: "Co jest teraz lżejsze? Co zostaje, kiedy to odkładam?",
     placeholder: "np. Lżej mi w ramionach. Zostaje ciekawość, co będzie dalej.",
-    echo: `Ostatnio zapisałeś: „{myśl}”.
+    echo: `Ostatnio nazwałeś to, co już nie musi być Twoje. {myśl}
 
 [pauza 10]
 
@@ -498,7 +500,7 @@ ${POWROT}`,
     background: "orchestral",
     question: "Jakie jedno zdanie chcę zabrać ze sobą dalej?",
     placeholder: "np. Mogę budować spokojnie i nadal być blisko swoich.",
-    echo: `Po ostatniej sesji pojawiło się: „{myśl}”.
+    echo: `Po ostatniej sesji coś zrobiło się lżejsze. {myśl}
 
 [pauza 10]
 
@@ -580,20 +582,20 @@ ${POWROT}`,
     background: "orchestral",
     question: "Co chcę sobie powiedzieć na koniec tej drogi?",
     placeholder: "np. Dobrze, że się zatrzymałem. Mogę to robić częściej.",
-    echo: `Na początku tej drogi zapisałeś: „{pierwsza}”.
+    echo: `Wróć na chwilę do początku tej drogi. {pierwsza}
 
 [pauza 12]
 
-A ostatnio zostało zdanie: „{myśl}”.
+A teraz do ostatniej sesji. {myśl}
 
 [pauza 14]
 
-Zobacz, jaką drogę przeszedłeś między tymi słowami. Nie musisz jej oceniać. Wystarczy, że ją widzisz.`,
-    echoSingle: `Ostatnio zostało zdanie: „{myśl}”.
+Zobacz, jaką drogę przeszedłeś od tamtej chwili. Nie musisz jej oceniać. Wystarczy, że ją widzisz.`,
+    echoSingle: `Wróć na chwilę do ostatniej sesji. {myśl}
 
 [pauza 12]
 
-Pozwól mu wybrzmieć jeszcze raz. To Twoje zdanie na dalszą drogę.`,
+Pozwól temu wybrzmieć jeszcze raz. To Twoje zdanie na dalszą drogę.`,
     noEcho: `Przypomnij sobie, od czego ta droga się zaczęła. I gdzie jesteś dzisiaj. Bez oceniania.
 
 [pauza 12]`,
@@ -695,37 +697,67 @@ export function sanitizeReflection(text: string): string {
     .slice(0, 300);
 }
 
-const shareable = (run: PathRun | undefined, n: number) => {
+/** A paraphrase is used only while it still belongs to the reflection as it is now (edits make it stale). */
+export function paraphraseOf(note: PathNote | undefined): string | null {
+  return note?.paraphrase && note.paraphraseOf === note.text ? sanitizeReflection(note.paraphrase) : null;
+}
+
+/** What the voice says for a reflection: its paraphrase, or — as a fallback — the reflection quoted. */
+export function spokenReflection(note: PathNote): string {
+  const p = paraphraseOf(note);
+  if (p) return /[.!?…]$/.test(p) ? p : `${p}.`;
+  return `Zapisałeś wtedy: „${sanitizeReflection(note.text).replace(/[.!?…]+$/, "")}”.`;
+}
+
+const shareable = (run: PathRun | undefined, n: number): PathNote | null => {
   const r = run?.notes[n];
-  return r && !r.private && r.text.trim() ? sanitizeReflection(r.text) : null;
+  return r && !r.private && r.text.trim() ? r : null;
 };
 
+export interface Thread {
+  /** the reflection itself (for display) */
+  last: string | null;
+  lastStep: number | null;
+  /** what the next session will say about it */
+  lastSpoken: string | null;
+  first: string | null;
+  firstStep: number | null;
+  firstSpoken: string | null;
+}
+
 /** The thread a step picks up: the latest earlier shared reflection, and the very first one. */
-export function threadFor(run: PathRun | undefined, n: number): { last: string | null; lastStep: number | null; first: string | null; firstStep: number | null } {
-  let last: string | null = null;
+export function threadFor(run: PathRun | undefined, n: number): Thread {
+  let lastNote: PathNote | null = null;
   let lastStep: number | null = null;
-  for (let i = n - 1; i >= 1 && !last; i--) {
-    last = shareable(run, i);
-    if (last) lastStep = i;
+  for (let i = n - 1; i >= 1 && !lastNote; i--) {
+    lastNote = shareable(run, i);
+    if (lastNote) lastStep = i;
   }
-  let first: string | null = null;
+  let firstNote: PathNote | null = null;
   let firstStep: number | null = null;
-  for (let i = 1; i < n && !first; i++) {
-    first = shareable(run, i);
-    if (first) firstStep = i;
+  for (let i = 1; i < n && !firstNote; i++) {
+    firstNote = shareable(run, i);
+    if (firstNote) firstStep = i;
   }
-  return { last, lastStep, first, firstStep };
+  return {
+    last: lastNote ? sanitizeReflection(lastNote.text) : null,
+    lastStep,
+    lastSpoken: lastNote ? spokenReflection(lastNote) : null,
+    first: firstNote ? sanitizeReflection(firstNote.text) : null,
+    firstStep,
+    firstSpoken: firstNote ? spokenReflection(firstNote) : null,
+  };
 }
 
 /** Fills the "{echo}" paragraph of a step script with the thread of earlier reflections. */
 export function weaveEcho(script: string, step: PathStep, run: PathRun | undefined): string {
   const t = threadFor(run, step.n);
   let echo = step.noEcho;
-  if (t.last) {
+  if (t.lastSpoken) {
     const needsFirst = step.echo.includes("{pierwsza}");
-    const twoDistinct = t.first && t.firstStep !== t.lastStep;
+    const twoDistinct = t.firstSpoken && t.firstStep !== t.lastStep;
     echo = needsFirst && !twoDistinct ? (step.echoSingle ?? step.noEcho) : step.echo;
-    echo = echo.replaceAll("{myśl}", t.last).replaceAll("{pierwsza}", t.first ?? "");
+    echo = echo.replaceAll("{myśl}", t.lastSpoken).replaceAll("{pierwsza}", t.firstSpoken ?? "");
   }
   // an empty echo removes the paragraph, so no stray blank lines reach the timeline
   return script.replace(/\n*\{echo\}\n*/g, echo.trim() ? `\n\n${echo.trim()}\n\n` : "\n\n").trim();

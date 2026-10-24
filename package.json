@@ -2,7 +2,7 @@
   "name": "decompressly",
   "version": "1.0.0",
   "private": true,
-  "description": "Decompressly \u2014 prywatna aplikacja do \u015bwiadomego odpoczynku i ko\u0144czenia pracy.",
+  "description": "Decompressly — prywatna aplikacja do świadomego odpoczynku i kończenia pracy.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -14,6 +14,7 @@
     "generate:icons": "node scripts/generate-icons.mjs"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.3.0",
     "@breezystack/lamejs": "^1.2.7",
     "@radix-ui/react-dialog": "^1.3.1",
     "@radix-ui/react-slot": "^1.5.0",

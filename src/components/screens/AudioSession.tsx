@@ -3,13 +3,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Pause, Play, RotateCcw, RotateCw, Download, Sparkles, Pencil, Music, Quote, Route } from "lucide-react";
 import { AUDIO_BY_ID, personalize } from "@/lib/audio/scripts";
-import { parsePathSessionId, pathAudioDef, threadFor, weaveEcho } from "@/lib/paths";
-import { PathReflection } from "../PathReflection";
+import { PATH_BY_ID, paraphraseOf, parsePathSessionId, pathAudioDef, threadFor, weaveEcho } from "@/lib/paths";
+import { PathReflection, ensureParaphrase, setParaphrase } from "../PathReflection";
 import { modelFor } from "@/lib/voices";
 import { applyPacing, DEFAULT_GAP, defaultLength, estimateDuration, fitPauseScale, hasScriptMotif, layoutKey, LENGTHS, parseScript, selectLength, speechSegments, textKey, totalCharacters, withMotif } from "@/lib/audio/segments";
 import { BACKGROUND_URL, generateMissing, missingSegments, renderSessionFile } from "@/lib/audio/narration";
 import { blobUrl, deleteBlob, getBlob } from "@/lib/db";
-import { confirmPaid, describeChars } from "@/lib/eleven-client";
+import { confirmPaid, describeChars, fetchStatus } from "@/lib/eleven-client";
 import { logActivity, update, useApp, useNameForms } from "@/lib/store";
 import { formatClock } from "@/lib/dates";
 import { toast } from "@/lib/ui-store";
@@ -39,6 +39,8 @@ export default function AudioSession({ id }: { id: string }) {
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [progress, setProgress] = useState<number | null>(null);
+  // while the previous reflection is being retold, recording waits (so it never records the quote by accident)
+  const [preparingEcho, setPreparingEcho] = useState(false);
 
   const rawScript = ov?.script ?? def?.script ?? "";
   // chosen length: "[od 20]" blocks join in, and silences stretch so the session lands near that length
@@ -169,7 +171,7 @@ export default function AudioSession({ id }: { id: string }) {
         </p>
       </div>
 
-      {pathRef && pathRef.step.n > 1 && <PathThread pathId={pathRef.path.id} n={pathRef.step.n} />}
+      {pathRef && pathRef.step.n > 1 && <PathThread pathId={pathRef.path.id} n={pathRef.step.n} onPending={setPreparingEcho} />}
 
       <div className="mt-6">
         {render ? (
@@ -201,7 +203,7 @@ export default function AudioSession({ id }: { id: string }) {
                 </div>
               </div>
             ) : voiceId ? (
-              <Button className="mt-5" variant="primary" size="lg" onClick={() => generate(false)}>
+              <Button className="mt-5" variant="primary" size="lg" disabled={preparingEcho} onClick={() => generate(false)}>
                 <Sparkles className="h-4 w-4" /> Wygeneruj narrację
               </Button>
             ) : (
@@ -311,7 +313,7 @@ export default function AudioSession({ id }: { id: string }) {
                 </Button>
               )}
               {render && !renderFresh && (
-                <Button variant="primary" onClick={() => generate(false)}>
+                <Button variant="primary" disabled={preparingEcho} onClick={() => generate(false)}>
                   <Sparkles className="h-4 w-4" /> Wygeneruj narrację
                 </Button>
               )}
@@ -422,28 +424,105 @@ function setMediaSession(title: string, handlers: { play: () => void; pause: () 
   }
 }
 
-function PathThread({ pathId, n }: { pathId: string; n: number }) {
+function PathThread({ pathId, n, onPending }: { pathId: string; n: number; onPending: (v: boolean) => void }) {
   const run = useApp((s) => s.paths?.[pathId]);
   const t = threadFor(run, n);
+  const path = PATH_BY_ID[pathId];
+  const lastNote = t.lastStep ? run?.notes[t.lastStep] : undefined;
+  const firstNote = t.firstStep ? run?.notes[t.firstStep] : undefined;
+  const needsFirst = !!path.steps.find((x) => x.n === n)?.echo.includes("{pierwsza}") && t.firstStep !== t.lastStep;
+  const missing = [lastNote && !paraphraseOf(lastNote) ? t.lastStep : null, needsFirst && firstNote && !paraphraseOf(firstNote) ? t.firstStep : null].filter(
+    (x): x is number => x !== null,
+  );
+  const [configured, setConfigured] = useState<boolean | null>(null);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+
+  useEffect(() => {
+    void fetchStatus().then((st) => setConfigured(!!st?.paraphraseConfigured));
+  }, []);
+
+  const missingKey = missing.join(",");
+  const run_ = useCallback(async () => {
+    if (!missingKey) return;
+    setPending(true);
+    onPending(true);
+    setError(null);
+    for (const step of missingKey.split(",").map(Number)) {
+      const r = await ensureParaphrase(path, step);
+      if (r !== "ok" && r !== "skipped") setError(r);
+    }
+    setPending(false);
+    onPending(false);
+  }, [missingKey, path, onPending]);
+
+  // the reflection is retold in the session's own words before anything is recorded
+  useEffect(() => {
+    if (configured && missingKey) void run_();
+  }, [configured, missingKey, run_]);
+
   const hold = () =>
     update((s) => {
       const note = t.lastStep ? s.paths?.[pathId]?.notes[t.lastStep] : undefined;
       if (note) note.private = true;
     });
+  const paraphrased = lastNote ? !!paraphraseOf(lastNote) : false;
   return (
     <Card className="mt-5 bg-surface-2 shadow-none ring-0">
       <p className="flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-[0.12em] text-ink-3">
         <Quote className="h-3.5 w-3.5" /> Z poprzedniej refleksji
       </p>
-      {t.last ? (
+      {t.last && t.lastStep ? (
         <>
-          <p className="mt-2 text-[16px] leading-relaxed text-ink">„{t.last}”</p>
-          <p className="mt-2 text-[12px] leading-relaxed text-ink-3">
-            Etap {t.lastStep} · ta sesja przytoczy to zdanie Twoim głosem ElevenLabs. Nowe nagranie obejmie tylko fragmenty z tym zdaniem.
-          </p>
-          <button className="mt-2 text-[13px] text-sage-deep" onClick={hold}>
-            Nie przytaczaj — zachowaj dla siebie
-          </button>
+          <p className="mt-2 text-[13px] leading-relaxed text-ink-3">Twoje słowa (etap {t.lastStep}): „{t.last}”</p>
+          {editing ? (
+            <div className="mt-2">
+              <TextArea rows={3} value={draft} onChange={(e) => setDraft(e.target.value)} aria-label="Jak sesja ma to ująć" />
+              <div className="mt-2 flex gap-2">
+                <Button size="sm" variant="primary" disabled={!draft.trim()} onClick={() => (setParaphrase(path, t.lastStep!, draft), setEditing(false))}>
+                  Zapisz
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
+                  Anuluj
+                </Button>
+              </div>
+            </div>
+          ) : paraphrased ? (
+            <>
+              <p className="mt-2 text-[12px] font-medium uppercase tracking-wide text-sage-deep">Sesja powie</p>
+              <p className="mt-1 text-[16px] leading-relaxed text-ink">{t.lastSpoken}</p>
+            </>
+          ) : pending ? (
+            <p className="mt-2 text-[14px] text-ink-2" aria-live="polite">
+              Ujmuję to własnymi słowami sesji…
+            </p>
+          ) : (
+            <p className="mt-2 text-[14px] leading-relaxed text-ink-2">
+              {configured === false
+                ? "Sesja przytoczy Twoje słowa. Żeby ujmowała je własnymi słowami, na serwerze potrzebny jest klucz ANTHROPIC_API_KEY."
+                : error
+                  ? `Nie udało się przeredagować (${error}). Sesja przytoczy Twoje słowa.`
+                  : "Sesja przytoczy Twoje słowa."}
+            </p>
+          )}
+          {!editing && (
+            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[13px]">
+              {!paraphrased && configured && !pending && (
+                <button className="text-sage-deep" onClick={() => void run_()}>
+                  Spróbuj ponownie
+                </button>
+              )}
+              <button className="text-sage-deep" onClick={() => (setDraft(paraphrased ? (t.lastSpoken ?? "") : ""), setEditing(true))}>
+                Ujmij to po swojemu
+              </button>
+              <button className="text-sage-deep" onClick={hold}>
+                Nie nawiązuj — zachowaj dla siebie
+              </button>
+            </div>
+          )}
+          <p className="mt-2 text-[12px] leading-relaxed text-ink-3">Nowe nagranie obejmie tylko fragmenty z tym nawiązaniem — reszta jest już nagrana.</p>
         </>
       ) : (
         <p className="mt-2 text-[14px] leading-relaxed text-ink-2">Ta sesja nawiąże do drogi bez cytowania — poprzednia refleksja była bez słów albo tylko dla Ciebie.</p>

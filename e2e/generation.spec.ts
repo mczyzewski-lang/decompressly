@@ -161,12 +161,21 @@ test("sound studio: one tap generates START + CLOSE for all four styles", async 
   expect(blobs).toBeGreaterThanOrEqual(16);
 });
 
-test("path: reflection after a session is quoted (and spoken) in the next one", async ({ page }) => {
+test("path: the next session retells the reflection in its own words (never word for word)", async ({ page }) => {
   test.setTimeout(150_000);
   const tts: string[] = [];
+  const asked: { text: string; question: string }[] = [];
   await page.route("**/api/eleven/tts", async (route) => {
     tts.push(route.request().postDataJSON().text);
     await route.fulfill({ status: 200, contentType: "audio/mpeg", body: fakeAudio });
+  });
+  await page.route("**/api/status", async (route) => {
+    const res = await route.fetch();
+    await route.fulfill({ response: res, json: { ...(await res.json()), paraphraseConfigured: true } });
+  });
+  await page.route("**/api/paraphrase", async (route) => {
+    asked.push(route.request().postDataJSON());
+    await route.fulfill({ json: { paraphrase: "Wciąż wracasz myślami do spraw, które jeszcze nie zostały domknięte." } });
   });
   await page.goto("/");
   await page.getByRole("button", { name: "Zacznij spokojnie" }).click();
@@ -181,25 +190,32 @@ test("path: reflection after a session is quoted (and spoken) in the next one", 
   await expect(page.getByText("Co noszę w sobie najciężej?")).toBeVisible();
   await page.getByLabel("Twoja refleksja").fill("Ciągle wracam do niedokończonych spraw.");
   await page.getByRole("button", { name: "Zapisz refleksję" }).click();
-  await expect(page.getByText(/Etap 2 „Przyjrzeć się z życzliwością” przytoczy to zdanie/)).toBeVisible();
+  await expect(page.getByText(/Etap 2 „Przyjrzeć się z życzliwością” nawiąże do tego własnymi słowami/)).toBeVisible();
+  await expect.poll(() => asked.length).toBe(1);
+  expect(asked[0]).toMatchObject({ text: "Ciągle wracam do niedokończonych spraw.", question: expect.stringContaining("najciężej") });
   await page.getByRole("button", { name: /Etap 2: Przyjrzeć się/ }).click();
 
-  await expect(page.getByText("Z poprzedniej refleksji")).toBeVisible();
-  await expect(page.getByText("Po ostatniej sesji zostały takie słowa: „Ciągle wracam do niedokończonych spraw.”.")).toBeVisible();
+  await expect(page.getByText("Sesja powie")).toBeVisible();
+  await expect(page.getByText("Wciąż wracasz myślami do spraw, które jeszcze nie zostały domknięte.").first()).toBeVisible();
   await page.getByRole("button", { name: "Wygeneruj narrację" }).click();
   await expect(page.getByText("Plik zapisany na urządzeniu")).toBeVisible({ timeout: 120_000 });
-  expect(tts.some((t) => t.includes("„Ciągle wracam do niedokończonych spraw.”"))).toBe(true);
+  expect(tts.some((t) => t.includes("Wciąż wracasz myślami do spraw, które jeszcze nie zostały domknięte."))).toBe(true);
+  expect(tts.join(" ")).not.toContain("niedokończonych"); // the reflection is never read back word for word
   for (const t of tts) expect(t).not.toMatch(/\{echo\}|\{myśl\}|\[pauza/);
 
-  // keeping it private changes only the quoted paragraph — the rest is reused for free
+  // your own wording replaces the paraphrase; only that paragraph is recorded again
   const before = tts.length;
-  await page.getByRole("button", { name: "Nie przytaczaj — zachowaj dla siebie" }).click();
-  await expect(page.getByText("Ta sesja nawiąże do drogi bez cytowania", { exact: false })).toBeVisible();
+  await page.getByRole("button", { name: "Ujmij to po swojemu" }).click();
+  await page.getByLabel("Jak sesja ma to ująć").fill("Masz w sobie kilka spraw, które czekają na domknięcie.");
+  await page.getByRole("button", { name: "Zapisz", exact: true }).click();
   await page.getByRole("button", { name: "Wygeneruj narrację" }).first().click();
   await expect.poll(() => tts.length, { timeout: 30_000 }).toBe(before + 1);
   await expect(page.getByText(/^Zapisana narracja: /)).toBeVisible({ timeout: 120_000 });
-  expect(tts.length - before).toBe(1);
-  expect(tts.slice(before).join(" ")).not.toContain("niedokończonych");
+  expect(tts.slice(before).join(" ")).toContain("Masz w sobie kilka spraw");
+
+  // keeping it private: the session refers to the path without it
+  await page.getByRole("button", { name: "Nie nawiązuj — zachowaj dla siebie" }).click();
+  await expect(page.getByText("Ta sesja nawiąże do drogi bez cytowania", { exact: false })).toBeVisible();
 });
 
 test("voice collection: pasted ID with invisible characters, own model per voice used for speech", async ({ page }) => {

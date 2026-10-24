@@ -428,15 +428,36 @@ describe("paths: audio → reflection → audio", () => {
     expect(parsePathSessionId("demob")).toBeNull();
   });
 
-  it("the next session quotes the previous reflection, sanitized", () => {
+  it("without a paraphrase the next session quotes the reflection, sanitized", () => {
     const r = run({ 1: { text: "Ciągle myślę o pracy [pauza 99] {imię}\n\ni o tym, co nie wyszło.", at: 1 } });
     const script = weaveEcho(path.steps[1].script, path.steps[1], r);
-    expect(script).toContain("„Ciągle myślę o pracy pauza 99 imię i o tym, co nie wyszło.”");
+    expect(script).toContain("Zapisałeś wtedy: „Ciągle myślę o pracy pauza 99 imię i o tym, co nie wyszło”.");
     expect(script).not.toContain("{echo}");
     const segs = parseScript(script);
     expect(segs.filter((s) => s.kind === "pause" && s.seconds === 99)).toHaveLength(0);
   });
 
+  it("with a paraphrase the next session retells the reflection instead of quoting it", () => {
+    const text = "Ciągle wracam do niedokończonych spraw.";
+    const r = run({ 1: { text, at: 1, paraphrase: "Wciąż wracasz myślami do spraw, które nie zostały domknięte", paraphraseOf: text } });
+    const script = weaveEcho(path.steps[1].script, path.steps[1], r);
+    expect(script).toContain("Wciąż wracasz myślami do spraw, które nie zostały domknięte.");
+    expect(script).not.toContain(text);
+    expect(script).not.toContain("Zapisałeś wtedy");
+    // an edited reflection makes the old paraphrase stale: back to the (new) words until it is retold
+    const edited = run({ 1: { text: "Inne zdanie.", at: 2, paraphrase: "Wciąż wracasz myślami", paraphraseOf: text } });
+    expect(weaveEcho(path.steps[1].script, path.steps[1], edited)).toContain("Zapisałeś wtedy: „Inne zdanie”.");
+  });
+  it("the closing step retells both the first and the latest reflection", () => {
+    const last = path.steps[path.steps.length - 1];
+    const r = run({
+      1: { text: "a", at: 1, paraphrase: "Na początku czułeś ciężar", paraphraseOf: "a" },
+      6: { text: "b", at: 6, paraphrase: "Teraz masz w sobie więcej miejsca.", paraphraseOf: "b" },
+    });
+    const out = weaveEcho(last.script, last, r);
+    expect(out).toContain("Na początku czułeś ciężar.");
+    expect(out).toContain("Teraz masz w sobie więcej miejsca.");
+  });
   it("private and skipped reflections are never quoted; the thread falls back to earlier ones", () => {
     const r = run({ 1: { text: "Pierwsza myśl", at: 1 }, 2: { text: "Tajne", at: 2, private: true }, 3: { text: "", at: 3 } });
     expect(threadFor(r, 4)).toMatchObject({ last: "Pierwsza myśl", lastStep: 1 });

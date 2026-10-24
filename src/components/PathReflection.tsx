@@ -6,6 +6,8 @@ import { newId } from "@/lib/db";
 import { logActivity, update, useApp } from "@/lib/store";
 import { navigate } from "@/lib/router";
 import { pathSessionId, type PathDef, type PathStep } from "@/lib/paths";
+import { paraphraseReflection } from "@/lib/eleven-client";
+import { getState } from "@/lib/store";
 import type { PathRun } from "@/lib/types";
 import { Button, Card, TextArea, Toggle } from "./ui";
 
@@ -18,10 +20,52 @@ export function saveNote(path: PathDef, n: number, note: { text: string; private
   update((s) => {
     const runs = (s.paths ??= {});
     const run = (runs[path.id] ??= newPathRun(path.id));
-    if (note) run.notes[n] = { text: note.text.trim(), private: note.private || undefined, at: Date.now() };
-    else delete run.notes[n];
+    if (note) {
+      const prev = run.notes[n];
+      const text = note.text.trim();
+      // a paraphrase stays with its reflection as long as the words are the same
+      const keep = prev && prev.paraphraseOf === text ? { paraphrase: prev.paraphrase, paraphraseOf: prev.paraphraseOf } : {};
+      run.notes[n] = { text, private: note.private || undefined, at: Date.now(), ...keep };
+    } else delete run.notes[n];
     const done = path.steps.every((x) => run.notes[x.n]);
     run.finishedAt = done ? (run.finishedAt ?? Date.now()) : undefined;
+  });
+}
+
+const inflight = new Set<string>();
+
+/**
+ * Asks Claude (on the server) to retell a reflection in the second person, so the next session speaks
+ * about it in its own words instead of quoting it. Quietly does nothing when that is not possible —
+ * the session then falls back to quoting.
+ */
+export async function ensureParaphrase(path: PathDef, n: number): Promise<"ok" | "skipped" | string> {
+  const note = getState().paths?.[path.id]?.notes[n];
+  if (!note || !note.text.trim() || note.private) return "skipped";
+  if (note.paraphrase && note.paraphraseOf === note.text) return "ok";
+  const key = `${path.id}:${n}:${note.text}`;
+  if (inflight.has(key)) return "skipped";
+  inflight.add(key);
+  try {
+    const step = path.steps.find((s) => s.n === n);
+    const paraphrase = await paraphraseReflection(note.text, step?.question ?? "");
+    update((s) => {
+      const cur = s.paths?.[path.id]?.notes[n];
+      if (cur && cur.text === note.text) Object.assign(cur, { paraphrase, paraphraseOf: note.text });
+    });
+    return "ok";
+  } catch (e) {
+    return e instanceof Error ? e.message : "Nie udało się przeredagować.";
+  } finally {
+    inflight.delete(key);
+  }
+}
+
+/** Your own wording of what the next session should say (replaces Claude's paraphrase). */
+export function setParaphrase(path: PathDef, n: number, paraphrase: string) {
+  update((s) => {
+    const cur = s.paths?.[path.id]?.notes[n];
+    if (cur) Object.assign(cur, { paraphrase: paraphrase.trim(), paraphraseOf: cur.text });
   });
 }
 
@@ -37,6 +81,7 @@ export const PathReflection = forwardRef<HTMLDivElement, { path: PathDef; step: 
     saveNote(path, step.n, { text: skip ? "" : text, private: !skip && priv });
     if (!note) logActivity("reflection", `${path.title} · etap ${step.n}`);
     setEditing(false);
+    if (!skip && !priv && next) void ensureParaphrase(path, step.n);
   };
 
   return (
@@ -55,7 +100,10 @@ export const PathReflection = forwardRef<HTMLDivElement, { path: PathDef; step: 
             placeholder={step.placeholder}
             aria-label="Twoja refleksja"
           />
-          <p className="mt-1.5 text-[12px] text-ink-3">Możesz też podyktować — mikrofon na klawiaturze iPhone&apos;a.</p>
+          <p className="mt-1.5 text-[12px] leading-relaxed text-ink-3">
+            Możesz też podyktować — mikrofon na klawiaturze iPhone&apos;a.
+            {next && " Kolejna sesja nie odczyta tego słowo w słowo: zdanie przeredaguje Claude (Anthropic) na serwerze aplikacji, a sesja nawiąże do niego własnymi słowami. Z opcją „tylko dla siebie” tekst nigdzie nie trafia."}
+          </p>
           {next && (
             <Toggle
               checked={priv}
@@ -94,7 +142,7 @@ export const PathReflection = forwardRef<HTMLDivElement, { path: PathDef; step: 
               {!next
                 ? "To było ostatnie zdanie tej drogi."
                 : note.text && !note.private
-                  ? `Etap ${next.n} „${next.title}” przytoczy to zdanie i będzie z nim pracował.`
+                  ? `Etap ${next.n} „${next.title}” nawiąże do tego własnymi słowami i będzie z tym pracował.`
                   : `Etap ${next.n} „${next.title}” nawiąże do drogi bez cytowania.`}
             </p>
             <div className="mt-4 flex flex-wrap gap-2">

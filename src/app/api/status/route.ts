@@ -11,6 +11,7 @@ export function GET(req: Request) {
   return NextResponse.json(
     {
       elevenConfigured: Boolean(elevenKey()),
+      paraphraseConfigured: Boolean(process.env.ANTHROPIC_API_KEY),
       accessRequired: required,
       accessConfigured: Boolean(expected),
       accessOk: ok,
