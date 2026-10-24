@@ -439,7 +439,7 @@ describe("paths: audio → reflection → audio", () => {
 
   it("with a paraphrase the next session retells the reflection instead of quoting it", () => {
     const text = "Ciągle wracam do niedokończonych spraw.";
-    const r = run({ 1: { text, at: 1, paraphrase: "Wciąż wracasz myślami do spraw, które nie zostały domknięte", paraphraseOf: text } });
+    const r = run({ 1: { text, at: 1, paraphrase: "Wciąż wracasz myślami do spraw, które nie zostały domknięte", paraphraseOf: text, paraphraseVersion: 2 } });
     const script = weaveEcho(path.steps[1].script, path.steps[1], r);
     expect(script).toContain("Wciąż wracasz myślami do spraw, które nie zostały domknięte.");
     expect(script).not.toContain(text);
@@ -448,11 +448,18 @@ describe("paths: audio → reflection → audio", () => {
     const edited = run({ 1: { text: "Inne zdanie.", at: 2, paraphrase: "Wciąż wracasz myślami", paraphraseOf: text } });
     expect(weaveEcho(path.steps[1].script, path.steps[1], edited)).toContain("Zapisałeś wtedy: „Inne zdanie”.");
   });
+  it("generated paraphrases in an older style are made again; your own wording always stays", () => {
+    const text = "Praca, budowa i dzieci.";
+    const old = run({ 1: { text, at: 1, paraphrase: "Nosisz w sobie ciężar spraw", paraphraseOf: text } });
+    expect(weaveEcho(path.steps[1].script, path.steps[1], old)).toContain("Zapisałeś wtedy");
+    const mine = run({ 1: { text, at: 1, paraphrase: "Masz na głowie pracę, budowę i dzieci", paraphraseOf: text, paraphraseBy: "user" } });
+    expect(weaveEcho(path.steps[1].script, path.steps[1], mine)).toContain("Masz na głowie pracę, budowę i dzieci.");
+  });
   it("the closing step retells both the first and the latest reflection", () => {
     const last = path.steps[path.steps.length - 1];
     const r = run({
-      1: { text: "a", at: 1, paraphrase: "Na początku czułeś ciężar", paraphraseOf: "a" },
-      6: { text: "b", at: 6, paraphrase: "Teraz masz w sobie więcej miejsca.", paraphraseOf: "b" },
+      1: { text: "a", at: 1, paraphrase: "Na początku czułeś ciężar", paraphraseOf: "a", paraphraseVersion: 2 },
+      6: { text: "b", at: 6, paraphrase: "Teraz masz w sobie więcej miejsca.", paraphraseOf: "b", paraphraseBy: "user" },
     });
     const out = weaveEcho(last.script, last, r);
     expect(out).toContain("Na początku czułeś ciężar.");

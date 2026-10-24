@@ -298,6 +298,10 @@ export interface PathNote {
   paraphrase?: string;
   /** the exact text the paraphrase was made from (an edit of the reflection makes it stale) */
   paraphraseOf?: string;
+  /** "user" when you wrote it yourself */
+  paraphraseBy?: "ai" | "user";
+  /** style version of a generated paraphrase (older ones are made again) */
+  paraphraseVersion?: number;
 }
 
 export interface PathRun {

@@ -694,12 +694,18 @@ export function sanitizeReflection(text: string): string {
     .replace(/[„”"]/g, "")
     .replace(/\s+/g, " ")
     .trim()
-    .slice(0, 300);
+    .slice(0, 1200);
 }
+
+/** Bumped when the way reflections are retold changes, so older paraphrases are made again. */
+export const PARAPHRASE_VERSION = 2;
 
 /** A paraphrase is used only while it still belongs to the reflection as it is now (edits make it stale). */
 export function paraphraseOf(note: PathNote | undefined): string | null {
-  return note?.paraphrase && note.paraphraseOf === note.text ? sanitizeReflection(note.paraphrase) : null;
+  if (!note?.paraphrase || note.paraphraseOf !== note.text) return null;
+  // your own wording always counts; a generated one only in the current style
+  if (note.paraphraseBy !== "user" && note.paraphraseVersion !== PARAPHRASE_VERSION) return null;
+  return sanitizeReflection(note.paraphrase);
 }
 
 /** What the voice says for a reflection: its paraphrase, or — as a fallback — the reflection quoted. */

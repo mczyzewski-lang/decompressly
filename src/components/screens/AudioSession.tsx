@@ -440,16 +440,20 @@ function PathThread({ pathId, n, onPending }: { pathId: string; n: number; onPen
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
 
-  const missingKey = missing.join(",");
+  const [again, setAgain] = useState(0);
+  const force = useRef(false);
+  const missingKey = again > 0 && t.lastStep ? `${t.lastStep}` : missing.join(",");
   const run_ = useCallback(async () => {
     if (!missingKey) return;
     setPending(true);
     onPending(true);
     setError(null);
     for (const step of missingKey.split(",").map(Number)) {
-      const r = await ensureParaphrase(path, step);
+      const r = await ensureParaphrase(path, step, force.current);
       if (r !== "ok" && r !== "skipped") setError(r);
     }
+    force.current = false;
+    setAgain(0);
     setPending(false);
     onPending(false);
   }, [missingKey, path, onPending]);
@@ -513,6 +517,17 @@ function PathThread({ pathId, n, onPending }: { pathId: string; n: number; onPen
               {!paraphrased && configured && !pending && (
                 <button className="text-sage-deep" onClick={() => void run_()}>
                   Spróbuj ponownie
+                </button>
+              )}
+              {paraphrased && configured && !pending && (
+                <button
+                  className="text-sage-deep"
+                  onClick={() => {
+                    force.current = true;
+                    setAgain((v) => v + 1);
+                  }}
+                >
+                  Przeredaguj jeszcze raz
                 </button>
               )}
               <button className="text-sage-deep" onClick={() => (setDraft(paraphrased ? (t.lastSpoken ?? "") : ""), setEditing(true))}>

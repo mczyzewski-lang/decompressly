@@ -5,7 +5,7 @@ import { ArrowRight, Lock, PenLine } from "lucide-react";
 import { newId } from "@/lib/db";
 import { logActivity, update, useApp } from "@/lib/store";
 import { navigate } from "@/lib/router";
-import { pathSessionId, type PathDef, type PathStep } from "@/lib/paths";
+import { PARAPHRASE_VERSION, paraphraseOf, pathSessionId, type PathDef, type PathStep } from "@/lib/paths";
 import { openaiConfigured, paraphraseReflection } from "@/lib/eleven-client";
 import { getState } from "@/lib/store";
 import type { PathRun } from "@/lib/types";
@@ -24,7 +24,10 @@ export function saveNote(path: PathDef, n: number, note: { text: string; private
       const prev = run.notes[n];
       const text = note.text.trim();
       // a paraphrase stays with its reflection as long as the words are the same
-      const keep = prev && prev.paraphraseOf === text ? { paraphrase: prev.paraphrase, paraphraseOf: prev.paraphraseOf } : {};
+      const keep =
+        prev && prev.paraphraseOf === text
+          ? { paraphrase: prev.paraphrase, paraphraseOf: prev.paraphraseOf, paraphraseBy: prev.paraphraseBy, paraphraseVersion: prev.paraphraseVersion }
+          : {};
       run.notes[n] = { text, private: note.private || undefined, at: Date.now(), ...keep };
     } else delete run.notes[n];
     const done = path.steps.every((x) => run.notes[x.n]);
@@ -39,10 +42,10 @@ const inflight = new Set<string>();
  * about it in its own words instead of quoting it. Quietly does nothing when that is not possible —
  * the session then falls back to quoting.
  */
-export async function ensureParaphrase(path: PathDef, n: number): Promise<"ok" | "skipped" | string> {
+export async function ensureParaphrase(path: PathDef, n: number, force = false): Promise<"ok" | "skipped" | string> {
   const note = getState().paths?.[path.id]?.notes[n];
   if (!note || !note.text.trim() || note.private || !openaiConfigured()) return "skipped";
-  if (note.paraphrase && note.paraphraseOf === note.text) return "ok";
+  if (!force && paraphraseOf(note)) return "ok";
   const key = `${path.id}:${n}:${note.text}`;
   if (inflight.has(key)) return "skipped";
   inflight.add(key);
@@ -51,7 +54,7 @@ export async function ensureParaphrase(path: PathDef, n: number): Promise<"ok" |
     const paraphrase = await paraphraseReflection(note.text, step?.question ?? "");
     update((s) => {
       const cur = s.paths?.[path.id]?.notes[n];
-      if (cur && cur.text === note.text) Object.assign(cur, { paraphrase, paraphraseOf: note.text });
+      if (cur && cur.text === note.text) Object.assign(cur, { paraphrase, paraphraseOf: note.text, paraphraseBy: "ai", paraphraseVersion: PARAPHRASE_VERSION });
     });
     return "ok";
   } catch (e) {
@@ -65,7 +68,7 @@ export async function ensureParaphrase(path: PathDef, n: number): Promise<"ok" |
 export function setParaphrase(path: PathDef, n: number, paraphrase: string) {
   update((s) => {
     const cur = s.paths?.[path.id]?.notes[n];
-    if (cur) Object.assign(cur, { paraphrase: paraphrase.trim(), paraphraseOf: cur.text });
+    if (cur) Object.assign(cur, { paraphrase: paraphrase.trim(), paraphraseOf: cur.text, paraphraseBy: "user" });
   });
 }
 
@@ -94,7 +97,7 @@ export const PathReflection = forwardRef<HTMLDivElement, { path: PathDef; step: 
           <TextArea
             className="mt-3"
             rows={3}
-            maxLength={300}
+            maxLength={1000}
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder={step.placeholder}

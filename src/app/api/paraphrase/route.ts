@@ -5,15 +5,22 @@ import { guard } from "@/lib/server/eleven";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-const INSTRUCTIONS = `Przeredagowujesz krótką, prywatną refleksję, którą mężczyzna zapisał po sesji relaksacyjnej. Twoje zdania przeczyta lektor na początku jego kolejnej sesji, spokojnym głosem.
+const INSTRUCTIONS = `Jesteś spokojnym przewodnikiem sesji relaksacyjnych. Mężczyzna zapisał po sesji krótką, prywatną refleksję. Odzwierciedlasz ją tak, jak robi to dobry słuchacz: dokładnie, tylko własnymi słowami i w uporządkowany sposób. Twój tekst przeczyta lektor na początku jego kolejnej sesji.
 
-Zasady:
-- Napisz jedno albo dwa krótkie zdania po polsku, w drugiej osobie liczby pojedynczej, w rodzaju męskim (np. „Zauważyłeś, że…”, „Wciąż wracasz do…”).
-- Oddaj sens własnymi słowami. Nie cytuj zdania słowo w słowo i nie powtarzaj jego charakterystycznych sformułowań.
-- Zachowaj znaczenie i ton. Niczego nie dodawaj: żadnych nowych faktów, ocen, porad, pocieszania ani interpretacji. Nie diagnozuj.
-- Pisz ciepło, prosto i naturalnie, tak jak mówi spokojny przewodnik.
-- Nie zwracaj się po imieniu, nie używaj cudzysłowów, nawiasów kwadratowych, klamr, emotek ani list.
-- Zwróć wyłącznie te zdania, bez żadnego wstępu.`;
+Jak pisać:
+- Zacznij od formuły w duchu aktywnego słuchania, np. „Jeśli dobrze Cię rozumiem, …”, „Z tego, co napisałeś, …” albo „Słyszę, że …”.
+- Wymień wszystkie konkretne rzeczy, które się pojawiły: sprawy, zadania, okoliczności i osoby (z imionami i wiekiem, jeśli je podał). Niczego nie pomijaj i niczego nie uogólniaj do ogólników typu „sprawy zawodowe” czy „wyzwania”, gdy w refleksji jest coś konkretnego.
+- Ujmij to własnymi słowami, a nie jego sformułowaniami.
+- Uporządkuj całość w kilka obszarów (np. praca i firma, dom i budowa, rodzina i dzieci) i połącz je naturalnie: „z jednej strony…, z drugiej…”, „w pracy…, w domu…”, „a do tego…”. Bez list i wypunktowań — to ma być płynny tekst do odczytania na głos.
+- Możesz zakończyć jednym krótkim zdaniem, które nazywa to, co wynika wprost z jego słów (np. że to dużo naraz) — bez interpretowania, oceniania, pocieszania i dawania rad. Nie diagnozuj.
+- Długość: zwykle 2–5 zdań. Tekst może być dłuższy od refleksji, jeśli dzięki temu jest pełniejszy i bardziej uporządkowany.
+- Druga osoba liczby pojedynczej, rodzaj męski. Nie zwracaj się po imieniu.
+- Pisz z myślą o lektorze: liczby i wiek słownie (np. „trzymiesięczna Gaja”), poprawiaj oczywiste literówki. Jeśli jakieś słowo jest niejasne i nie da się go jednoznacznie odczytać, ujmij je ostrożnie albo pomiń — nie zgaduj.
+- Bez cudzysłowów, nawiasów kwadratowych, klamr i emotek. Zwróć wyłącznie ten tekst, bez wstępu.
+
+Przykład (tylko dla stylu, nie powtarzaj treści):
+Refleksja: „za dużo maili, szef ciągle zmienia priorytety, w domu remont kuchni a Ola (7 lat) zaczęła szkołę”
+Odpowiedź: Jeśli dobrze Cię rozumiem, w pracy przytłacza Cię natłok wiadomości i to, że priorytety wciąż się zmieniają. W domu trwa remont kuchni, a siedmioletnia Ola właśnie poszła do szkoły. To kilka ważnych spraw jednocześnie.`;
 
 /**
  * Retells a path reflection with OpenAI. The OpenAI key comes from the person's own settings with each
@@ -38,7 +45,7 @@ export async function POST(req: Request) {
   const text = typeof body.text === "string" ? body.text.trim() : "";
   const question = typeof body.question === "string" ? body.question.trim().slice(0, 300) : "";
   const model = typeof body.model === "string" && /^[\w.:-]{2,64}$/.test(body.model) ? body.model : "gpt-5.4-mini";
-  if (!text || text.length > 600) return NextResponse.json({ error: "Refleksja musi mieć 1–600 znaków." }, { status: 400 });
+  if (!text || text.length > 1200) return NextResponse.json({ error: "Refleksja musi mieć 1–1200 znaków." }, { status: 400 });
 
   const client = new OpenAI({ apiKey, maxRetries: 1 });
   try {
@@ -50,7 +57,7 @@ export async function POST(req: Request) {
     });
     const out = (response.output_text ?? "").replace(/[„”"«»[\]{}]/g, "").replace(/\s+/g, " ").trim();
     if (!out) return NextResponse.json({ error: "OpenAI nie zwróciło tekstu." }, { status: 502 });
-    return NextResponse.json({ paraphrase: out.slice(0, 400) }, { headers: { "Cache-Control": "no-store" } });
+    return NextResponse.json({ paraphrase: out.slice(0, 1200) }, { headers: { "Cache-Control": "no-store" } });
   } catch (e) {
     if (e instanceof OpenAI.AuthenticationError) {
       return NextResponse.json({ error: "Klucz OpenAI jest nieprawidłowy. Sprawdź go w Ustawieniach → OpenAI." }, { status: 401 });
