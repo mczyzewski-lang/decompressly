@@ -143,6 +143,9 @@ test("trip mode minimises the interface", async ({ page }) => {
   await expect(page.getByText("Odłączenie")).toBeVisible();
   await expect(page.getByText("Dzisiejszy rytm")).toHaveCount(0);
   await expect(page.getByText("Jedno ćwiczenie")).toBeVisible();
+  // settings stay reachable during an active trip
+  await page.getByRole("button", { name: "Ustawienia" }).click();
+  await expect(page.getByRole("heading", { name: "Ustawienia" })).toBeVisible();
 });
 
 test("data export downloads a backup without the OpenAI key", async ({ page }) => {

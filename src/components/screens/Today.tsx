@@ -311,9 +311,14 @@ function TripToday({ date, mantra }: { date: string; mantra: string }) {
     <Screen tabbed>
       <header className="safe-top flex items-center justify-between pt-4">
         <p className="text-[13px] font-medium uppercase tracking-[0.08em] text-ink-3">Wyjazd · dzień {plan?.day ?? 1}</p>
-        <IconButton label="Tryb wyjazdu" onClick={() => navigate("trip")} className="-mr-2">
-          <Plane className="h-5 w-5" />
-        </IconButton>
+        <div className="-mr-2 flex">
+          <IconButton label="Tryb wyjazdu" onClick={() => navigate("trip")}>
+            <Plane className="h-5 w-5" />
+          </IconButton>
+          <IconButton label="Ustawienia" onClick={() => navigate("settings")}>
+            <SettingsIcon className="h-5 w-5" />
+          </IconButton>
+        </div>
       </header>
       <div className="flex min-h-[60dvh] flex-col justify-center">
         <p className="font-display text-[30px] leading-tight text-ink">{plan?.title ?? "Wyjazd"}</p>
