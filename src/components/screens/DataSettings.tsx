@@ -62,7 +62,9 @@ export default function DataSettings() {
     setBusy(true);
     try {
       await flushSave();
-      const backup: Backup = { app: "decompressly", format: 1, exportedAt: new Date().toISOString(), state: getState() };
+      // the OpenAI key stays on this device — it never goes into a backup file
+      const st = getState();
+      const backup: Backup = { app: "decompressly", format: 1, exportedAt: new Date().toISOString(), state: { ...st, openai: { model: st.openai?.model ?? "", apiKey: "" } } };
       if (withAudio) {
         const blobs = await listBlobs();
         backup.blobs = [];
@@ -91,7 +93,8 @@ export default function DataSettings() {
     setBusy(true);
     try {
       for (const b of parsed.blobs ?? []) await putBlob(fromBase64(b.data, b.mime), b.kind, b.label, b.meta, b.id);
-      replaceAll(parsed.state);
+      const keep = getState().openai;
+      replaceAll({ ...parsed.state, openai: { ...(parsed.state.openai ?? { model: keep?.model ?? "" }), apiKey: keep?.apiKey ?? "" } });
       await flushSave();
       toast("Dane przywrócone.");
       refresh();

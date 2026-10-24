@@ -42,8 +42,8 @@ export function accessRequired(): boolean {
 }
 
 /** Returns an error response, or null when the request may proceed. */
-/** `provider` names the upstream whose server key must be configured (default: ElevenLabs). */
-export function guard(req: Request, opts: { paid: boolean; provider?: "eleven" | "anthropic" }): NextResponse | null {
+/** `provider` names the upstream whose server key must be configured (default: ElevenLabs; "none" = the caller brings its own key). */
+export function guard(req: Request, opts: { paid: boolean; provider?: "eleven" | "none" }): NextResponse | null {
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
   const limit = Number(process.env.RATE_LIMIT_PER_MIN) || (opts.paid ? 240 : 120);
   const wait = rateLimited(`${opts.paid ? "paid" : "free"}:${ip}`, limit);
@@ -69,9 +69,7 @@ export function guard(req: Request, opts: { paid: boolean; provider?: "eleven" |
   if (opts.paid && req.headers.get("x-confirm-paid") !== "1") {
     return NextResponse.json({ error: "Płatna generacja wymaga potwierdzenia w aplikacji." }, { status: 428 });
   }
-  if (opts.provider === "anthropic") {
-    if (!process.env.ANTHROPIC_API_KEY) return NextResponse.json({ error: "Brak ANTHROPIC_API_KEY na serwerze.", code: "no_key" }, { status: 503 });
-  } else if (!elevenKey()) {
+  if (opts.provider !== "none" && !elevenKey()) {
     return NextResponse.json({ error: "Brak ELEVENLABS_API_KEY na serwerze." }, { status: 503 });
   }
   return null;

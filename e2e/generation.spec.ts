@@ -164,16 +164,14 @@ test("sound studio: one tap generates START + CLOSE for all four styles", async 
 test("path: the next session retells the reflection in its own words (never word for word)", async ({ page }) => {
   test.setTimeout(150_000);
   const tts: string[] = [];
-  const asked: { text: string; question: string }[] = [];
+  const asked: { text: string; question: string; model?: string }[] = [];
   await page.route("**/api/eleven/tts", async (route) => {
     tts.push(route.request().postDataJSON().text);
     await route.fulfill({ status: 200, contentType: "audio/mpeg", body: fakeAudio });
   });
-  await page.route("**/api/status", async (route) => {
-    const res = await route.fetch();
-    await route.fulfill({ response: res, json: { ...(await res.json()), paraphraseConfigured: true } });
-  });
+  const keys: string[] = [];
   await page.route("**/api/paraphrase", async (route) => {
+    keys.push(decodeURIComponent(route.request().headers()["x-openai-key"] ?? ""));
     asked.push(route.request().postDataJSON());
     await route.fulfill({ json: { paraphrase: "Wciąż wracasz myślami do spraw, które jeszcze nie zostały domknięte." } });
   });
@@ -181,6 +179,8 @@ test("path: the next session retells the reflection in its own words (never word
   await page.getByRole("button", { name: "Zacznij spokojnie" }).click();
   await page.evaluate(() => (location.hash = "#/settings/eleven"));
   await page.getByLabel("lub ID głosu").fill("TestVoice1234567890");
+  await page.evaluate(() => (location.hash = "#/settings/openai"));
+  await page.getByLabel("Klucz API OpenAI").fill("sk-test-openai-key");
 
   await page.evaluate(() => (location.hash = "#/audio"));
   await page.getByRole("button", { name: /Ścieżka oczyszczenia/ }).click();
@@ -193,6 +193,8 @@ test("path: the next session retells the reflection in its own words (never word
   await expect(page.getByText(/Etap 2 „Przyjrzeć się z życzliwością” nawiąże do tego własnymi słowami/)).toBeVisible();
   await expect.poll(() => asked.length).toBe(1);
   expect(asked[0]).toMatchObject({ text: "Ciągle wracam do niedokończonych spraw.", question: expect.stringContaining("najciężej") });
+  expect(keys[0]).toBe("sk-test-openai-key"); // the key from Settings goes with the request
+  expect(asked[0].model).toBe("gpt-5.4-mini");
   await page.getByRole("button", { name: /Etap 2: Przyjrzeć się/ }).click();
 
   await expect(page.getByText("Sesja powie")).toBeVisible();

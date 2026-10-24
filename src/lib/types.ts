@@ -276,6 +276,8 @@ export interface AppState {
   questionNotes: QuestionNote[];
   /** "Słoik dobrych chwil" — small good moments, one sentence each */
   moments?: GoodMoment[];
+  /** OpenAI key pasted in Settings — retells path reflections; kept on this device only, never exported */
+  openai?: { apiKey: string; model: string };
   /** "Ścieżki": the current run of each path (audio → reflection → audio) */
   paths?: Record<string, PathRun>;
   /** finished or restarted runs, newest first */

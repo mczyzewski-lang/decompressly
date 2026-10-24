@@ -9,7 +9,7 @@ import { modelFor } from "@/lib/voices";
 import { applyPacing, DEFAULT_GAP, defaultLength, estimateDuration, fitPauseScale, hasScriptMotif, layoutKey, LENGTHS, parseScript, selectLength, speechSegments, textKey, totalCharacters, withMotif } from "@/lib/audio/segments";
 import { BACKGROUND_URL, generateMissing, missingSegments, renderSessionFile } from "@/lib/audio/narration";
 import { blobUrl, deleteBlob, getBlob } from "@/lib/db";
-import { confirmPaid, describeChars, fetchStatus } from "@/lib/eleven-client";
+import { confirmPaid, describeChars } from "@/lib/eleven-client";
 import { logActivity, update, useApp, useNameForms } from "@/lib/store";
 import { formatClock } from "@/lib/dates";
 import { toast } from "@/lib/ui-store";
@@ -434,15 +434,11 @@ function PathThread({ pathId, n, onPending }: { pathId: string; n: number; onPen
   const missing = [lastNote && !paraphraseOf(lastNote) ? t.lastStep : null, needsFirst && firstNote && !paraphraseOf(firstNote) ? t.firstStep : null].filter(
     (x): x is number => x !== null,
   );
-  const [configured, setConfigured] = useState<boolean | null>(null);
+  const configured = useApp((s) => !!s.openai?.apiKey.trim());
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
-
-  useEffect(() => {
-    void fetchStatus().then((st) => setConfigured(!!st?.paraphraseConfigured));
-  }, []);
 
   const missingKey = missing.join(",");
   const run_ = useCallback(async () => {
@@ -500,8 +496,8 @@ function PathThread({ pathId, n, onPending }: { pathId: string; n: number; onPen
             </p>
           ) : (
             <p className="mt-2 text-[14px] leading-relaxed text-ink-2">
-              {configured === false
-                ? "Sesja przytoczy Twoje słowa. Żeby ujmowała je własnymi słowami, na serwerze potrzebny jest klucz ANTHROPIC_API_KEY."
+              {!configured
+                ? "Sesja przytoczy Twoje słowa. Żeby ujmowała je własnymi słowami, wklej klucz OpenAI w Ustawieniach → OpenAI."
                 : error
                   ? `Nie udało się przeredagować (${error}). Sesja przytoczy Twoje słowa.`
                   : "Sesja przytoczy Twoje słowa."}
@@ -509,6 +505,11 @@ function PathThread({ pathId, n, onPending }: { pathId: string; n: number; onPen
           )}
           {!editing && (
             <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[13px]">
+              {!configured && (
+                <button className="text-sage-deep" onClick={() => navigate("settings/openai")}>
+                  Dodaj klucz OpenAI
+                </button>
+              )}
               {!paraphrased && configured && !pending && (
                 <button className="text-sage-deep" onClick={() => void run_()}>
                   Spróbuj ponownie

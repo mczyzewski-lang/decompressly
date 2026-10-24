@@ -6,7 +6,7 @@ import { newId } from "@/lib/db";
 import { logActivity, update, useApp } from "@/lib/store";
 import { navigate } from "@/lib/router";
 import { pathSessionId, type PathDef, type PathStep } from "@/lib/paths";
-import { paraphraseReflection } from "@/lib/eleven-client";
+import { openaiConfigured, paraphraseReflection } from "@/lib/eleven-client";
 import { getState } from "@/lib/store";
 import type { PathRun } from "@/lib/types";
 import { Button, Card, TextArea, Toggle } from "./ui";
@@ -35,13 +35,13 @@ export function saveNote(path: PathDef, n: number, note: { text: string; private
 const inflight = new Set<string>();
 
 /**
- * Asks Claude (on the server) to retell a reflection in the second person, so the next session speaks
+ * Asks OpenAI (with the key from Settings) to retell a reflection in the second person, so the next session speaks
  * about it in its own words instead of quoting it. Quietly does nothing when that is not possible —
  * the session then falls back to quoting.
  */
 export async function ensureParaphrase(path: PathDef, n: number): Promise<"ok" | "skipped" | string> {
   const note = getState().paths?.[path.id]?.notes[n];
-  if (!note || !note.text.trim() || note.private) return "skipped";
+  if (!note || !note.text.trim() || note.private || !openaiConfigured()) return "skipped";
   if (note.paraphrase && note.paraphraseOf === note.text) return "ok";
   const key = `${path.id}:${n}:${note.text}`;
   if (inflight.has(key)) return "skipped";
@@ -61,7 +61,7 @@ export async function ensureParaphrase(path: PathDef, n: number): Promise<"ok" |
   }
 }
 
-/** Your own wording of what the next session should say (replaces Claude's paraphrase). */
+/** Your own wording of what the next session should say (replaces the generated paraphrase). */
 export function setParaphrase(path: PathDef, n: number, paraphrase: string) {
   update((s) => {
     const cur = s.paths?.[path.id]?.notes[n];
@@ -102,7 +102,7 @@ export const PathReflection = forwardRef<HTMLDivElement, { path: PathDef; step: 
           />
           <p className="mt-1.5 text-[12px] leading-relaxed text-ink-3">
             Możesz też podyktować — mikrofon na klawiaturze iPhone&apos;a.
-            {next && " Kolejna sesja nie odczyta tego słowo w słowo: zdanie przeredaguje Claude (Anthropic) na serwerze aplikacji, a sesja nawiąże do niego własnymi słowami. Z opcją „tylko dla siebie” tekst nigdzie nie trafia."}
+            {next && " Kolejna sesja nie odczyta tego słowo w słowo: zdanie przeredaguje OpenAI (Twoim kluczem z Ustawień), a sesja nawiąże do niego własnymi słowami. Z opcją „tylko dla siebie” tekst nigdzie nie trafia."}
           </p>
           {next && (
             <Toggle

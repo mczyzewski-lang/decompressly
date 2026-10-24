@@ -185,6 +185,7 @@ export function createDefaultState(): AppState {
     soundSets: structuredClone(BUILTIN_SOUND_SETS),
     activeSoundSetId: "builtin-system",
     soundDrafts: {},
+    openai: { apiKey: "", model: "gpt-5.4-mini" },
     eleven: {
       accessKey: "",
       voiceId: "",

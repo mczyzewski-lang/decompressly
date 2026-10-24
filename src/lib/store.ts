@@ -25,6 +25,7 @@ export function migrate(input: Partial<AppState> | undefined): AppState {
   const merged = { ...base, ...input } as AppState;
   // nested objects get defaults for newly added fields
   merged.eleven = { ...base.eleven, ...(input.eleven ?? {}) };
+  merged.openai = { ...base.openai!, ...(input.openai ?? {}) };
   merged.breath = { ...base.breath, ...(input.breath ?? {}) };
   merged.yoga = { ...base.yoga, ...(input.yoga ?? {}) };
   merged.audio = { ...base.audio, ...(input.audio ?? {}), sessions: { ...(input.audio?.sessions ?? {}) } };

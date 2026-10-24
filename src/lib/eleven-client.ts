@@ -10,8 +10,6 @@ export interface ServerStatus {
   accessConfigured: boolean;
   accessOk: boolean;
   accessHint?: "empty" | "case" | "length" | "chars" | null;
-  /** ANTHROPIC_API_KEY is set: reflections can be paraphrased by Claude */
-  paraphraseConfigured?: boolean;
 }
 
 function headers(paid: boolean): HeadersInit {
@@ -120,9 +118,19 @@ export async function generateSpeech(text: string, ctx: { previous?: string; nex
   return r.blob();
 }
 
-/** A reflection retold in the second person by Claude on the server (never the raw text spoken back). */
+export function openaiConfigured(): boolean {
+  return !!getState().openai?.apiKey.trim();
+}
+
+/**
+ * A reflection retold in the second person by OpenAI (never the raw text spoken back). The key from
+ * Settings travels with the request to the app's server, which passes it on and does not keep it.
+ */
 export async function paraphraseReflection(text: string, question: string): Promise<string> {
-  const r = await postWithRetry("/api/paraphrase", { method: "POST", headers: headers(true), body: JSON.stringify({ text, question }) }, { attempts: 4 });
+  const o = getState().openai;
+  if (!o?.apiKey.trim()) throw new ElevenError("Wklej klucz OpenAI w Ustawieniach → OpenAI.");
+  const h = { ...(headers(true) as Record<string, string>), "x-openai-key": encodeURIComponent(o.apiKey.trim()) };
+  const r = await postWithRetry("/api/paraphrase", { method: "POST", headers: h, body: JSON.stringify({ text, question, model: o.model }) }, { attempts: 4 });
   if (!r.ok) throw new ElevenError(await errorText(r));
   const j = (await r.json()) as { paraphrase?: string };
   if (!j.paraphrase) throw new ElevenError("Pusta odpowiedź.");

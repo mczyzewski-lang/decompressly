@@ -28,6 +28,7 @@ import Trip from "./screens/Trip";
 import Settings from "./screens/Settings";
 import SoundStudio from "./screens/SoundStudio";
 import ElevenSettings from "./screens/ElevenSettings";
+import OpenAISettings from "./screens/OpenAISettings";
 import DataSettings from "./screens/DataSettings";
 import Nothing from "./screens/Nothing";
 import InstallGuide from "./screens/InstallGuide";
@@ -121,6 +122,7 @@ function RouteView() {
     case "settings":
       if (b === "sounds") return <SoundStudio />;
       if (b === "eleven") return <ElevenSettings />;
+      if (b === "openai") return <OpenAISettings />;
       if (b === "data") return <DataSettings />;
       return <Settings />;
     case "nothing":

@@ -145,11 +145,33 @@ test("trip mode minimises the interface", async ({ page }) => {
   await expect(page.getByText("Jedno ćwiczenie")).toBeVisible();
 });
 
-test("data export downloads a backup", async ({ page }) => {
+test("data export downloads a backup without the OpenAI key", async ({ page }) => {
   await onboard(page);
+  await go(page, "#/settings/openai");
+  await page.getByLabel("Klucz API OpenAI").fill("sk-test-SECRET-123456");
   await go(page, "#/settings/data");
   const [dl] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: /Eksportuj kopię/ }).click()]);
   expect(dl.suggestedFilename()).toMatch(/^decompressly-\d{4}-\d{2}-\d{2}\.json$/);
+  const { readFileSync } = await import("node:fs");
+  const content = readFileSync((await dl.path())!, "utf8");
+  expect(content).not.toContain("SECRET");
+  expect(JSON.parse(content).state.openai.model).toBeTruthy();
+});
+
+test("yoga plan: swipe through the poses of the plan, tap a pose in the list to jump to it", async ({ page }) => {
+  await onboard(page);
+  await go(page, "#/yoga");
+  await page.getByRole("button", { name: "Plan", exact: true }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.getByText("1 / 10", { exact: true })).toBeVisible();
+  await dialog.getByRole("button", { name: "Następna pozycja" }).first().click();
+  await expect(dialog.getByRole("button", { name: /^2\.\s*Kot–krowa/ })).toHaveAttribute("aria-current", "step");
+  // swiping: scroll the carousel one slide to the right
+  await dialog.getByRole("region", { name: /Pozycje w planie/ }).evaluate((el) => el.scrollTo({ left: el.clientWidth * 2 }));
+  await expect(dialog.getByRole("button", { name: /^3\.\s*Pies z głową w dół/ })).toHaveAttribute("aria-current", "step");
+  await dialog.getByRole("button", { name: /^7\.\s*Drzewo/ }).click();
+  await expect(dialog.getByRole("button", { name: /^7\.\s*Drzewo/ })).toHaveAttribute("aria-current", "step");
+  await expect(dialog.getByRole("button", { name: "Szczegóły" }).nth(6)).toBeInViewport();
 });
 
 test("works offline after the first visit", async ({ page, context }) => {

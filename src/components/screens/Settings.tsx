@@ -61,6 +61,7 @@ export default function Settings() {
         <LinkRow first label="Moje rytuały" hint="Kroki START/CLOSE, godziny, stały rytm" to="rituals" />
         <LinkRow label="Motywy dźwiękowe" hint={set?.name} to="settings/sounds" />
         <LinkRow label="ElevenLabs" hint={s.eleven.voiceName ? `Głos: ${s.eleven.voiceName}` : "Głos, kod dostępu, biblioteka audio"} to="settings/eleven" />
+        <LinkRow label="OpenAI" hint={s.openai?.apiKey ? "Klucz dodany · refleksje własnymi słowami" : "Klucz API do refleksji w Ścieżce"} to="settings/openai" />
       </Card>
 
       <SectionTitle>Oddech</SectionTitle>
@@ -129,7 +130,7 @@ export default function Settings() {
         />
       </Card>
       <p className="mt-3 px-1 text-[12px] leading-relaxed text-ink-3">
-        Wszystkie Twoje dane — rytuały, pomysły, refleksje, historia i nagrania — są przechowywane wyłącznie na tym urządzeniu. Do serwera trafia tylko tekst wysyłany do ElevenLabs, gdy sam zatwierdzisz generację.
+        Wszystkie Twoje dane — rytuały, pomysły, refleksje, historia i nagrania — są przechowywane wyłącznie na tym urządzeniu. Do serwera trafia tylko tekst wysyłany do ElevenLabs przy generacji oraz — jeśli dodasz klucz OpenAI — refleksje ze Ścieżki do przeredagowania (bez tych oznaczonych „tylko dla siebie”).
       </p>
 
       <SectionTitle>Aplikacja</SectionTitle>

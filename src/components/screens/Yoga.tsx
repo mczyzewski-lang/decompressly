@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Star, Play, ChevronRight } from "lucide-react";
+import { useRef, useState } from "react";
+import { Star, Play, ChevronRight, ChevronLeft } from "lucide-react";
 import { YOGA_SESSIONS, sessionTotal, type YogaSession } from "@/lib/yoga/sessions";
 import { POSES, POSE_BY_ID, POSE_GROUPS, type PoseGroup } from "@/lib/yoga/poses";
 import { update, useApp } from "@/lib/store";
@@ -137,16 +137,89 @@ function FavButton({ id, active }: { id: string; active: boolean }) {
   );
 }
 
-function SessionSheet({ session, onClose, fav }: { session: YogaSession; onClose: () => void; fav: boolean }) {
+/** Swipe left/right through the poses of a plan, one photo at a time. */
+function PlanSlider({ session, index, onIndex, scroller }: { session: YogaSession; index: number; onIndex: (i: number) => void; scroller: React.RefObject<HTMLDivElement | null> }) {
+  const n = session.steps.length;
+  const go = (k: number) => {
+    const el = scroller.current;
+    if (el) el.scrollTo({ left: Math.max(0, Math.min(n - 1, k)) * el.clientWidth, behavior: "smooth" });
+  };
   return (
-    <Sheet open onOpenChange={(o) => !o && onClose()} title={session.title} description={`${session.subtitle} · razem ${formatClock(sessionTotal(session))}`}>
-      <ol className="divide-y divide-line">
+    <div className="relative -mx-5">
+      <div
+        ref={scroller}
+        className="no-scrollbar flex snap-x snap-mandatory overflow-x-auto overscroll-x-contain"
+        onScroll={(e) => {
+          const el = e.currentTarget;
+          const k = Math.round(el.scrollLeft / Math.max(1, el.clientWidth));
+          if (k !== index) onIndex(k);
+        }}
+        aria-label="Pozycje w planie — przesuń w lewo lub w prawo"
+        role="region"
+      >
         {session.steps.map((st, i) => {
           const p = POSE_BY_ID[st.poseId];
           return (
-            <li key={i} className="flex items-center justify-between py-3">
-              <button className="text-left" onClick={() => (onClose(), navigate(`yoga/pose/${p.id}`))}>
-                <span className="text-[15px] text-ink">{p.name}</span>
+            <div key={i} className="w-full shrink-0 snap-center px-5" aria-roledescription="slajd" aria-label={`${i + 1} z ${n}: ${p.name}`}>
+              <div className="relative">
+                <PoseImage pose={p} zoomable={false} />
+                {i > 0 && (
+                  <IconButton label="Poprzednia pozycja" onClick={() => go(i - 1)} className="absolute left-2 top-1/2 h-10 w-10 -translate-y-1/2 bg-black/40 text-white backdrop-blur hover:bg-black/55">
+                    <ChevronLeft className="h-5 w-5" />
+                  </IconButton>
+                )}
+                {i < n - 1 && (
+                  <IconButton label="Następna pozycja" onClick={() => go(i + 1)} className="absolute right-2 top-1/2 h-10 w-10 -translate-y-1/2 bg-black/40 text-white backdrop-blur hover:bg-black/55">
+                    <ChevronRight className="h-5 w-5" />
+                  </IconButton>
+                )}
+              </div>
+              <div className="mt-3 flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[12px] font-medium uppercase tracking-wide text-ink-3">
+                    {i + 1} / {n}
+                  </p>
+                  <p className="mt-0.5 text-[18px] leading-snug text-ink">{p.name}</p>
+                  <p className="mt-0.5 text-[13px] text-ink-3">
+                    {formatClock(st.seconds)}
+                    {st.sides === 2 ? ` · ${formatClock(st.seconds / 2)} na stronę` : ""}
+                  </p>
+                </div>
+                <Button size="sm" variant="quiet" onClick={() => navigate(`yoga/pose/${p.id}`)}>
+                  Szczegóły
+                </Button>
+              </div>
+              <p className="mt-2 line-clamp-3 text-[14px] leading-relaxed text-ink-2">{p.cue}</p>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function SessionSheet({ session, onClose, fav }: { session: YogaSession; onClose: () => void; fav: boolean }) {
+  const [index, setIndex] = useState(0);
+  const scroller = useRef<HTMLDivElement>(null);
+  const show = (i: number) => {
+    const el = scroller.current;
+    if (!el) return;
+    el.scrollTo({ left: i * el.clientWidth, behavior: "smooth" });
+    el.closest("[role=dialog]")?.scrollTo({ top: 0, behavior: "smooth" });
+  };
+  return (
+    <Sheet open onOpenChange={(o) => !o && onClose()} title={session.title} description={`${session.subtitle} · razem ${formatClock(sessionTotal(session))}`}>
+      <PlanSlider session={session} index={index} onIndex={setIndex} scroller={scroller} />
+      <ol className="mt-5 divide-y divide-line">
+        {session.steps.map((st, i) => {
+          const p = POSE_BY_ID[st.poseId];
+          return (
+            <li key={i} className={cn("flex items-center justify-between py-3", i === index && "-mx-2 rounded-xl bg-surface-2 px-2")}>
+              <button className="text-left" onClick={() => show(i)} aria-current={i === index ? "step" : undefined}>
+                <span className="text-[15px] text-ink">
+                  <span className="tabular mr-2 text-ink-3">{i + 1}.</span>
+                  {p.name}
+                </span>
                 {st.sides === 2 && <span className="ml-2 text-[12px] text-ink-3">{formatClock(st.seconds / 2)} / strona</span>}
               </button>
               <span className="tabular text-[15px] text-ink-3">{formatClock(st.seconds)}</span>
