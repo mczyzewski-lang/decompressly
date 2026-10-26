@@ -1040,7 +1040,294 @@ ${POWROT}
 
 Możesz wrócić do swojego dnia. Wolniej niż przed chwilą.`;
 
+const here = `{imię}, to jest medytacja o ojcostwie, przemijaniu i spokojnej obecności. Jestem tutaj. W najpiękniejszym czasie mojego życia.
+
+[pauza 5]
+
+${INDUKCJA}
+
+Nie musisz teraz niczego rozwiązywać. Nie musisz niczego planować. Nie ma żadnego zadania, które powinieneś teraz wykonać.
+
+[pauza 6]
+
+Przez najbliższe minuty możesz po prostu być. I z każdym oddechem możesz być tu odrobinę bardziej.
+
+[pauza 8]
+
+${ZEJSCIE}
+
+Dzisiaj nie musisz być przedsiębiorcą, liderem ani człowiekiem, który ciągle coś buduje.
+
+[pauza 4]
+
+Dzisiaj możesz być po prostu sobą. Człowiekiem, który kocha. Ojcem.
+
+[pauza 10]
+
+${POGLEBIENIE}
+
+Pomyśl teraz o Leonie. Nie musisz niczego sobie szczególnie wyobrażać. Pozwól, żeby pojawił się taki, jakim jest dzisiaj.
+
+[pauza 8]
+
+Mały chłopiec. Jego twarz. Jego głos. Jego śmiech.
+
+[pauza 8]
+
+Sposób, w jaki się porusza. Jego pomysły, pytania i drobne złości.
+
+[pauza 10]
+
+I im wyraźniej go widzisz, tym głębiej możesz się rozluźnić. Jakby sama jego obecność mówiła Twojemu ciału: jest dobrze.
+
+[pauza 10]
+
+Przypomnij sobie, jak gracie razem w Robale.
+
+[pauza 5]
+
+Jak nosisz go na barana.
+
+[pauza 5]
+
+Jak bawicie się w basenie.
+
+[pauza 5]
+
+Jak siedzi obok Ciebie w restauracji.
+
+[pauza 5]
+
+Jak wieczorem zasypia przy Tobie.
+
+[pauza 10]
+
+To nie są małe rzeczy, {imię}. To jest życie. Twoje życie. Jedno z tych doświadczeń, które są dla Ciebie najważniejsze. I właśnie teraz możesz w nim uczestniczyć.
+
+[pauza 14]
+
+[od 15]
+Być może czujesz wzruszenie. Być może pojawia się smutek. Wiesz przecież, że Leon będzie dorastał. Że jego dzieciństwo nie będzie trwało wiecznie. Że kiedyś będzie wyglądał inaczej, mówił inaczej i potrzebował Cię w inny sposób.
+
+[pauza 10]
+
+Nie musisz odpychać tych myśli. To naturalne, że coś tak cennego budzi również lęk przed utratą.
+
+[pauza 8]
+
+Ale zauważ. Ta chwila jeszcze nie minęła. Leon jest tutaj. Jego dzieciństwo trwa. Wasza historia właśnie się wydarza.
+
+[pauza 10]
+
+Nie musisz dzisiaj przeżywać smutku wszystkich przyszłych pożegnań z kolejnymi etapami jego życia. Możesz wrócić do tego, co jest teraz.
+
+[pauza 6]
+
+Do jego uśmiechu. Do jego małej dłoni w Twojej dłoni. Do zwyczajnej radości z bycia razem.
+
+[pauza 14]
+
+Bardzo dobrze, {imię}. Właśnie tak.
+
+[pauza 6]
+[/od]
+
+Teraz połóż dłoń na sercu. Poczuj jego spokojne bicie pod palcami.
+
+[pauza 6]
+
+I powiedz w myślach: jestem tutaj.
+
+[pauza 8]
+
+Od teraz ten gest będzie Twoją drogą powrotu. Za każdym razem, kiedy położysz dłoń na sercu i powiesz w myślach „jestem tutaj”, Twoje ciało przypomni sobie ten spokój. Przy Leonie. Przy Gai. Przy Monice. W zwykły dzień. Za każdym razem łatwiej.
+
+[pauza 10]
+
+Powiedz sobie spokojnie: nie muszę zatrzymywać czasu.
+
+[pauza 5]
+
+Nie muszę przeżywać każdego dnia idealnie.
+
+[pauza 5]
+
+[od 15]
+Nie muszę wykorzystać każdej minuty. Nie muszę tworzyć wyjątkowych wspomnień każdego dnia.
+
+[pauza 6]
+[/od]
+
+Mogę po prostu kochać mojego syna. Mogę być przy nim. Mogę cieszyć się tym, kim jest dzisiaj.
+
+[pauza 6]
+
+To wystarczy.
+
+[pauza 14]
+
+[od 20]
+Przypomnij sobie teraz, jak wygląda Twoje codzienne życie. Pracę. Decyzje. Cele. Odpowiedzialność. Wszystko, co budujesz.
+
+[pauza 8]
+
+Wiele z tych rzeczy jest ważnych. Ale nie wszystkie są równie ważne. I nie wszystko wymaga Twojej energii w tej samej chwili.
+
+[pauza 8]
+
+Masz prawo wybierać. Masz prawo pracować mniej. Masz prawo zwolnić. Masz prawo cieszyć się owocami tego, co już stworzyłeś.
+
+[pauza 10]
+
+Nie musisz zasługiwać na odpoczynek kolejnym osiągnięciem. Nie musisz czekać na następny sukces, żeby żyć tak, jak naprawdę chcesz.
+
+[pauza 8]
+
+Twoja obecność w życiu Leona jest wartościowa już dzisiaj. Nie dlatego, że robisz coś niezwykłego. Ale dlatego, że jesteś jego tatą.
+
+[pauza 14]
+[/od]
+
+Wyobraź sobie teraz zwyczajne popołudnie, {imię}. Odbierasz Leona z przedszkola. Twoja praca jest zakończona. Nie ma pośpiechu.
+
+[pauza 8]
+
+Nie musisz sprawdzać telefonu. Nie musisz zastanawiać się, czy powinieneś właśnie robić coś bardziej produktywnego. Jesteście razem.
+
+[pauza 8]
+
+[od 15]
+Może idziecie na spacer. Może gracie. Może Leon się dąsa, bo coś nie poszło po jego myśli. A Ty nie musisz tego popołudnia oceniać.
+
+[pauza 8]
+[/od]
+
+Możesz po prostu z nim być. Z ciekawością patrzeć, jakim staje się człowiekiem. Słuchać go. Śmiać się razem z nim. Pozwalać sobie na radość.
+
+[pauza 8]
+
+Bez presji. Bez poczucia, że coś bezpowrotnie tracisz.
+
+[pauza 6]
+
+Zauważ, jak naturalnie przychodzi Ci ten spokój. I wiedz, że kiedy to popołudnie naprawdę nadejdzie, Twoje ciało już będzie wiedziało, jak w nim być.
+
+[pauza 10]
+
+Nie musisz maksymalizować dzieciństwa Leona. Możesz w nim uczestniczyć.
+
+[pauza 14]
+
+Pomyśl teraz o Gai. O jej malutkich dłoniach. O tym, jak dopiero zaczyna odkrywać świat.
+
+[pauza 10]
+
+[od 15]
+Przed Wami wiele wspólnych doświadczeń. Nie wiesz jeszcze, jakie będą. I nie musisz wiedzieć.
+
+[pauza 8]
+[/od]
+
+Możesz pozwolić życiu się wydarzać. Możesz poznawać swoje dzieci każdego dnia. Nie próbując zatrzymać ich w miejscu. Nie próbując zatrzymać siebie w czasie.
+
+[pauza 14]
+
+[od 20]
+Teraz skieruj uwagę z powrotem na siebie. Na człowieka, którym jesteś.
+
+[pauza 6]
+
+Ty również zasługujesz na dobre życie. Na spokój. Na zdrowie. Na trening. Na miłość. Na odpoczynek. Na chwile tylko dla siebie i dla Moniki.
+
+[pauza 10]
+
+Nie odbierasz niczego dzieciom, kiedy dbasz o własną energię. Nie musisz znikać jako człowiek, żeby być dobrym ojcem. Możesz żyć pełnym życiem i dzielić się nim ze swoimi dziećmi.
+
+[pauza 14]
+[/od]
+
+[od 20]
+Wyobraź sobie teraz siebie za dwadzieścia lat. Spokojnego, starszego mężczyznę, który patrzy wstecz na ten właśnie czas. Na dzisiejsze popołudnia, poranki i wieczory.
+
+[pauza 10]
+
+Zobacz, z jaką łagodnością na Ciebie patrzy. I posłuchaj, co Ci mówi. Może: dobrze, że byłeś obecny. Może: nie musiałeś robić więcej. Wystarczyło, że byłeś.
+
+[pauza 16]
+
+Weź od niego ten spokój. Jest Twój już teraz.
+
+[pauza 12]
+[/od]
+
+Weź kolejny spokojny oddech. I pozwól, żeby pojawiła się wdzięczność. Nie taka, którą musisz w sobie wymuszać. Zwyczajna.
+
+[pauza 8]
+
+Za możliwość bycia tatą Leona i Gai. Za to, że możesz ich przytulić. Że możecie się razem śmiać. Za wspólne poranki i wieczory. Za ten etap, który trwa właśnie teraz.
+
+[pauza 10]
+
+Nie musisz już dzisiaj robić niczego więcej, żeby uczynić go wartościowym. On już jest wartościowy.
+
+[pauza 14]
+
+[od 15]
+A kiedy wrócisz do pracy, do obowiązków i codziennego rytmu, możesz zachować w sobie ten spokój. Możesz tworzyć przestrzeń na to, co kochasz. Nie przez coraz większy wysiłek. Ale przez świadome wybory.
+
+[pauza 8]
+
+Mniej niepotrzebnego napięcia. Więcej swobody. Mniej życia w przyszłości. Więcej bycia tutaj.
+
+[pauza 12]
+[/od]
+
+[od 30]
+Zostań teraz chwilę w tej ciszy, z dłonią na sercu albo bez. Ja przez dłuższy moment nic nie będę mówić. Po prostu bądź.
+
+[pauza 180]
+
+Bardzo dobrze, {imię}.
+
+[pauza 20]
+[/od]
+
+I na koniec powiedz sobie: nie chcę zatrzymywać życia. Chcę je przeżywać.
+
+[pauza 6]
+
+[od 15]
+Nie muszę bać się, że piękne chwile miną, żeby rozumieć ich wartość.
+
+[pauza 5]
+
+Nie muszę być wszędzie. Nie muszę zrobić wszystkiego.
+
+[pauza 5]
+[/od]
+
+Mogę być obecny. Mogę odpoczywać. Mogę kochać.
+
+[pauza 5]
+
+Mogę cieszyć się moim synem takim, jakim jest dzisiaj. A jutro poznać go na nowo.
+
+[pauza 14]
+
+${POWROT}
+
+Jesteś tutaj, {imię}. Twoje życie dzieje się teraz. I możesz spokojnie się nim cieszyć.`;
+
 export const AUDIO_SESSIONS: AudioSessionDef[] = [
+  {
+    id: "here",
+    title: "Jestem tutaj",
+    minutes: 20,
+    description: "Ojcostwo, przemijanie i spokojna obecność — Leon, Gaja i ten etap, który trwa teraz.",
+    suggestedMotif: "close",
+    suggestedBackground: "orchestral",
+    script: here,
+  },
   {
     id: "demob",
     title: "Głęboka demobilizacja",
