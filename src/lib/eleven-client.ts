@@ -36,7 +36,8 @@ async function errorText(r: Response): Promise<string> {
     const j = await r.json();
     return j.error ?? `Błąd ${r.status}`;
   } catch {
-    return `Błąd ${r.status}`;
+    // not our JSON: the hosting gateway answered (server restarting, timeout)
+    return r.status >= 500 ? `Serwer chwilowo nie odpowiada (błąd ${r.status}). Spróbuj za chwilę.` : `Błąd ${r.status}`;
   }
 }
 
@@ -45,7 +46,8 @@ export class ElevenError extends Error {}
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /**
- * POST that waits and tries again when the server or ElevenLabs asks to slow down (429),
+ * POST that waits and tries again when the server or ElevenLabs asks to slow down (429), when the hosting
+ * gateway hiccups (502/503/504) or the connection drops for a moment,
  * honouring Retry-After — a long session then simply pauses for a moment instead of failing.
  */
 export async function postWithRetry(
@@ -56,12 +58,27 @@ export async function postWithRetry(
   const attempts = opts.attempts ?? 6;
   const wait = opts.wait ?? sleep;
   for (let i = 0; ; i++) {
-    const r = await fetch(url, init);
-    if (r.status !== 429 || i >= attempts - 1) return r;
-    const header = Number(r.headers.get("retry-after"));
-    const seconds = Math.min(60, header > 0 ? header : 2 ** (i + 1));
-    opts.onWait?.(seconds);
-    await wait(seconds * 1000);
+    let r: Response;
+    try {
+      r = await fetch(url, init);
+    } catch (e) {
+      // offline or a dropped connection: a couple of quick retries, then give up
+      if (i >= Math.min(2, attempts - 1) || (typeof navigator !== "undefined" && navigator.onLine === false)) throw e;
+      await wait(1000 * 2 ** i);
+      continue;
+    }
+    if (r.status === 429 && i < attempts - 1) {
+      const header = Number(r.headers.get("retry-after"));
+      const seconds = Math.min(60, header > 0 ? header : 2 ** (i + 1));
+      opts.onWait?.(seconds);
+      await wait(seconds * 1000);
+      continue;
+    }
+    if ((r.status === 502 || r.status === 503 || r.status === 504) && i < Math.min(3, attempts - 1)) {
+      await wait(1000 * 2 ** i);
+      continue;
+    }
+    return r;
   }
 }
 
@@ -97,7 +114,7 @@ export async function generateSound(text: string, opts: { duration?: number; pro
   return r.blob();
 }
 
-export async function generateSpeech(text: string, ctx: { previous?: string; next?: string; voiceId?: string } = {}): Promise<Blob> {
+export async function generateSpeech(text: string, ctx: { previous?: string; next?: string; voiceId?: string; lively?: boolean } = {}): Promise<Blob> {
   const s = getState();
   const voiceId = ctx.voiceId || s.eleven.voiceId;
   if (!voiceId) throw new ElevenError("Najpierw wybierz głos w Ustawieniach → ElevenLabs.");
@@ -108,7 +125,12 @@ export async function generateSpeech(text: string, ctx: { previous?: string; nex
       text,
       voice_id: voiceId,
       model_id: modelFor(s.eleven, voiceId),
-      voice_settings: { stability: s.eleven.stability, similarity_boost: s.eleven.similarity, style: s.eleven.style, speed: s.eleven.speed },
+      voice_settings: {
+        stability: ctx.lively ? Math.min(s.eleven.stability, 0.2) : s.eleven.stability,
+        similarity_boost: s.eleven.similarity,
+        style: ctx.lively ? Math.max(s.eleven.style, 0.45) : s.eleven.style,
+        speed: ctx.lively ? Math.min(1.2, Math.max(s.eleven.speed, 1.08)) : s.eleven.speed,
+      },
       previous_text: ctx.previous,
       next_text: ctx.next,
       enable_logging: s.privacy.elevenLogging,

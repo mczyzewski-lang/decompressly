@@ -36,7 +36,7 @@ test("START and CLOSE rituals set the work status and allow resuming", async ({ 
   await page.getByRole("button", { name: /Close day/i }).click();
   await expect(page.getByRole("heading", { name: "Na dzisiaj wystarczy, Marek." })).toBeVisible();
   await page.getByRole("button", { name: "Zamknij dzień" }).click();
-  await expect(page.getByText("Wojna się skończyła.")).toBeVisible();
+  await expect(page.getByText("Wojna się skończyła.", { exact: true }).first()).toBeVisible();
   await page.getByRole("button", { name: "Wróć do dnia" }).click({ timeout: 15_000 });
   await expect(page.getByText("Status: po pracy")).toBeVisible();
   await page.getByRole("button", { name: "Wznów pracę" }).click();

@@ -9,9 +9,10 @@ import { decodeAny, encodeMp3, fetchDecode, renderMontage, type MontagePart } fr
 import { refUrl } from "./engine";
 import { DEFAULT_GAP, speechSegments, textKey, type Segment } from "./segments";
 
-export function segmentId(text: string, voiceId?: string): string {
+/** Cache key of a spoken text; `variant` keeps differently styled recordings (e.g. lively yoga cues) apart. */
+export function segmentId(text: string, voiceId?: string, variant?: string): string {
   const e = getState().eleven;
-  return textKey(text, voiceId || e.voiceId, modelFor(e, voiceId));
+  return textKey(variant ? `${variant}|${text}` : text, voiceId || e.voiceId, modelFor(e, voiceId));
 }
 
 /** Which paragraphs still need paid generation (already generated ones are reused for free). */

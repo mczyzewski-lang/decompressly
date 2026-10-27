@@ -24,24 +24,34 @@ export function voiceConfigured(): boolean {
   return !!getState().eleven.voiceId;
 }
 
+export interface VoiceOpts {
+  /** another voice from the collection (e.g. the yoga voice); default: the main voice */
+  voiceId?: string;
+  /** livelier delivery: more expressive and a little faster (recorded separately) */
+  lively?: boolean;
+  /** background preparation: failures stay silent — the moment of speaking will report them */
+  quiet?: boolean;
+}
+
 /** Blob id of the recording for this text, generating it on first use. Null when not possible. */
-export async function ensureVoice(text: string, label = text.slice(0, 50)): Promise<string | null> {
+export async function ensureVoice(text: string, label = text.slice(0, 50), opts: VoiceOpts = {}): Promise<string | null> {
+  const tell = opts.quiet ? () => {} : notice;
   if (!voiceConfigured()) {
-    notice("Wybierz głos ElevenLabs w Ustawieniach, żeby aplikacja mogła mówić.");
+    tell("Wybierz głos ElevenLabs w Ustawieniach, żeby aplikacja mogła mówić.");
     return null;
   }
-  const id = segmentId(text);
+  const id = segmentId(text, opts.voiceId, opts.lively ? "lively" : undefined);
   if (await getBlob(id)) return id;
   const running = inflight.get(id);
   if (running) return running;
   if (typeof navigator !== "undefined" && !navigator.onLine) {
-    notice("Brak internetu — ten fragment nie był jeszcze nagrany.");
+    tell("Brak internetu — ten fragment nie był jeszcze nagrany.");
     return null;
   }
-  const p = generateSpeech(text)
+  const p = generateSpeech(text, { voiceId: opts.voiceId, lively: opts.lively })
     .then((blob) => putBlob(blob, "cue", label, { text }, id))
     .catch((e) => {
-      notice(e instanceof Error ? e.message : "Nie udało się wygenerować głosu.");
+      tell(e instanceof Error ? e.message : "Nie udało się wygenerować głosu.");
       return null;
     })
     .finally(() => inflight.delete(id));
@@ -50,10 +60,10 @@ export async function ensureVoice(text: string, label = text.slice(0, 50)): Prom
 }
 
 /** Speaks with the ElevenLabs voice. Resolves when finished; false if it could not speak. */
-export async function say(text: string, opts: { gain?: number; legacyId?: string } = {}): Promise<boolean> {
+export async function say(text: string, opts: { gain?: number; legacyId?: string } & VoiceOpts = {}): Promise<boolean> {
   let id: string | null = null;
   if (opts.legacyId && (await getBlob(opts.legacyId))) id = opts.legacyId;
-  else id = await ensureVoice(text);
+  else id = await ensureVoice(text, undefined, { voiceId: opts.voiceId, lively: opts.lively });
   if (!id) return false;
   const url = await blobUrl(id);
   if (!url) return false;
@@ -61,9 +71,9 @@ export async function say(text: string, opts: { gain?: number; legacyId?: string
 }
 
 /** Generates (in order, in the background) everything a session is about to say. */
-export async function prefetchVoice(texts: string[]): Promise<boolean> {
+export async function prefetchVoice(texts: string[], opts: VoiceOpts = {}): Promise<boolean> {
   let ok = true;
-  for (const t of texts) ok = (await ensureVoice(t)) !== null && ok;
+  for (const t of texts) ok = (await ensureVoice(t, undefined, opts)) !== null && ok;
   return ok;
 }
 

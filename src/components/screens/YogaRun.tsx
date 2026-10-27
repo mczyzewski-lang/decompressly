@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Pause, Play, SkipForward, X, Minus, Plus, Volume2, VolumeX } from "lucide-react";
 import { SESSION_BY_ID, stepStateAt } from "@/lib/yoga/sessions";
 import { POSE_BY_ID } from "@/lib/yoga/poses";
@@ -22,6 +22,8 @@ const SWITCH_TEXT = YOGA_SWITCH;
 export default function YogaRun({ id }: { id: string }) {
   const session = SESSION_BY_ID[id];
   const yoga = useApp((s) => s.yoga);
+  // yoga speaks with its own voice (or the main one), livelier than the meditations
+  const yogaVoice = useMemo(() => ({ voiceId: yoga.voiceId || undefined, lively: !!yoga.lively }), [yoga.voiceId, yoga.lively]);
   const voiceCues = useApp((s) => s.voiceCues);
   const [durations, setDurations] = useState<number[]>(() => session?.steps.map((s) => s.seconds) ?? []);
   const [index, setIndex] = useState(0);
@@ -53,9 +55,10 @@ export default function YogaRun({ id }: { id: string }) {
     (key: string | undefined, text: string) => {
       if (!voice) return;
       stopVoice();
-      void sayVoice(text, { legacyId: key, gain: 0.85 });
+      // cues recorded before the yoga voice existed are only reused while yoga speaks with the main voice
+      void sayVoice(text, { legacyId: yogaVoice.voiceId || yogaVoice.lively ? undefined : key, gain: 0.85, ...yogaVoice });
     },
-    [voice],
+    [voice, yogaVoice],
   );
 
   const finish = useCallback(
@@ -153,9 +156,9 @@ export default function YogaRun({ id }: { id: string }) {
       const forms = getNameForms();
       const texts = session.steps.map((st, i) => poseText(POSE_BY_ID[st.poseId], i, forms));
       setPreparing(true);
-      await prefetchVoice([texts[0]]);
+      await prefetchVoice([texts[0]], yogaVoice);
       setPreparing(false);
-      void prefetchVoice([...new Set([...texts.slice(1), SWITCH_TEXT, yogaEnd(forms)])]);
+      void prefetchVoice([...new Set([...texts.slice(1), SWITCH_TEXT, yogaEnd(forms)])], { ...yogaVoice, quiet: true });
     }
     clock.current.start();
     setStatus("running");

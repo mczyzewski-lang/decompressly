@@ -199,7 +199,7 @@ export function createDefaultState(): AppState {
     },
     breath: { defaultMode: "calm", defaultMinutes: 5, customInhale: 4, customExhale: 6, cue: "voice", air: true, airVolume: 0.6 },
     voiceCues: {},
-    yoga: { favoriteSessionId: "s10", handsFree: true, voice: true },
+    yoga: { favoriteSessionId: "s10", handsFree: true, voice: true, voiceId: "", lively: true },
     audio: { defaultBackground: "nature", sessions: {} },
     trip: { active: false, startDate: "", days: structuredClone(DEFAULT_TRIP_DAYS) },
     privacy: { elevenLogging: false },

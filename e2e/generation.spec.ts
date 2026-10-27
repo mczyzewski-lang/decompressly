@@ -268,3 +268,36 @@ test("rate limit mid-generation: waits, resumes and finishes without an error", 
   expect(limited).toBe(3);
   await expect(page.getByText(/Zbyt wiele żądań/)).toHaveCount(0);
 });
+
+test("yoga: its own lively voice; a gateway 502 while preparing cues is retried quietly", async ({ page }) => {
+  const bodies: { voice_id: string; voice_settings: { speed: number; stability: number }; text: string }[] = [];
+  let failed = 0;
+  await page.route("**/api/eleven/tts", async (route) => {
+    if (failed < 2 && bodies.length === 2) {
+      failed++;
+      await route.fulfill({ status: 502, contentType: "text/html", body: "<html>Bad gateway</html>" });
+      return;
+    }
+    bodies.push(route.request().postDataJSON());
+    await route.fulfill({ status: 200, contentType: "audio/mpeg", body: fakeAudio });
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Zacznij spokojnie" }).click();
+  await page.evaluate(() => (location.hash = "#/settings/eleven"));
+  await page.getByLabel("lub ID głosu").fill("MainVoice1234567890");
+  await page.getByLabel("Dodaj ID głosów do kolekcji").fill("YogaVoice1234567890");
+  await page.getByRole("button", { name: "Dodaj", exact: true }).click();
+  await page.evaluate(() => (location.hash = "#/settings"));
+  await page.getByRole("button", { name: /^Głos 1$/ }).click();
+  await expect(page.getByRole("switch", { name: "Bardziej dynamicznie" })).toHaveAttribute("aria-checked", "true");
+
+  await page.evaluate(() => (location.hash = "#/yoga/run/s10"));
+  await page.getByRole("button", { name: "Zacznij sesję" }).click();
+  await expect.poll(() => bodies.length, { timeout: 20_000 }).toBeGreaterThan(5);
+  for (const b of bodies) {
+    expect(b.voice_id).toBe("YogaVoice1234567890");
+    expect(b.voice_settings.speed).toBeGreaterThanOrEqual(1.08);
+  }
+  expect(failed).toBe(2);
+  await expect(page.getByText(/Błąd 502|Serwer chwilowo/)).toHaveCount(0);
+});

@@ -7,7 +7,7 @@ import { navigate } from "@/lib/router";
 import { BREATH_MODES } from "@/lib/breath";
 import { YOGA_SESSIONS } from "@/lib/yoga/sessions";
 import type { BreathModeId } from "@/lib/types";
-import { Card, Screen, ScreenHeader, SectionTitle, Segmented, TextField, Toggle, cn } from "../ui";
+import { Card, Chip, Screen, ScreenHeader, SectionTitle, Segmented, TextField, Toggle, cn } from "../ui";
 
 function LinkRow({ label, hint, to, first }: { label: string; hint?: string; to: string; first?: boolean }) {
   return (
@@ -108,6 +108,32 @@ export default function Settings() {
         </select>
         <Toggle label="Hands-free" checked={s.yoga.handsFree} onChange={(v) => update((st) => void (st.yoga.handsFree = v))} />
         <Toggle label="Głos w sesji" checked={s.yoga.voice} onChange={(v) => update((st) => void (st.yoga.voice = v))} />
+        <p className="mb-2 mt-3 text-[13px] text-ink-2">Głos w jodze</p>
+        <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+          <Chip active={!s.yoga.voiceId} onClick={() => update((st) => void (st.yoga.voiceId = ""))}>
+            Jak główny{s.eleven.voiceName ? ` (${s.eleven.voiceName})` : ""}
+          </Chip>
+          {(s.eleven.voices ?? [])
+            .filter((v) => v.id !== s.eleven.voiceId)
+            .map((v) => (
+              <Chip key={v.id} active={s.yoga.voiceId === v.id} onClick={() => update((st) => void (st.yoga.voiceId = v.id))}>
+                {v.name}
+              </Chip>
+            ))}
+        </div>
+        <p className="mt-1 text-[12px] leading-relaxed text-ink-3">
+          Możesz dać jodze inny, bardziej energiczny głos niż medytacjom. Nowe głosy dodasz w{" "}
+          <button className="text-sage-deep underline" onClick={() => navigate("settings/eleven")}>
+            Ustawieniach → ElevenLabs
+          </button>{" "}
+          (Kolekcja głosów) — np. z biblioteki ElevenLabs, szukając głosów „energetic”, „fitness” albo „coach”.
+        </p>
+        <Toggle
+          label="Bardziej dynamicznie"
+          description="Żywsza, bardziej ekspresyjna i odrobinę szybsza wymowa wskazówek w jodze (nagrywane osobno, medytacje bez zmian)."
+          checked={!!s.yoga.lively}
+          onChange={(v) => update((st) => void (st.yoga.lively = v))}
+        />
       </Card>
 
       <SectionTitle>Twoje treści</SectionTitle>

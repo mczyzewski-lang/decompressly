@@ -264,7 +264,15 @@ export interface AppState {
   eleven: ElevenSettings;
   breath: BreathSettings;
   voiceCues: Record<string, string>; // cue key -> blob id ("inhale", "exhale", "yoga:<poseId>")
-  yoga: { favoriteSessionId: string; handsFree: boolean; voice: boolean };
+  yoga: {
+    favoriteSessionId: string;
+    handsFree: boolean;
+    voice: boolean;
+    /** a separate voice for yoga cues (from the collection); empty = the main voice */
+    voiceId?: string;
+    /** livelier, slightly faster delivery for yoga cues */
+    lively?: boolean;
+  };
   audio: { defaultBackground: Background; sessions: Record<string, AudioSessionOverride>; pauseScale?: number; gap?: number };
   trip: TripState;
   privacy: { elevenLogging: boolean };

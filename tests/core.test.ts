@@ -573,3 +573,34 @@ describe("generation under rate limits", () => {
     }
   });
 });
+
+describe("transient server errors", () => {
+  it("a 502/504 from the hosting gateway is retried and the request goes through", async () => {
+    const { postWithRetry } = await import("@/lib/eleven-client");
+    const replies = [new Response("<html>Bad gateway</html>", { status: 502 }), new Response("", { status: 504 }), new Response("ok", { status: 200 })];
+    const orig = globalThis.fetch;
+    globalThis.fetch = (async () => replies.shift()!) as typeof fetch;
+    const waits: number[] = [];
+    try {
+      const r = await postWithRetry("/x", { method: "POST" }, { wait: async (ms) => void waits.push(ms) });
+      expect(r.status).toBe(200);
+      expect(waits).toEqual([1000, 2000]);
+    } finally {
+      globalThis.fetch = orig;
+    }
+  });
+  it("a dropped connection is retried a couple of times", async () => {
+    const { postWithRetry } = await import("@/lib/eleven-client");
+    let n = 0;
+    const orig = globalThis.fetch;
+    globalThis.fetch = (async () => {
+      if (n++ < 1) throw new TypeError("Load failed");
+      return new Response("ok", { status: 200 });
+    }) as typeof fetch;
+    try {
+      expect((await postWithRetry("/x", { method: "POST" }, { wait: async () => {} })).status).toBe(200);
+    } finally {
+      globalThis.fetch = orig;
+    }
+  });
+});
