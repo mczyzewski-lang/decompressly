@@ -136,6 +136,21 @@ test("mantras: favourite, pin and choose for today", async ({ page }) => {
   await expect(page.getByRole("button", { name: /Mantra dnia: Leon nie będzie drugi raz w tym wieku/ })).toBeVisible();
 });
 
+test("ending trip mode brings the normal day back, also after a reload", async ({ page }) => {
+  await onboard(page);
+  await go(page, "#/trip");
+  await page.getByRole("button", { name: "Rozpocznij tryb wyjazdu" }).click();
+  await expect(page.getByText("Jedno ćwiczenie")).toBeVisible();
+  await go(page, "#/trip");
+  await page.getByRole("button", { name: "Zakończ wyjazd" }).click();
+  await expect(page.getByText("Jedno ćwiczenie")).toHaveCount(0);
+  await expect(page.getByRole("radiogroup").first()).toBeVisible(); // the day-mode switch of a normal day
+  await page.reload();
+  await expect(page.getByText("Jedno ćwiczenie")).toHaveCount(0);
+  await go(page, "#/trip");
+  await expect(page.getByRole("button", { name: "Rozpocznij tryb wyjazdu" })).toBeVisible();
+});
+
 test("trip mode minimises the interface", async ({ page }) => {
   await onboard(page);
   await go(page, "#/trip");

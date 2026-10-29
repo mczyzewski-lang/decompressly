@@ -604,3 +604,20 @@ describe("transient server errors", () => {
     }
   });
 });
+
+describe("trip mode", () => {
+  it("only the planned days of an active trip are trip days", async () => {
+    const { inTrip } = await import("@/lib/store");
+    const { createDefaultState } = await import("@/lib/defaults");
+    const s = createDefaultState();
+    s.trip.active = true;
+    s.trip.startDate = "2026-10-20";
+    const last = addDays("2026-10-20", s.trip.days.length - 1);
+    expect(inTrip(s, "2026-10-20")).toBe(true);
+    expect(inTrip(s, last)).toBe(true);
+    expect(inTrip(s, addDays(last, 1))).toBe(false);
+    expect(inTrip(s, "2026-10-19")).toBe(false);
+    s.trip.active = false;
+    expect(inTrip(s, "2026-10-20")).toBe(false);
+  });
+});

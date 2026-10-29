@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { buildDay, update, useApp } from "@/lib/store";
+import { buildDay, endTrip, update, useApp } from "@/lib/store";
 import { addDays, daysBetween, formatShort, toISODate } from "@/lib/dates";
 import { DEFAULT_TRIP_DAYS } from "@/lib/defaults";
 import { navigate } from "@/lib/router";
@@ -27,17 +27,8 @@ export default function Trip() {
   };
 
   const end = () => {
-    update((s) => {
-      const from = s.trip.startDate;
-      s.trip.active = false;
-      for (let i = 0; i < s.trip.days.length; i++) {
-        const d = addDays(from, i);
-        if (d >= today && s.days[d]?.mode === "trip") {
-          const dow = new Date(d + "T12:00:00").getDay();
-          s.days[d] = buildDay(s, d, dow === 0 || dow === 6 ? "rest" : "work");
-        }
-      }
-    });
+    endTrip();
+    navigate("today", { replace: true });
   };
 
   return (

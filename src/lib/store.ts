@@ -5,7 +5,7 @@ import { immer } from "zustand/middleware/immer";
 import type { AppState, DayMode, DayRecord, LogType } from "./types";
 import { BUILTIN_SOUND_SETS, createDefaultState, STATE_VERSION } from "./defaults";
 import { kvGet, kvSet, newId } from "./db";
-import { toISODate } from "./dates";
+import { addDays, toISODate } from "./dates";
 import { nameForms } from "./names";
 import { addToCollection } from "./voices";
 
@@ -162,12 +162,23 @@ export function buildDay(s: AppState, date: string, mode: DayMode): DayRecord {
   };
 }
 
-/** Ensure a record exists for the date. Default mode: trip if trip mode is active, else work on weekdays, rest on weekends. */
+const plainMode = (date: string): DayMode => {
+  const dow = new Date(date + "T12:00:00").getDay();
+  return dow === 0 || dow === 6 ? "rest" : "work";
+};
+
+/** Whether a date falls inside the active trip (its planned days only). */
+export function inTrip(s: AppState, date: string): boolean {
+  if (!s.trip.active || !s.trip.startDate) return false;
+  const last = addDays(s.trip.startDate, Math.max(1, s.trip.days.length) - 1);
+  return date >= s.trip.startDate && date <= last;
+}
+
+/** Ensure a record exists for the date. Default mode: trip on the days of an active trip, else work on weekdays, rest on weekends. */
 export function ensureDay(date: string) {
   const s = getState();
   if (s.days[date]) return;
-  const dow = new Date(date + "T12:00:00").getDay();
-  const mode: DayMode = s.trip.active ? "trip" : dow === 0 || dow === 6 ? "rest" : "work";
+  const mode: DayMode = inTrip(s, date) ? "trip" : plainMode(date);
   update((st) => {
     if (!st.days[date]) st.days[date] = buildDay(st, date, mode);
   });
@@ -185,6 +196,23 @@ export function setDayMode(date: string, mode: DayMode) {
       fresh.planned = prev.planned;
     }
     st.days[date] = fresh;
+  });
+}
+
+/**
+ * Ends trip mode: today and every later day that is still in trip mode — inside the planned days or
+ * not — goes back to work (weekdays) or rest (weekends). Past days keep their history.
+ */
+export function endTrip() {
+  const today = toISODate();
+  update((s) => {
+    s.trip.active = false;
+    for (const [d, rec] of Object.entries(s.days)) {
+      if (d >= today && rec.mode === "trip") {
+        const fresh = buildDay(s, d, plainMode(d));
+        s.days[d] = { ...fresh, startedAt: rec.startedAt, closedAt: rec.closedAt, workState: rec.workState, planned: rec.planned };
+      }
+    }
   });
 }
 
