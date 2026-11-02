@@ -14,6 +14,7 @@ import { nameForms } from "@/lib/names";
 import { segmentId } from "@/lib/audio/narration";
 import { toast } from "@/lib/ui-store";
 import { addToCollection, modelFor, parseVoiceIds } from "@/lib/voices";
+import { YogaVoiceField } from "../YogaVoiceField";
 import { Button, Card, IconButton, Notice, Screen, ScreenHeader, SectionTitle, Segmented, Slider, TextField, Toggle, cn } from "../ui";
 
 const MODELS = [
@@ -238,7 +239,7 @@ export default function ElevenSettings() {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-[15px] text-ink">{e.voiceName || (e.voiceId ? e.voiceId : "Nie wybrano")}</p>
-            <p className="text-[12px] text-ink-3">Wybrany głos</p>
+            <p className="text-[12px] text-ink-3">Głos do medytacji (spokojny)</p>
           </div>
           <Button size="sm" variant="secondary" onClick={() => loadVoices("mine")} disabled={loadingVoices}>
             {loadingVoices ? "Ładuję…" : "Pokaż moje głosy"}
@@ -300,10 +301,22 @@ export default function ElevenSettings() {
             ))}
           </ul>
         )}
-        <TextField label="lub ID głosu" value={e.voiceId} onChange={(ev) => set((x) => {
-          x.voiceId = ev.target.value.trim();
-          x.voiceName = (x.voices ?? []).find((c) => c.id === x.voiceId)?.name ?? "";
-        })} />
+        <TextField
+          label="ID głosu ElevenLabs do medytacji i sesji audio (spokojny)"
+          value={e.voiceId}
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
+          onChange={(ev) =>
+            set((x) => {
+              x.voiceId = parseVoiceIds(ev.target.value)[0] ?? ev.target.value.trim();
+              x.voiceName = (x.voices ?? []).find((c) => c.id === x.voiceId)?.name ?? "";
+            })
+          }
+          // joins the collection once the ID is complete (on leaving the field), not letter by letter
+          onBlur={() => set((x) => void (/^[A-Za-z0-9]{15,40}$/.test(x.voiceId) && addToCollection(x, [{ id: x.voiceId, name: x.voiceName || "Głos do medytacji" }])))}
+        />
+        <YogaVoiceField />
 
         <div className="border-t border-line pt-4">
           <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-ink-3">Kolekcja głosów</p>

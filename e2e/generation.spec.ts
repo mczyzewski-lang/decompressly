@@ -19,7 +19,7 @@ test("narration pipeline: confirm, generate paragraphs, montage, save offline", 
   await page.goto("/");
   await page.getByRole("button", { name: "Zacznij spokojnie" }).click();
   await page.evaluate(() => (location.hash = "#/settings/eleven"));
-  await page.getByLabel("lub ID głosu").fill("TestVoice1234567890");
+  await page.getByLabel("ID głosu ElevenLabs do medytacji").fill("TestVoice1234567890");
 
   await page.evaluate(() => (location.hash = "#/audio/present"));
   await page.getByRole("button", { name: "Wygeneruj narrację" }).click();
@@ -78,7 +78,7 @@ test("Moje myśli: record a thought with a calm voice after confirmation, then r
   await page.goto("/");
   await page.getByRole("button", { name: "Zacznij spokojnie" }).click();
   await page.evaluate(() => (location.hash = "#/settings/eleven"));
-  await page.getByLabel("lub ID głosu").fill("TestVoice1234567890");
+  await page.getByLabel("ID głosu ElevenLabs do medytacji").fill("TestVoice1234567890");
   await page.evaluate(() => (location.hash = "#/thoughts"));
   await page.getByRole("button", { name: /Moja energia jest moją walutą/ }).click();
   await page.getByRole("button", { name: "Nagraj spokojnym głosem" }).click();
@@ -109,7 +109,7 @@ test("breath voice guidance uses only the ElevenLabs voice, recorded once", asyn
   await page.goto("/");
   await page.getByRole("button", { name: "Zacznij spokojnie" }).click();
   await page.evaluate(() => (location.hash = "#/settings/eleven"));
-  await page.getByLabel("lub ID głosu").fill("TestVoice1234567890");
+  await page.getByLabel("ID głosu ElevenLabs do medytacji").fill("TestVoice1234567890");
   await page.evaluate(() => (location.hash = "#/breath"));
   await page.getByRole("radio", { name: "Głos" }).click();
   await page.getByRole("button", { name: "Zacznij", exact: true }).click();
@@ -178,7 +178,7 @@ test("path: the next session retells the reflection in its own words (never word
   await page.goto("/");
   await page.getByRole("button", { name: "Zacznij spokojnie" }).click();
   await page.evaluate(() => (location.hash = "#/settings/eleven"));
-  await page.getByLabel("lub ID głosu").fill("TestVoice1234567890");
+  await page.getByLabel("ID głosu ElevenLabs do medytacji").fill("TestVoice1234567890");
   await page.evaluate(() => (location.hash = "#/settings/openai"));
   await page.getByLabel("Klucz API OpenAI").fill("sk-test-openai-key");
 
@@ -260,7 +260,7 @@ test("rate limit mid-generation: waits, resumes and finishes without an error", 
   await page.goto("/");
   await page.getByRole("button", { name: "Zacznij spokojnie" }).click();
   await page.evaluate(() => (location.hash = "#/settings/eleven"));
-  await page.getByLabel("lub ID głosu").fill("TestVoice1234567890");
+  await page.getByLabel("ID głosu ElevenLabs do medytacji").fill("TestVoice1234567890");
   await page.evaluate(() => (location.hash = "#/audio/present"));
   await page.getByRole("button", { name: "Wygeneruj narrację" }).click();
   await expect(page.getByText(/Chwila przerwy dla ElevenLabs/)).toBeVisible({ timeout: 30_000 });
@@ -269,7 +269,7 @@ test("rate limit mid-generation: waits, resumes and finishes without an error", 
   await expect(page.getByText(/Zbyt wiele żądań/)).toHaveCount(0);
 });
 
-test("yoga: its own lively voice; a gateway 502 while preparing cues is retried quietly", async ({ page }) => {
+test("yoga: its own lively voice from its own ID field; a gateway 502 while preparing cues is retried quietly", async ({ page }) => {
   const bodies: { voice_id: string; voice_settings: { speed: number; stability: number }; text: string }[] = [];
   let failed = 0;
   await page.route("**/api/eleven/tts", async (route) => {
@@ -284,11 +284,11 @@ test("yoga: its own lively voice; a gateway 502 while preparing cues is retried 
   await page.goto("/");
   await page.getByRole("button", { name: "Zacznij spokojnie" }).click();
   await page.evaluate(() => (location.hash = "#/settings/eleven"));
-  await page.getByLabel("lub ID głosu").fill("MainVoice1234567890");
-  await page.getByLabel("Dodaj ID głosów do kolekcji").fill("YogaVoice1234567890");
-  await page.getByRole("button", { name: "Dodaj", exact: true }).click();
+  await page.getByLabel("ID głosu ElevenLabs do medytacji").fill("MainVoice1234567890");
   await page.evaluate(() => (location.hash = "#/settings"));
-  await page.getByRole("button", { name: /^Głos 1$/ }).click();
+  // a second, livelier voice just for yoga: pasted (with an invisible character) into its own field
+  await page.getByLabel("ID głosu ElevenLabs do jogi").fill("\u200BYogaVoice1234567890");
+  await expect(page.getByText(/Joga mówi głosem „Głos do jogi”/)).toBeVisible();
   await expect(page.getByRole("switch", { name: "Bardziej dynamicznie" })).toHaveAttribute("aria-checked", "true");
 
   await page.evaluate(() => (location.hash = "#/yoga/run/s10"));
@@ -322,7 +322,7 @@ test("yoga: the progress bar moves; a pause silences a cue whose recording arriv
   await page.goto("/");
   await page.getByRole("button", { name: "Zacznij spokojnie" }).click();
   await page.evaluate(() => (location.hash = "#/settings/eleven"));
-  await page.getByLabel("lub ID głosu").fill("TestVoice1234567890");
+  await page.getByLabel("ID głosu ElevenLabs do medytacji").fill("TestVoice1234567890");
   await page.evaluate(() => (location.hash = "#/yoga/run/s10"));
   await page.getByRole("button", { name: "Zacznij sesję" }).click();
 
@@ -338,4 +338,23 @@ test("yoga: the progress bar moves; a pause silences a cue whose recording arriv
   const bar = page.getByRole("progressbar", { name: "Postęp sesji" });
   const v0 = Number(await bar.getAttribute("aria-valuenow"));
   await expect.poll(async () => Number(await bar.getAttribute("aria-valuenow")), { timeout: 15_000 }).toBeGreaterThan(v0);
+});
+
+test("meditation keeps the calm main voice while yoga has its own", async ({ page }) => {
+  const voices: string[] = [];
+  await page.route("**/api/eleven/tts", async (route) => {
+    voices.push(route.request().postDataJSON().voice_id);
+    await route.fulfill({ status: 200, contentType: "audio/mpeg", body: fakeAudio });
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Zacznij spokojnie" }).click();
+  await page.evaluate(() => (location.hash = "#/settings/eleven"));
+  await page.getByLabel("ID głosu ElevenLabs do medytacji").fill("CalmVoice1234567890");
+  await page.getByLabel("ID głosu ElevenLabs do jogi").fill("CoachVoice123456789");
+  await page.getByLabel("ID głosu ElevenLabs do jogi").blur();
+  await page.evaluate(() => (location.hash = "#/breath"));
+  await page.getByRole("radio", { name: "Głos" }).click();
+  await page.getByRole("button", { name: "Zacznij", exact: true }).click();
+  await expect.poll(() => voices.length, { timeout: 15_000 }).toBeGreaterThan(0);
+  expect(new Set(voices)).toEqual(new Set(["CalmVoice1234567890"]));
 });
