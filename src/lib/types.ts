@@ -272,6 +272,10 @@ export interface AppState {
     voiceId?: string;
     /** livelier, slightly faster delivery for yoga cues */
     lively?: boolean;
+    /** music bed during the session (the last pose gets a calmer one) */
+    music?: Background;
+    /** 0..1 */
+    musicVolume?: number;
   };
   audio: { defaultBackground: Background; sessions: Record<string, AudioSessionOverride>; pauseScale?: number; gap?: number };
   trip: TripState;

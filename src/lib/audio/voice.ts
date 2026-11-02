@@ -60,13 +60,15 @@ export async function ensureVoice(text: string, label = text.slice(0, 50), opts:
 }
 
 /** Speaks with the ElevenLabs voice. Resolves when finished; false if it could not speak. */
-export async function say(text: string, opts: { gain?: number; legacyId?: string } & VoiceOpts = {}): Promise<boolean> {
+export async function say(text: string, opts: { gain?: number; legacyId?: string; shouldPlay?: () => boolean } & VoiceOpts = {}): Promise<boolean> {
   let id: string | null = null;
   if (opts.legacyId && (await getBlob(opts.legacyId))) id = opts.legacyId;
   else id = await ensureVoice(text, undefined, { voiceId: opts.voiceId, lively: opts.lively });
   if (!id) return false;
   const url = await blobUrl(id);
   if (!url) return false;
+  // the recording may arrive late (generated on the fly): never speak into a pause that began meanwhile
+  if (opts.shouldPlay && !opts.shouldPlay()) return false;
   return playVoiceUrl(url, Math.min(1, (opts.gain ?? 0.9) + 0.1));
 }
 

@@ -7,7 +7,7 @@ import { navigate } from "@/lib/router";
 import { BREATH_MODES } from "@/lib/breath";
 import { YOGA_SESSIONS } from "@/lib/yoga/sessions";
 import type { BreathModeId } from "@/lib/types";
-import { Card, Chip, Screen, ScreenHeader, SectionTitle, Segmented, TextField, Toggle, cn } from "../ui";
+import { Card, Chip, Screen, ScreenHeader, SectionTitle, Segmented, Slider, TextField, Toggle, cn } from "../ui";
 
 function LinkRow({ label, hint, to, first }: { label: string; hint?: string; to: string; first?: boolean }) {
   return (
@@ -127,6 +127,36 @@ export default function Settings() {
             Ustawieniach → ElevenLabs
           </button>{" "}
           (Kolekcja głosów) — np. z biblioteki ElevenLabs, szukając głosów „energetic”, „fitness” albo „coach”.
+        </p>
+        <p className="mb-2 mt-3 text-[13px] text-ink-2">Muzyka w tle</p>
+        <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+          {(
+            [
+              ["none", "Bez muzyki"],
+              ["jazz", "Jazz"],
+              ["system", "System"],
+              ["nature", "Natura"],
+              ["orchestral", "Orkiestra"],
+            ] as const
+          ).map(([v, label]) => (
+            <Chip key={v} active={(s.yoga.music ?? "jazz") === v} onClick={() => update((st) => void (st.yoga.music = v))}>
+              {label}
+            </Chip>
+          ))}
+        </div>
+        {(s.yoga.music ?? "jazz") !== "none" && (
+          <Slider
+            label="Głośność muzyki"
+            value={s.yoga.musicVolume ?? 0.5}
+            min={0.1}
+            max={1}
+            step={0.05}
+            onChange={(v) => update((st) => void (st.yoga.musicVolume = v))}
+            format={(v) => `${Math.round(v * 100)}%`}
+          />
+        )}
+        <p className="mt-1 text-[12px] leading-relaxed text-ink-3">
+          Na ostatnią pozycję muzyka zmienia się na spokojniejszą, a motyw CLOSE wraca cicho i narasta do końca sesji.
         </p>
         <Toggle
           label="Bardziej dynamicznie"

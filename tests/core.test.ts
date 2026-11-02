@@ -621,3 +621,32 @@ describe("trip mode", () => {
     expect(inTrip(s, "2026-10-20")).toBe(false);
   });
 });
+
+describe("yoga coach", () => {
+  it("praise mid-pose, ten seconds left, next exercise, then three bells — in order and inside the pose", async () => {
+    const { coachCues } = await import("@/lib/yoga/coach");
+    const cues = coachCues(60, { last: false, bilateral: false });
+    expect(cues.map((c) => c.kind)).toEqual(["praise", "tenLeft", "nextUp", "bell1", "bell2", "bell3"]);
+    expect(cues.find((c) => c.kind === "tenLeft")!.at).toBe(50);
+    expect(cues.slice(-3).map((c) => c.at)).toEqual([57, 58, 59]);
+    for (let i = 1; i < cues.length; i++) expect(cues[i].at - cues[i - 1].at).toBeGreaterThan(0.9);
+  });
+  it("two-sided poses get a word on each side; the last pose has no countdown", async () => {
+    const { coachCues } = await import("@/lib/yoga/coach");
+    expect(coachCues(120, { last: false, bilateral: true }).map((c) => c.kind)).toEqual(["praise", "praise2", "tenLeft", "nextUp", "bell1", "bell2", "bell3"]);
+    expect(coachCues(180, { last: true, bilateral: false }).map((c) => c.kind)).toEqual(["praise", "bell1", "bell2", "bell3"]);
+  });
+  it("short poses stay quiet apart from what fits", async () => {
+    const { coachCues } = await import("@/lib/yoga/coach");
+    expect(coachCues(15, { last: false, bilateral: false }).map((c) => c.kind)).toEqual(["nextUp", "bell1", "bell2", "bell3"]);
+  });
+  it("speaks like a coach, by name, and announces the next pose", async () => {
+    const { coachText, allCoachTexts } = await import("@/lib/yoga/coach");
+    const forms = { nom: "Marek", voc: "Marku" };
+    expect(coachText("tenLeft", { index: 0, last: false, forms })).toBe("Jeszcze dziesięć sekund, Marku.");
+    expect(coachText("nextUp", { index: 0, last: false, nextPose: "Kot–krowa", forms })).toBe("Za chwilę kolejne ćwiczenie: Kot–krowa.");
+    const all = allCoachTexts([{ name: "A", bilateral: false, seconds: 60 }, { name: "B", bilateral: false, seconds: 120 }], forms);
+    expect(all).toContain("Za chwilę kolejne ćwiczenie: B.");
+    expect(all.some((t) => t.includes("Marku"))).toBe(true);
+  });
+});

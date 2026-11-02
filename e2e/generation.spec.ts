@@ -301,3 +301,41 @@ test("yoga: its own lively voice; a gateway 502 while preparing cues is retried 
   expect(failed).toBe(2);
   await expect(page.getByText(/Błąd 502|Serwer chwilowo/)).toHaveCount(0);
 });
+
+test("yoga: the progress bar moves; a pause silences a cue whose recording arrives late", async ({ page }) => {
+  await page.addInitScript(() => {
+    const w = window as unknown as { __plays: { src: string; at: number }[] };
+    w.__plays = [];
+    const orig = HTMLMediaElement.prototype.play;
+    HTMLMediaElement.prototype.play = function () {
+      if (this.src.startsWith("blob:")) w.__plays.push({ src: this.src, at: Date.now() });
+      return orig.call(this).catch(() => undefined);
+    };
+  });
+  let first = true;
+  await page.route("**/api/eleven/tts", async (route) => {
+    // the first phrase is ready at once; everything after it takes a while to record
+    if (!first) await new Promise((r) => setTimeout(r, 4000));
+    first = false;
+    await route.fulfill({ status: 200, contentType: "audio/mpeg", body: fakeAudio });
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Zacznij spokojnie" }).click();
+  await page.evaluate(() => (location.hash = "#/settings/eleven"));
+  await page.getByLabel("lub ID głosu").fill("TestVoice1234567890");
+  await page.evaluate(() => (location.hash = "#/yoga/run/s10"));
+  await page.getByRole("button", { name: "Zacznij sesję" }).click();
+
+  // straight to the next pose: its instruction is still being recorded when the pause comes
+  await page.getByRole("button", { name: /Następna pozycja/ }).click();
+  await page.getByRole("button", { name: "Pauza" }).click();
+  const pausedAt = await page.evaluate(() => Date.now());
+  await page.waitForTimeout(6000);
+  const late = await page.evaluate((t) => (window as unknown as { __plays: { at: number }[] }).__plays.filter((p) => p.at > t).length, pausedAt);
+  expect(late).toBe(0);
+
+  await page.getByRole("button", { name: "Kontynuuj" }).click();
+  const bar = page.getByRole("progressbar", { name: "Postęp sesji" });
+  const v0 = Number(await bar.getAttribute("aria-valuenow"));
+  await expect.poll(async () => Number(await bar.getAttribute("aria-valuenow")), { timeout: 15_000 }).toBeGreaterThan(v0);
+});

@@ -11,6 +11,9 @@ import { back, navigate } from "@/lib/router";
 import { softBell, unlockAudio } from "@/lib/audio/engine";
 import { prefetchVoice, say as sayVoice, stopVoice } from "@/lib/audio/voice";
 import { YOGA_SWITCH, poseText, yogaEnd } from "@/lib/audio/phrases";
+import { allCoachTexts, coachCues, coachText } from "@/lib/yoga/coach";
+import { closeMotifSeconds, pauseMusic, playCloseMotif, resumeMusic, startMusic, stopMusic, stopOneShots, yogaBell } from "@/lib/audio/yoga-sound";
+import type { Background } from "@/lib/types";
 import { useOnHidden, useWakeLock } from "@/lib/wakelock";
 import { Button, IconButton, cn } from "../ui";
 import { PoseImage } from "../PoseImage";
@@ -18,6 +21,9 @@ import { PoseImage } from "../PoseImage";
 type Status = "ready" | "running" | "paused" | "waiting" | "done";
 
 const SWITCH_TEXT = YOGA_SWITCH;
+
+/** The last pose gets a calmer bed than the rest of the session. */
+const lastBed = (main: Background): Background => (main === "orchestral" ? "nature" : main === "none" ? "none" : "orchestral");
 
 export default function YogaRun({ id }: { id: string }) {
   const session = SESSION_BY_ID[id];
@@ -34,6 +40,13 @@ export default function YogaRun({ id }: { id: string }) {
   const clock = useRef(new SessionClock());
   const announced = useRef<string>("");
   const doneSeconds = useRef(0);
+  const statusRef = useRef<Status>(status);
+  statusRef.current = status;
+  // cues already given in this session ("<pose index>:<cue>") — a pause holds them, it never repeats them
+  const fired = useRef(new Set<string>());
+  const motifSec = useRef(20);
+  const music: Background = yoga.music ?? "jazz";
+  const musicVolume = yoga.musicVolume ?? 0.5;
 
   useWakeLock(status === "running" || status === "waiting");
   useOnHidden(
@@ -41,6 +54,7 @@ export default function YogaRun({ id }: { id: string }) {
       if (clock.current.running) {
         clock.current.pause();
         stopVoice();
+        pauseMusic();
         setStatus("paused");
       }
     }, []),
@@ -52,11 +66,16 @@ export default function YogaRun({ id }: { id: string }) {
   const isLast = session ? index === session.steps.length - 1 : true;
 
   const say = useCallback(
-    (key: string | undefined, text: string) => {
+    (key: string | undefined, text: string, when: "running" | "done" = "running") => {
       if (!voice) return;
       stopVoice();
       // cues recorded before the yoga voice existed are only reused while yoga speaks with the main voice
-      void sayVoice(text, { legacyId: yogaVoice.voiceId || yogaVoice.lively ? undefined : key, gain: 0.85, ...yogaVoice });
+      void sayVoice(text, {
+        legacyId: yogaVoice.voiceId || yogaVoice.lively ? undefined : key,
+        gain: 0.85,
+        ...yogaVoice,
+        shouldPlay: () => statusRef.current === when,
+      });
     },
     [voice, yogaVoice],
   );
@@ -67,8 +86,11 @@ export default function YogaRun({ id }: { id: string }) {
       setStatus("done");
       const total = doneSeconds.current + Math.min(clock.current.elapsed() / 1000, dur);
       logActivity("yoga", `${session?.title ?? ""} · ${Math.max(1, Math.round(total / 60))} min${completed ? "" : " (krócej)"}`);
-      if (voice) say(undefined, yogaEnd(getNameForms()));
+      statusRef.current = "done";
+      if (voice) say(undefined, yogaEnd(getNameForms()), "done");
       else softBell();
+      // the bed fades out gently under the closing words
+      setTimeout(() => stopMusic(6), completed ? 4000 : 0);
     },
     [dur, session, voice, say],
   );
@@ -85,8 +107,9 @@ export default function YogaRun({ id }: { id: string }) {
       setElapsed(0);
       clock.current.start();
       setStatus("running");
+      if (next === session.steps.length - 1) void startMusic(lastBed(music), musicVolume);
     },
-    [session, dur, finish],
+    [session, dur, finish, music, musicVolume],
   );
 
   // tick
@@ -99,6 +122,15 @@ export default function YogaRun({ id }: { id: string }) {
     }
     let raf = 0;
     let lastSide: number | null = null;
+    const forms = getNameForms();
+    const cues = coachCues(dur, { last: isLast, bilateral: step.sides === 2 });
+    // last pose: the CLOSE motif returns quietly, then plays in full so it ends with the session
+    const motif = isLast
+      ? [
+          ...(dur >= 90 ? [{ at: dur * 0.3, level: 0.15 }, { at: dur * 0.55, level: 0.3 }] : dur >= 45 ? [{ at: dur * 0.35, level: 0.2 }] : []),
+          { at: Math.max(dur * 0.5, dur - motifSec.current), level: 1 },
+        ]
+      : [];
     const loop = () => {
       const t = clock.current.elapsed() / 1000;
       setElapsed(t);
@@ -107,6 +139,24 @@ export default function YogaRun({ id }: { id: string }) {
         lastSide = 2;
         say(undefined, SWITCH_TEXT);
       }
+      for (const c of cues) {
+        const k = `${index}:${c.kind}`;
+        if (t < c.at || fired.current.has(k)) continue;
+        fired.current.add(k);
+        if (t - c.at > 2) continue; // passed while skipping or shortening: stay quiet
+        if (c.kind === "bell1" || c.kind === "bell2") yogaBell("tick");
+        else if (c.kind === "bell3") yogaBell("long");
+        else {
+          const text = coachText(c.kind, { index, last: isLast, nextPose: session?.steps[index + 1] ? POSE_BY_ID[session.steps[index + 1].poseId].name : undefined, forms });
+          if (text) say(undefined, text);
+        }
+      }
+      motif.forEach((m, i) => {
+        const k = `${index}:motif${i}`;
+        if (t < m.at || fired.current.has(k)) return;
+        fired.current.add(k);
+        if (t - m.at < 3) void playCloseMotif(m.level);
+      });
       if (t >= dur) {
         if (isLast) {
           finish(true);
@@ -125,9 +175,16 @@ export default function YogaRun({ id }: { id: string }) {
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [status, index, step, pose, dur, isLast, yoga.handsFree, goTo, finish, say, voiceCues]);
+  }, [status, index, step, pose, dur, isLast, yoga.handsFree, goTo, finish, say, voiceCues, session]);
 
-  useEffect(() => () => stopVoice(), []);
+  useEffect(
+    () => () => {
+      stopVoice();
+      stopMusic(1);
+      stopOneShots();
+    },
+    [],
+  );
 
   if (!session || !step || !pose) {
     return (
@@ -158,8 +215,14 @@ export default function YogaRun({ id }: { id: string }) {
       setPreparing(true);
       await prefetchVoice([texts[0]], yogaVoice);
       setPreparing(false);
-      void prefetchVoice([...new Set([...texts.slice(1), SWITCH_TEXT, yogaEnd(forms)])], { ...yogaVoice, quiet: true });
+      const coach = allCoachTexts(
+        session.steps.map((st) => ({ name: POSE_BY_ID[st.poseId].name, bilateral: st.sides === 2, seconds: st.seconds })),
+        forms,
+      );
+      void prefetchVoice([...new Set([...texts.slice(1), ...coach, SWITCH_TEXT, yogaEnd(forms)])], { ...yogaVoice, quiet: true });
     }
+    void closeMotifSeconds().then((s) => (motifSec.current = s));
+    void startMusic(session.steps.length === 1 ? lastBed(music) : music, musicVolume);
     clock.current.start();
     setStatus("running");
   };
@@ -167,10 +230,12 @@ export default function YogaRun({ id }: { id: string }) {
   const togglePause = () => {
     if (status === "running") {
       clock.current.pause();
+      statusRef.current = "paused";
       stopVoice();
+      pauseMusic();
       setStatus("paused");
     } else if (status === "paused") {
-      void unlockAudio();
+      void unlockAudio().then(resumeMusic);
       clock.current.resume();
       setStatus("running");
     }
@@ -208,8 +273,12 @@ export default function YogaRun({ id }: { id: string }) {
           </IconButton>
         </div>
       </div>
-      <div className="h-1 overflow-hidden rounded-full bg-line" aria-hidden>
-        <div className="h-full bg-sage transition-[width] duration-1000 ease-linear" style={{ width: `${(totalDone / totalDur) * 100}%` }} />
+      {/* no CSS transition: it restarted on every frame and on iPhone the bar seemed frozen */}
+      <div className="h-1.5 overflow-hidden rounded-full bg-line" role="progressbar" aria-label="Postęp sesji" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round((totalDone / totalDur) * 100)}>
+        <div className="h-full origin-left rounded-full bg-sage" style={{ transform: `scaleX(${Math.min(1, totalDone / totalDur)})` }} />
+      </div>
+      <div className="mt-1.5 h-0.5 overflow-hidden rounded-full bg-line/60" aria-hidden>
+        <div className="h-full origin-left bg-clay/70" style={{ transform: `scaleX(${dur ? Math.min(1, elapsed / dur) : 0})` }} />
       </div>
 
       <h1 className="mt-5 font-display text-[28px] leading-tight text-ink">{pose.name}</h1>
