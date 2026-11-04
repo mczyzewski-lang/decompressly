@@ -1,8 +1,8 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Star, Play, ChevronRight, ChevronLeft } from "lucide-react";
-import { YOGA_SESSIONS, sessionTotal, type YogaSession } from "@/lib/yoga/sessions";
+import { SESSION_BY_ID, THEME_LENGTHS, YOGA_SESSIONS, YOGA_THEMES, sessionTotal, type YogaSession } from "@/lib/yoga/sessions";
 import { POSES, POSE_BY_ID, POSE_GROUPS, type PoseGroup } from "@/lib/yoga/poses";
 import { update, useApp } from "@/lib/store";
 import { navigate } from "@/lib/router";
@@ -18,7 +18,6 @@ export default function Yoga() {
   const [group, setGroup] = useState<PoseGroup | "all">("all");
   const shown = group === "all" ? POSES : POSES.filter((p) => p.group === group);
   const main = YOGA_SESSIONS.find((s) => s.id === len)!;
-  const categories = YOGA_SESSIONS.filter((s) => s.category !== "length");
 
   return (
     <Screen tabbed>
@@ -80,18 +79,30 @@ export default function Yoga() {
 
       <SectionTitle>Na konkretny moment</SectionTitle>
       <div className="space-y-3">
-        {categories.map((s) => (
-          <button key={s.id} onClick={() => setDetail(s)} className="flex w-full items-center gap-4 rounded-3xl bg-surface p-4 text-left shadow-soft ring-1 ring-line/60 active:scale-[0.99]">
-            <div className="h-16 w-20 shrink-0 overflow-hidden rounded-2xl bg-surface-2">
-              <PoseImage pose={POSE_BY_ID[s.steps[Math.floor(s.steps.length / 2)].poseId]} className="h-full rounded-none ring-0 [&>div]:p-1" zoomable={false} />
+        {YOGA_THEMES.map((t) => {
+          const s10 = SESSION_BY_ID[`${t.id}-10`];
+          return (
+            <div key={t.id} className="rounded-3xl bg-surface p-4 shadow-soft ring-1 ring-line/60">
+              <button onClick={() => setDetail(s10)} className="flex w-full items-center gap-4 text-left active:opacity-80">
+                <div className="h-16 w-20 shrink-0 overflow-hidden rounded-2xl bg-surface-2">
+                  <PoseImage pose={POSE_BY_ID[s10.steps[Math.floor(s10.steps.length / 2)].poseId]} className="h-full rounded-none ring-0 [&>div]:p-1" zoomable={false} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[16px] text-ink">{t.title}</p>
+                  <p className="text-[13px] text-ink-3">{t.subtitle}</p>
+                </div>
+                <ChevronRight className="h-5 w-5 text-ink-3" />
+              </button>
+              <div className="mt-3 flex gap-2 pl-24">
+                {THEME_LENGTHS.map((m) => (
+                  <Chip key={m} className="h-8 px-3 text-[13px]" onClick={() => setDetail(SESSION_BY_ID[`${t.id}-${m}`])} aria-label={`${t.title}, ${m} minut`}>
+                    {m} min
+                  </Chip>
+                ))}
+              </div>
             </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-[16px] text-ink">{s.title}</p>
-              <p className="text-[13px] text-ink-3">{s.subtitle}</p>
-            </div>
-            <ChevronRight className="h-5 w-5 text-ink-3" />
-          </button>
-        ))}
+          );
+        })}
       </div>
 
       <SectionTitle>Biblioteka pozycji · {POSES.length}</SectionTitle>
@@ -124,7 +135,7 @@ export default function Yoga() {
         Ćwicz w komfortowym zakresie. Przy bólu, urazie lub w ciąży skonsultuj praktykę z lekarzem lub fizjoterapeutą.
       </p>
 
-      {detail && <SessionSheet session={detail} onClose={() => setDetail(null)} fav={fav === detail.id} />}
+      {detail && <SessionSheet session={detail} onClose={() => setDetail(null)} onSwitch={setDetail} fav={fav === detail.id} />}
     </Screen>
   );
 }
@@ -198,9 +209,14 @@ function PlanSlider({ session, index, onIndex, scroller }: { session: YogaSessio
   );
 }
 
-function SessionSheet({ session, onClose, fav }: { session: YogaSession; onClose: () => void; fav: boolean }) {
+function SessionSheet({ session, onClose, onSwitch, fav }: { session: YogaSession; onClose: () => void; onSwitch: (s: YogaSession) => void; fav: boolean }) {
   const [index, setIndex] = useState(0);
   const scroller = useRef<HTMLDivElement>(null);
+  // another length of the same theme: back to its first pose
+  useEffect(() => {
+    setIndex(0);
+    scroller.current?.scrollTo({ left: 0 });
+  }, [session.id]);
   const show = (i: number) => {
     const el = scroller.current;
     if (!el) return;
@@ -209,6 +225,15 @@ function SessionSheet({ session, onClose, fav }: { session: YogaSession; onClose
   };
   return (
     <Sheet open onOpenChange={(o) => !o && onClose()} title={session.title} description={`${session.subtitle} · razem ${formatClock(sessionTotal(session))}`}>
+      {session.theme && (
+        <Segmented<number>
+          label="Długość sesji"
+          className="mb-4"
+          value={session.minutes ?? 10}
+          onChange={(m) => onSwitch(SESSION_BY_ID[`${session.theme}-${m}`])}
+          options={THEME_LENGTHS.map((m) => ({ value: m, label: `${m} min` }))}
+        />
+      )}
       <PlanSlider session={session} index={index} onIndex={setIndex} scroller={scroller} />
       <ol className="mt-5 divide-y divide-line">
         {session.steps.map((st, i) => {

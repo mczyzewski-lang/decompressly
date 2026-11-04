@@ -39,6 +39,29 @@ describe("yoga", () => {
     const used = new Set(YOGA_SESSIONS.flatMap((s) => s.steps.map((st) => st.poseId)));
     expect(POSES.filter((p) => !used.has(p.id)).map((p) => p.id)).toEqual([]);
   });
+  it("every theme comes in 10, 20 and 30 minutes, exactly, with sensible holds", async () => {
+    const { YOGA_THEMES, SESSION_BY_ID, THEME_LENGTHS } = await import("@/lib/yoga/sessions");
+    const { POSE_BY_ID } = await import("@/lib/yoga/poses");
+    expect(YOGA_THEMES.length).toBeGreaterThanOrEqual(12);
+    for (const t of YOGA_THEMES) {
+      let prev = 0;
+      for (const m of THEME_LENGTHS) {
+        const s = SESSION_BY_ID[`${t.id}-${m}`];
+        expect(sessionTotal(s), s.id).toBe(m * 60);
+        expect(s.steps.length, `${s.id}: longer sessions bring more poses`).toBeGreaterThanOrEqual(prev);
+        prev = s.steps.length;
+        for (const st of s.steps) {
+          expect(st.seconds % 5, `${s.id} ${st.poseId}`).toBe(0);
+          if (st.sides === 2) expect(st.seconds, `${s.id} ${st.poseId}`).toBeGreaterThanOrEqual(30);
+          expect(POSE_BY_ID[st.poseId]).toBeDefined();
+        }
+        const rest = s.steps.at(-1)!;
+        expect(rest.seconds, `${s.id}: the last pose does not swallow the session`).toBeLessThanOrEqual(m * 60 * 0.25);
+      }
+      // old links and favourites (the bare theme id) still open a session
+      expect(SESSION_BY_ID[t.id]?.id).toBe(`${t.id}-10`);
+    }
+  });
   it("themed practices last as long as their subtitle says", () => {
     for (const s of YOGA_SESSIONS.filter((x) => x.category !== "length")) {
       const m = Number(/^(\d+) minut/.exec(s.subtitle)?.[1]);

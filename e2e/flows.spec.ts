@@ -297,3 +297,19 @@ test("breath: soft air sound plays with each phase and can be switched off", asy
   await page.getByRole("button", { name: "Wyłącz odgłos oddechu" }).click();
   await expect(page.getByRole("button", { name: "Włącz odgłos oddechu" })).toBeVisible();
 });
+
+test("yoga themes: three lengths each, switchable inside the plan", async ({ page }) => {
+  await onboard(page);
+  await go(page, "#/yoga");
+  await page.getByRole("button", { name: "Biodra i plecy, 20 minut" }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.getByText(/20 minut · po długim siedzeniu · razem 20:00/)).toBeVisible();
+  await dialog.getByRole("radio", { name: "30 min" }).click();
+  await expect(dialog.getByText(/razem 30:00/)).toBeVisible();
+  await expect(dialog.getByText("1 / 14", { exact: true })).toBeVisible();
+  await dialog.getByRole("radio", { name: "10 min" }).click();
+  await expect(dialog.getByText(/razem 10:00/)).toBeVisible();
+  await expect(dialog.getByText("1 / 8", { exact: true })).toBeVisible();
+  await dialog.getByRole("button", { name: "Rozpocznij" }).click();
+  await expect(page.getByText(/Krok 1 z 8 · Biodra i plecy/)).toBeVisible();
+});

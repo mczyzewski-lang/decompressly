@@ -103,7 +103,7 @@ export default function Settings() {
         >
           {YOGA_SESSIONS.map((y) => (
             <option key={y.id} value={y.id}>
-              {y.category === "length" ? `Sesja ${y.title}` : y.title}
+              {y.category === "length" ? `Sesja ${y.title}` : `${y.title} · ${y.minutes} min`}
             </option>
           ))}
         </select>
