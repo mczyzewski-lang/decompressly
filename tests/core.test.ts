@@ -667,9 +667,20 @@ describe("yoga coach", () => {
     const { coachText, allCoachTexts } = await import("@/lib/yoga/coach");
     const forms = { nom: "Marek", voc: "Marku" };
     expect(coachText("tenLeft", { index: 0, last: false, forms })).toBe("Jeszcze dziesięć sekund, Marku.");
-    expect(coachText("nextUp", { index: 0, last: false, nextPose: "Kot–krowa", forms })).toBe("Za chwilę kolejne ćwiczenie: Kot–krowa.");
+    expect(coachText("nextUp", { index: 0, last: false, nextPose: "Kot–krowa", forms })).toBe("Za chwilę przejdziemy do pozycji Kot–krowa.");
     const all = allCoachTexts([{ name: "A", bilateral: false, seconds: 60 }, { name: "B", bilateral: false, seconds: 120 }], forms);
-    expect(all).toContain("Za chwilę kolejne ćwiczenie: B.");
+    expect(all).toContain("Za chwilę przejdziemy do pozycji B.");
     expect(all.some((t) => t.includes("Marku"))).toBe(true);
+  });
+});
+
+describe("yoga transitions", () => {
+  it("a pose announced a moment ago is entered without repeating its name", async () => {
+    const { poseFlowText, poseText } = await import("@/lib/audio/phrases");
+    const forms = { nom: "Marek", voc: "Marku" };
+    const pose = { name: "Kot–krowa", cue: "Klęk podparty. Na wdechu otwórz klatkę piersiową." };
+    expect(poseFlowText(pose, 1, forms)).not.toContain("Kot–krowa");
+    expect(poseFlowText(pose, 1, forms)).toContain(pose.cue);
+    expect(poseText(pose, 1, forms)).toContain("Kot–krowa"); // after a manual skip the name is still said
   });
 });

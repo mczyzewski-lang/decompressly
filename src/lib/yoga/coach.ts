@@ -51,7 +51,7 @@ export function coachText(kind: CueKind, ctx: { index: number; last: boolean; ne
     case "tenLeft":
       return `Jeszcze dziesięć sekund, ${ctx.forms.voc}.`;
     case "nextUp":
-      return ctx.nextPose ? `Za chwilę kolejne ćwiczenie: ${ctx.nextPose}.` : "Za chwilę kolejne ćwiczenie.";
+      return ctx.nextPose ? `Za chwilę przejdziemy do pozycji ${ctx.nextPose}.` : "Za chwilę przejdziemy dalej.";
     default:
       return null;
   }

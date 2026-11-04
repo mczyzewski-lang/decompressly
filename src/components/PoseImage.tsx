@@ -26,11 +26,16 @@ export function useOwnPhoto(poseId: string): string | null {
   return url;
 }
 
-function Visual({ pose, eager }: { pose: Pose; eager?: boolean }) {
+function Visual({ pose, eager, mirror }: { pose: Pose; eager?: boolean; mirror?: boolean }) {
   const own = useOwnPhoto(pose.id);
   const srcs = own ? [own] : pose.photos;
   return (
-    <div className="flex h-full w-full items-center justify-center gap-1" role="img" aria-label={pose.alt}>
+    <div
+      className="flex h-full w-full items-center justify-center gap-1 transition-transform duration-700 ease-calm"
+      style={mirror ? { transform: "scaleX(-1)" } : undefined}
+      role="img"
+      aria-label={mirror ? `${pose.alt} Druga strona (odbicie lustrzane).` : pose.alt}
+    >
       {srcs.map((src) => (
         // eslint-disable-next-line @next/next/no-img-element
         <img key={src} src={src} alt="" className="h-full min-w-0 flex-1 object-contain" loading={eager ? "eager" : "lazy"} decoding="async" />
@@ -39,14 +44,14 @@ function Visual({ pose, eager }: { pose: Pose; eager?: boolean }) {
   );
 }
 
-export function PoseImage({ pose, className, zoomable = true }: { pose: Pose; className?: string; zoomable?: boolean }) {
+export function PoseImage({ pose, className, zoomable = true, mirror = false }: { pose: Pose; className?: string; zoomable?: boolean; mirror?: boolean }) {
   const [open, setOpen] = useState(false);
   const own = useOwnPhoto(pose.id);
   return (
     <>
       <div className={cn("relative overflow-hidden rounded-3xl ring-1 ring-line/60", PHOTO_BG, className)}>
         <div className="aspect-[4/3] w-full p-2">
-          <Visual pose={pose} />
+          <Visual pose={pose} mirror={mirror} />
         </div>
         {zoomable && (
           <IconButton label="Powiększ zdjęcie" onClick={() => setOpen(true)} className="absolute bottom-2 right-2 h-9 w-9 bg-black/40 text-white backdrop-blur hover:bg-black/55">
@@ -69,7 +74,7 @@ export function PoseImage({ pose, className, zoomable = true }: { pose: Pose; cl
             <Dialog.Description className="sr-only">{pose.alt}</Dialog.Description>
             <div className="flex flex-1 items-center justify-center">
               <div className="aspect-[4/3] w-full max-w-3xl">
-                <Visual pose={pose} eager />
+                <Visual pose={pose} eager mirror={mirror} />
               </div>
             </div>
             <p className="pb-4 text-center text-[12px] text-white/60">{own ? "Twoje zdjęcie" : `${pose.english}${pose.sanskrit ? ` · ${pose.sanskrit}` : ""}`}</p>

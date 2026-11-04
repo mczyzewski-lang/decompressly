@@ -358,3 +358,39 @@ test("meditation keeps the calm main voice while yoga has its own", async ({ pag
   await expect.poll(() => voices.length, { timeout: 15_000 }).toBeGreaterThan(0);
   expect(new Set(voices)).toEqual(new Set(["CalmVoice1234567890"]));
 });
+
+test("yoga: music comes back after a pause, a flowing entry after the announcement, a mirrored second side", async ({ page }) => {
+  test.setTimeout(150_000);
+  const tts: string[] = [];
+  await page.route("**/api/eleven/tts", async (route) => {
+    tts.push(route.request().postDataJSON().text);
+    await route.fulfill({ status: 200, contentType: "audio/mpeg", body: fakeAudio });
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Zacznij spokojnie" }).click();
+  await page.evaluate(() => (location.hash = "#/settings/eleven"));
+  await page.getByLabel("ID głosu ElevenLabs do medytacji").fill("TestVoice1234567890");
+  await page.evaluate(() => (location.hash = "#/yoga/run/s10"));
+  await page.getByRole("button", { name: "Zacznij sesję" }).click();
+  const music = () => page.evaluate(() => (window as unknown as { __dcMusic: () => { playing: boolean } }).__dcMusic().playing);
+  await expect.poll(music, { timeout: 15_000 }).toBe(true);
+
+  // pause, then leave the pause by skipping ahead (not "Kontynuuj"): the music returns
+  await page.getByRole("button", { name: "Pauza" }).click();
+  await expect.poll(music).toBe(false);
+  await page.getByRole("button", { name: /Następna pozycja/ }).click();
+  await expect.poll(music, { timeout: 10_000 }).toBe(true);
+
+  // let a pose run out: the next one is announced, then entered without its name said again
+  await page.getByRole("button", { name: "Skróć o 30 sekund" }).click(); // Kot–krowa: 60 → 30 s
+  await expect(page.getByRole("heading", { name: "Pies z głową w dół" })).toBeVisible({ timeout: 45_000 });
+  expect(tts).toContain("Za chwilę przejdziemy do pozycji Pies z głową w dół.");
+  const entry = tts.find((t) => t.includes(POSE_CUE_DOWNDOG) && !t.startsWith("Pies"));
+  expect(entry, "the flowing entry was recorded").toBeTruthy();
+
+  // two-sided pose: the photo turns into its mirror image on the second side
+  await page.getByRole("button", { name: /Następna pozycja/ }).click(); // Niski wykrok, 2 × 30 s
+  await expect(page.getByRole("img", { name: /Druga strona/ })).toBeVisible({ timeout: 45_000 });
+});
+
+const POSE_CUE_DOWNDOG = "Biodra w górę i w tył";

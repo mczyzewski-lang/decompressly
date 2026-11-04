@@ -23,6 +23,16 @@ export function poseText(p: { name: string; cue: string }, index: number, n: Nam
   return `${p.name}. ${p.cue}`;
 }
 
+/**
+ * Entering a pose that was just announced ("Za chwilę przejdziemy do pozycji …"): no second mention
+ * of its name, a short connective and straight into the instruction — like a coach in the room.
+ */
+const FLOW_IN = ["Spokojnie przechodzimy.", "Dobrze.", "Płynnie dalej.", "Właśnie tak."];
+export function poseFlowText(p: { cue: string }, index: number, n: NameForms): string {
+  const lead = FLOW_IN[index % FLOW_IN.length];
+  return index % 3 === 2 ? `${lead} ${p.cue} Nie spiesz się, ${n.voc}.` : `${lead} ${p.cue}`;
+}
+
 export const thoughtsIntro = (n: NameForms) => `${n.voc}, posłuchaj spokojnie. Nic nie musisz z tym robić.`;
 
 export const closeNarration = (message: string, n: NameForms) => `${n.voc}. ${message.replace(/\n+/g, " ")}`;

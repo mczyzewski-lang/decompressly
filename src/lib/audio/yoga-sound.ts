@@ -95,6 +95,12 @@ export async function startMusic(kind: Background, volume: number) {
   startSource(bed, 0, 3);
 }
 
+/** Whether the bed is playing (also used by the end-to-end tests). */
+export function musicState(): { kind: string | null; playing: boolean } {
+  return { kind: bed?.kind ?? null, playing: !!bed?.src };
+}
+if (typeof window !== "undefined") (window as unknown as { __dcMusic?: typeof musicState }).__dcMusic = musicState;
+
 export function pauseMusic() {
   token++;
   if (!bed?.src) return;
@@ -105,6 +111,9 @@ export function pauseMusic() {
 }
 
 export function resumeMusic() {
+  const c = audioContext();
+  // iOS may have suspended the context while everything was silent
+  if (c.state !== "running") void c.resume().catch(() => undefined);
   if (bed && !bed.src) startSource(bed, bed.offset, 1.2);
 }
 

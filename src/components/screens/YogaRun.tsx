@@ -10,7 +10,7 @@ import { formatClock } from "@/lib/dates";
 import { back, navigate } from "@/lib/router";
 import { softBell, unlockAudio } from "@/lib/audio/engine";
 import { prefetchVoice, say as sayVoice, stopVoice } from "@/lib/audio/voice";
-import { YOGA_SWITCH, poseText, yogaEnd } from "@/lib/audio/phrases";
+import { YOGA_SWITCH, poseFlowText, poseText, yogaEnd } from "@/lib/audio/phrases";
 import { allCoachTexts, coachCues, coachText } from "@/lib/yoga/coach";
 import { closeMotifSeconds, pauseMusic, playCloseMotif, resumeMusic, startMusic, stopMusic, stopOneShots, yogaBell } from "@/lib/audio/yoga-sound";
 import type { Background } from "@/lib/types";
@@ -118,7 +118,9 @@ export default function YogaRun({ id }: { id: string }) {
     const key = `${index}`;
     if (announced.current !== key) {
       announced.current = key;
-      say(undefined, poseText(pose, index, getNameForms()));
+      // announced a moment ago ("Za chwilę przejdziemy do pozycji …"): flow in without repeating the name
+      const flowed = index > 0 && fired.current.has(`${index - 1}:nextUp`);
+      say(undefined, flowed ? poseFlowText(pose, index, getNameForms()) : poseText(pose, index, getNameForms()));
     }
     let raf = 0;
     let lastSide: number | null = null;
@@ -186,6 +188,13 @@ export default function YogaRun({ id }: { id: string }) {
     [],
   );
 
+  // the music follows the session: it plays whenever the session runs — after "Kontynuuj", "Dalej" or
+  // "Następna pozycja" alike — and rests while it is paused
+  useEffect(() => {
+    if (status === "running") resumeMusic();
+    else if (status === "paused") pauseMusic();
+  }, [status]);
+
   if (!session || !step || !pose) {
     return (
       <div className="flex min-h-[100dvh] items-center justify-center">
@@ -215,11 +224,13 @@ export default function YogaRun({ id }: { id: string }) {
       setPreparing(true);
       await prefetchVoice([texts[0]], yogaVoice);
       setPreparing(false);
+      const flow = session.steps.slice(1).map((st, i) => poseFlowText(POSE_BY_ID[st.poseId], i + 1, forms));
       const coach = allCoachTexts(
         session.steps.map((st) => ({ name: POSE_BY_ID[st.poseId].name, bilateral: st.sides === 2, seconds: st.seconds })),
         forms,
       );
-      void prefetchVoice([...new Set([...texts.slice(1), ...coach, SWITCH_TEXT, yogaEnd(forms)])], { ...yogaVoice, quiet: true });
+      // in the order they will be needed: the flowing entries first, the full ones (after a manual skip) last
+      void prefetchVoice([...new Set([...coach.slice(0, 3), ...flow, ...coach, SWITCH_TEXT, yogaEnd(forms), ...texts.slice(1)])], { ...yogaVoice, quiet: true });
     }
     void closeMotifSeconds().then((s) => (motifSec.current = s));
     void startMusic(session.steps.length === 1 ? lastBed(music) : music, musicVolume);
@@ -287,7 +298,10 @@ export default function YogaRun({ id }: { id: string }) {
         {step.sides === 2 && status !== "ready" ? ` · ${st.side === 1 ? "pierwsza strona" : "druga strona"}` : ""}
       </p>
 
-      <PoseImage pose={pose} className="mt-4" />
+      {/* a new pose fades in; on the second side the photo turns into its mirror image */}
+      <div key={index} className="animate-fade-in">
+        <PoseImage pose={pose} className="mt-4" mirror={step.sides === 2 && status !== "ready" && st.side === 2} />
+      </div>
 
       <p className="mt-5 text-[17px] leading-relaxed text-ink">{pose.cue}</p>
       {status !== "ready" && (
