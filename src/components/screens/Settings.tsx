@@ -129,6 +129,33 @@ export default function Settings() {
             </div>
           </>
         )}
+        <p className="mb-2 mt-3 text-[13px] text-ink-2">Jak pokazywać pozycje w sesji</p>
+        <Segmented<"photo" | "3d">
+          label="Widok pozycji"
+          size="sm"
+          value={s.yoga.view ?? "photo"}
+          onChange={(v) => update((st) => void (st.yoga.view = v))}
+          options={[
+            { value: "photo", label: "Zdjęcia" },
+            { value: "3d", label: "Postać 3D" },
+          ]}
+        />
+        {(s.yoga.view ?? "photo") === "3d" && (
+          <>
+            <p className="mb-2 mt-3 text-[13px] text-ink-2">Miejsce</p>
+            <Segmented<"studio" | "lawn">
+              label="Miejsce ćwiczeń"
+              size="sm"
+              value={s.yoga.place ?? "studio"}
+              onChange={(v) => update((st) => void (st.yoga.place = v))}
+              options={[
+                { value: "studio", label: "Sala jogi" },
+                { value: "lawn", label: "Trawnik" },
+              ]}
+            />
+            <p className="mt-2 text-[12px] leading-relaxed text-ink-3">Postać płynnie przechodzi z pozycji w pozycję i odwraca się na drugą stronę. Narracja jest ta sama. Scenę można obracać palcem.</p>
+          </>
+        )}
         <p className="mb-2 mt-3 text-[13px] text-ink-2">Muzyka w tle</p>
         <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
           {(

@@ -35,6 +35,9 @@ import InstallGuide from "./screens/InstallGuide";
 import Thoughts from "./screens/Thoughts";
 import Moments from "./screens/Moments";
 import PathScreen from "./screens/PathScreen";
+import { NatureScene } from "./NatureScene";
+import { isScene } from "@/lib/scenes";
+import { Yoga3D } from "./Yoga3D";
 
 const FULLSCREEN = new Set(["start", "close", "nothing"]);
 
@@ -115,6 +118,18 @@ function RouteView() {
       return <Thoughts />;
     case "moments":
       return <Moments />;
+    case "scene": {
+      // a bare place: #/scene/beach
+      const sc = isScene(b) ? b : "beach";
+      return <NatureScene scene={sc} className="fixed inset-0 z-[80]" />;
+    }
+    case "preview3d":
+      // a bare 3D pose (also used to check the poses): #/preview3d?pose=triangle&place=lawn&mirror=1
+      return (
+        <div className="fixed inset-0 z-[80] bg-bg">
+          <Yoga3D poseId={route.params.get("pose") ?? "mountain"} place={route.params.get("place") === "lawn" ? "lawn" : "studio"} mirror={route.params.get("mirror") === "1"} instant className="h-full w-full rounded-none ring-0" />
+        </div>
+      );
     case "paths":
       return <PathScreen id={b} />;
     case "trip":

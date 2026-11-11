@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Eye, EyeOff, Pause, Play, Square, Minus, Plus, Volume2, VolumeX, Bell, Wind } from "lucide-react";
+import { Eye, EyeOff, Pause, Play, Square, Minus, Plus, Volume2, VolumeX, Bell, Wind, Mountain } from "lucide-react";
 import { BREATH_MODES, PHASE_MAX, PHASE_MIN, SessionClock, clampPhase, frameAt, patternFor, sessionLengthMs, type BreathPattern, type Phase } from "@/lib/breath";
 import { getNameForms, logActivity, update, useApp } from "@/lib/store";
 import { formatClock } from "@/lib/dates";
@@ -14,6 +14,8 @@ import { useOnHidden, useWakeLock } from "@/lib/wakelock";
 import { navigate } from "@/lib/router";
 import type { BreathCue, BreathModeId } from "@/lib/types";
 import { Button, IconButton, Screen, Segmented, Slider, Toggle, cn } from "../ui";
+import { NatureScene, ScenePicker, enableTilt } from "../NatureScene";
+import { SCENE_BY_ID, nextScene, type SceneChoice } from "@/lib/scenes";
 
 const MINUTES = [2, 5, 10] as const;
 const INHALE_TEXT = BREATH_INHALE;
@@ -26,6 +28,7 @@ export default function Breath({ params }: { params: URLSearchParams }) {
   const [custom, setCustom] = useState<BreathPattern>({ inhale: settings.customInhale, exhale: settings.customExhale });
   const [cue, setCue] = useState<BreathCue>(settings.cue);
   const [air, setAir] = useState(settings.air ?? true);
+  const scene: SceneChoice = settings.scene ?? "beach";
   const [airVolume, setAirVolume] = useState(settings.airVolume ?? 0.6);
   const [session, setSession] = useState<null | { eyesClosed: boolean }>(null);
   const [preparing, setPreparing] = useState(false);
@@ -104,6 +107,14 @@ export default function Breath({ params }: { params: URLSearchParams }) {
             </button>
           );
         })}
+      </div>
+
+      <div className="mt-6">
+        <p className="mb-2 px-1 text-[13px] text-ink-2">Miejsce</p>
+        <ScenePicker value={scene} onChange={(v) => update((s) => void (s.breath.scene = v))} />
+        <p className="mt-1.5 px-1 text-[12px] leading-relaxed text-ink-3">
+          {scene === "none" ? "Sam krąg oddechu na spokojnym tle." : `${SCENE_BY_ID[scene].hint} Lekko przechyl telefon, żeby się rozejrzeć.`}
+        </p>
       </div>
 
       <div className="mt-6">
@@ -222,6 +233,10 @@ function BreathSession({
   const [air, setAir] = useState(initialAir);
   const airRef = useRef(air);
   airRef.current = air;
+  const scene: SceneChoice = useApp((s) => s.breath.scene ?? "beach");
+  const scenic = scene !== "none";
+  // how full the lungs are right now (0..1): the place moves with it
+  const fill = useRef(0);
   // breath sounds resolved ahead of time (real recordings when available), so the animation loop never waits
   const airUrls = useRef<Partial<Record<Phase, string>>>({});
   useEffect(() => {
@@ -288,6 +303,7 @@ function BreathSession({
       }
       const f = frameAt(el, pattern);
       const lag = frameAt(Math.max(0, el - 220), pattern);
+      fill.current = f.size;
       const scale = 0.42 + 0.58 * f.size;
       const innerScale = 0.42 + 0.58 * lag.size;
       if (!reducedMotion) {
@@ -348,10 +364,21 @@ function BreathSession({
   const label = status === "done" ? "" : pattern ? (phase === "inhale" ? "Wdech" : phase === "exhale" ? "Wydech" : "") : "Oddychaj po swojemu";
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-bg">
-      <div className="safe-top mx-auto flex w-full max-w-lg items-center justify-between px-4">
-        <span className="px-2 text-[13px] text-ink-3">{modeLabel}</span>
+    <div className={cn("fixed inset-0 z-50 flex flex-col bg-bg", scenic && "breath-scenic")}>
+      {scenic && <NatureScene scene={scene} breath={pattern ? fill : undefined} paused={status === "paused"} className="absolute inset-0" />}
+      {scenic && <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-black/45" />}
+      <div className={cn("safe-top relative mx-auto flex w-full max-w-lg items-center justify-between px-4", scenic && "text-white [&_button]:text-white")}>
+        <span className={cn("px-2 text-[13px]", scenic ? "text-white/80" : "text-ink-3")}>{modeLabel}</span>
         <div className="flex">
+          <IconButton
+            label={`Miejsce: ${scenic ? SCENE_BY_ID[scene].label : "bez tła"}. Zmień`}
+            onClick={() => {
+              enableTilt();
+              update((s) => void (s.breath.scene = nextScene(s.breath.scene ?? "beach")));
+            }}
+          >
+            <Mountain className="h-5 w-5" />
+          </IconButton>
           {pattern && (
             <IconButton
               label={air ? "Wyłącz odgłos oddechu" : "Włącz odgłos oddechu"}
@@ -378,8 +405,8 @@ function BreathSession({
       </div>
 
       {status === "done" ? (
-        <div className="flex flex-1 flex-col items-center justify-center px-8 text-center animate-fade-in">
-          <p className="font-display text-[28px] leading-snug text-ink">Możesz wrócić do swojego dnia.</p>
+        <div className="relative flex flex-1 flex-col items-center justify-center px-8 text-center animate-fade-in">
+          <p className={cn("font-display text-[28px] leading-snug", scenic ? "text-white drop-shadow" : "text-ink")}>Możesz wrócić do swojego dnia.</p>
           <div className="mt-12 flex w-full max-w-xs flex-col gap-3">
             <Button variant="primary" size="lg" onClick={() => navigate("today")}>
               Wróć do Dziś
@@ -393,18 +420,20 @@ function BreathSession({
         <>
           <div className="relative flex flex-1 items-center justify-center" aria-live="polite">
             <svg viewBox="0 0 300 300" className="h-[min(86vw,420px)] w-[min(86vw,420px)]" aria-hidden>
-              <circle ref={haloRef} cx="150" cy="150" r="146" fill="none" stroke="rgb(var(--sage))" strokeWidth="1" strokeOpacity="0.2" />
-              <circle ref={discRef} cx="0" cy="0" r="140" fill="rgb(var(--sage-soft))" transform="translate(150 150) scale(0.42)" />
-              <circle ref={innerRef} cx="0" cy="0" r="140" fill="rgb(var(--sage))" fillOpacity="0.16" transform="translate(150 150) scale(0.3)" />
+              <circle ref={haloRef} cx="150" cy="150" r="146" fill="none" stroke={scenic ? "#fff" : "rgb(var(--sage))"} strokeWidth="1" strokeOpacity="0.2" />
+              <g opacity={scenic ? 0.3 : 1}>
+                <circle ref={discRef} cx="0" cy="0" r="140" fill={scenic ? "#fff" : "rgb(var(--sage-soft))"} transform="translate(150 150) scale(0.42)" />
+                <circle ref={innerRef} cx="0" cy="0" r="140" fill={scenic ? "#fff" : "rgb(var(--sage))"} fillOpacity="0.16" transform="translate(150 150) scale(0.3)" />
+              </g>
             </svg>
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-              <span key={label} className="animate-fade-in text-[15px] font-semibold uppercase tracking-[0.3em] text-sage-deep">
+              <span key={label} className={cn("animate-fade-in text-[15px] font-semibold uppercase tracking-[0.3em]", scenic ? "text-white drop-shadow" : "text-sage-deep")}>
                 {status === "paused" ? "Pauza" : label}
               </span>
             </div>
           </div>
-          <div className="safe-bottom mx-auto w-full max-w-lg px-6 pb-4">
-            <p className="tabular mb-5 text-center text-[13px] text-ink-3" aria-label={`Pozostało ${formatClock(remaining)}`}>
+          <div className="safe-bottom relative mx-auto w-full max-w-lg px-6 pb-4">
+            <p className={cn("tabular mb-5 text-center text-[13px]", scenic ? "text-white/85" : "text-ink-3")} aria-label={`Pozostało ${formatClock(remaining)}`}>
               {formatClock(remaining)}
             </p>
             <div className="flex items-center justify-center gap-4">
@@ -423,7 +452,7 @@ function BreathSession({
                 )}
               </Button>
             </div>
-            <p className="mt-5 text-center text-[12px] leading-relaxed text-ink-3">Oddychaj komfortowo. Jeśli poczujesz dyskomfort, wróć do naturalnego oddechu.</p>
+            <p className={cn("mt-5 text-center text-[12px] leading-relaxed", scenic ? "text-white/75" : "text-ink-3")}>Oddychaj komfortowo. Jeśli poczujesz dyskomfort, wróć do naturalnego oddechu.</p>
           </div>
         </>
       )}

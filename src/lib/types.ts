@@ -182,6 +182,8 @@ export interface BreathSettings {
   air?: boolean;
   /** 0..1, kept low by default */
   airVolume?: number;
+  /** the place shown behind the breathing circle ("none" = plain screen) */
+  scene?: "none" | "beach" | "forest" | "lake" | "aurora";
 }
 
 export type Background = "none" | "nature" | "jazz" | "system" | "orchestral";
@@ -272,12 +274,16 @@ export interface AppState {
     voiceId?: string;
     /** livelier, slightly faster delivery for yoga cues */
     lively?: boolean;
+    /** how poses are shown in a session: photos, or a 3D figure that moves from pose to pose */
+    view?: "photo" | "3d";
+    /** where the 3D figure practises */
+    place?: "studio" | "lawn";
     /** music bed during the session (the last pose gets a calmer one) */
     music?: Background;
     /** 0..1 */
     musicVolume?: number;
   };
-  audio: { defaultBackground: Background; sessions: Record<string, AudioSessionOverride>; pauseScale?: number; gap?: number };
+  audio: { defaultBackground: Background; sessions: Record<string, AudioSessionOverride>; pauseScale?: number; gap?: number; /** the place shown in the full-screen player */ scene?: "none" | "beach" | "forest" | "lake" | "aurora" };
   trip: TripState;
   privacy: { elevenLogging: boolean };
   thoughtFavorites: string[];

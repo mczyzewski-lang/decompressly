@@ -1,7 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Pause, Play, RotateCcw, RotateCw, Download, Sparkles, Pencil, Music, Quote, Route } from "lucide-react";
+import { Pause, Play, RotateCcw, RotateCw, Download, Sparkles, Pencil, Music, Quote, Route, Mountain, X } from "lucide-react";
+import { NatureScene, ScenePicker, enableTilt } from "../NatureScene";
+import type { SceneChoice } from "@/lib/scenes";
+import { useWakeLock } from "@/lib/wakelock";
 import { AUDIO_BY_ID, personalize } from "@/lib/audio/scripts";
 import { PATH_BY_ID, paraphraseOf, parsePathSessionId, pathAudioDef, threadFor, weaveEcho } from "@/lib/paths";
 import { PathReflection, ensureParaphrase, setParaphrase } from "../PathReflection";
@@ -554,6 +557,9 @@ function FilePlayer({ blobId, title, onDone, onEnded }: { blobId: string; title:
   const [time, setTime] = useState(0);
   const [dur, setDur] = useState(0);
   const logged = useRef(false);
+  const [immersive, setImmersive] = useState(false);
+  const scene: SceneChoice = useApp((s) => s.audio.scene ?? "beach");
+  useWakeLock(immersive && playing);
 
   useEffect(() => {
     void blobUrl(blobId).then(setUrl);
@@ -572,6 +578,43 @@ function FilePlayer({ blobId, title, onDone, onEnded }: { blobId: string; title:
 
   return (
     <Card className="p-6">
+      {immersive && (
+        <div className="fixed inset-0 z-[75] flex flex-col bg-black text-white" role="dialog" aria-label={`${title} — pełny ekran`}>
+          {scene !== "none" && <NatureScene scene={scene} paused={!playing} className="absolute inset-0" />}
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/45 via-transparent to-black/60" />
+          <div className="safe-top relative flex items-start justify-between gap-3 px-4 pt-2">
+            <p className="px-1 pt-2 font-display text-[20px] leading-snug drop-shadow">{title}</p>
+            <IconButton label="Zamknij pełny ekran" className="shrink-0 bg-black/35 text-white backdrop-blur" onClick={() => setImmersive(false)}>
+              <X className="h-5 w-5" />
+            </IconButton>
+          </div>
+          <button className="relative flex-1" onClick={toggle} aria-label={playing ? "Pauza" : "Odtwórz"}>
+            {!playing && (
+              <span className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-black/40 backdrop-blur">
+                <Play className="ml-1 h-9 w-9" />
+              </span>
+            )}
+          </button>
+          <div className="safe-bottom relative px-4 pb-4">
+            <ScenePicker tone="dark" value={scene} onChange={(v) => update((s) => void (s.audio.scene = v))} />
+            <input
+              type="range"
+              min={0}
+              max={dur || 1}
+              step={1}
+              value={time}
+              onChange={(e) => ref.current && (ref.current.currentTime = Number(e.target.value))}
+              className="mt-3 w-full accent-white"
+              aria-label="Pozycja odtwarzania (pełny ekran)"
+            />
+            <div className="tabular flex justify-between text-[12px] text-white/75">
+              <span>{formatClock(time)}</span>
+              <span>Dotknij ekranu: {playing ? "pauza" : "odtwórz"}</span>
+              <span>{formatClock(dur)}</span>
+            </div>
+          </div>
+        </div>
+      )}
       {url && (
         <audio
           ref={ref}
@@ -622,6 +665,18 @@ function FilePlayer({ blobId, title, onDone, onEnded }: { blobId: string; title:
           <RotateCw className="h-6 w-6" />
         </IconButton>
       </div>
+      <Button
+        variant="secondary"
+        block
+        className="mt-5"
+        onClick={() => {
+          enableTilt();
+          setImmersive(true);
+          if (ref.current?.paused) void ref.current.play();
+        }}
+      >
+        <Mountain className="h-4 w-4" /> Przenieś się — pełny ekran
+      </Button>
       <p className="mt-4 text-center text-[12px] text-ink-3">Plik zapisany na urządzeniu · gra także przy zablokowanym ekranie</p>
     </Card>
   );

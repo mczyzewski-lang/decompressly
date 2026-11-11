@@ -313,3 +313,31 @@ test("yoga themes: three lengths each, switchable inside the plan", async ({ pag
   await dialog.getByRole("button", { name: "Rozpocznij" }).click();
   await expect(page.getByText(/Krok 1 z 8 · Biodra i plecy/)).toBeVisible();
 });
+
+test("yoga: the session can show a 3D figure instead of photos, in the studio or on the lawn", async ({ page }) => {
+  await onboard(page);
+  await go(page, "#/yoga/run/s10");
+  await expect(page.locator("main img[src^='/yoga/'], img[src^='/yoga/']").first()).toBeVisible();
+  await page.getByRole("button", { name: "Pokaż postać 3D" }).click();
+  await expect(page.locator("[data-ready='1']")).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator("img[src^='/yoga/']")).toHaveCount(0);
+  await page.getByRole("button", { name: "Zmień miejsce ćwiczeń" }).click();
+  await expect(page.getByRole("button", { name: "Zmień miejsce ćwiczeń" })).toHaveText("Trawnik");
+  // the choice is remembered and the narration stays the same
+  await page.getByRole("button", { name: "Pokaż zdjęcia" }).click();
+  await expect(page.locator("img[src^='/yoga/']").first()).toBeVisible();
+});
+
+test("places: every scene renders; breath shows the chosen place and the audio screen lists them", async ({ page }) => {
+  await onboard(page);
+  for (const id of ["beach", "forest", "lake", "aurora"]) {
+    await go(page, `#/scene/${id}`);
+    await expect(page.locator(`[data-scene='${id}'][data-ready='1']`)).toBeVisible({ timeout: 30_000 });
+  }
+  await go(page, "#/breath");
+  await page.getByRole("radio", { name: "Las o poranku" }).click();
+  await page.getByRole("button", { name: "Zacznij", exact: true }).click();
+  await expect(page.locator("[data-scene='forest'][data-ready='1']")).toBeVisible({ timeout: 30_000 });
+  await page.getByRole("button", { name: /Miejsce: Las o poranku/ }).click();
+  await expect(page.locator("[data-scene='lake']")).toBeVisible();
+});

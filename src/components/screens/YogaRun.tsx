@@ -17,6 +17,7 @@ import type { Background } from "@/lib/types";
 import { useOnHidden, useWakeLock } from "@/lib/wakelock";
 import { Button, IconButton, cn } from "../ui";
 import { PoseImage } from "../PoseImage";
+import { Yoga3D } from "../Yoga3D";
 
 type Status = "ready" | "running" | "paused" | "waiting" | "done";
 
@@ -45,6 +46,8 @@ export default function YogaRun({ id }: { id: string }) {
   // cues already given in this session ("<pose index>:<cue>") — a pause holds them, it never repeats them
   const fired = useRef(new Set<string>());
   const motifSec = useRef(20);
+  const [no3d, setNo3d] = useState(false); // the device cannot show 3D: fall back to photos
+  const view3d = (yoga.view ?? "photo") === "3d" && !no3d;
   const music: Background = yoga.music ?? "jazz";
   const musicVolume = yoga.musicVolume ?? 0.5;
 
@@ -276,6 +279,14 @@ export default function YogaRun({ id }: { id: string }) {
           Krok {index + 1} z {session.steps.length} · {session.title}
         </span>
         <div className="flex">
+          <button
+            className="mr-1 rounded-full px-3 text-[13px] font-medium text-sage-deep ring-1 ring-line"
+            onClick={() => update((s) => void (s.yoga.view = (s.yoga.view ?? "photo") === "3d" ? "photo" : "3d"))}
+            aria-label={view3d ? "Pokaż zdjęcia" : "Pokaż postać 3D"}
+            aria-pressed={view3d}
+          >
+            {view3d ? "Zdjęcia" : "3D"}
+          </button>
           <IconButton label={voice ? "Wyłącz głos" : "Włącz głos"} onClick={() => setVoice((v) => !v)}>
             {voice ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
           </IconButton>
@@ -298,10 +309,33 @@ export default function YogaRun({ id }: { id: string }) {
         {step.sides === 2 && status !== "ready" ? ` · ${st.side === 1 ? "pierwsza strona" : "druga strona"}` : ""}
       </p>
 
-      {/* a new pose fades in; on the second side the photo turns into its mirror image */}
-      <div key={index} className="animate-fade-in">
-        <PoseImage pose={pose} className="mt-4" mirror={step.sides === 2 && status !== "ready" && st.side === 2} />
-      </div>
+      {view3d ? (
+        // one figure for the whole session: it moves from pose to pose and mirrors itself on the second side
+        <div className="relative mt-4">
+          <Yoga3D
+            poseId={pose.id}
+            mirror={step.sides === 2 && status !== "ready" && st.side === 2}
+            place={yoga.place ?? "studio"}
+            paused={status === "paused"}
+            className="aspect-[4/3] w-full"
+            onUnavailable={() => setNo3d(true)}
+          />
+          <div className="absolute left-2 top-2 flex gap-1.5">
+            <button
+              className="rounded-full bg-black/45 px-3 py-1.5 text-[12px] font-medium text-white backdrop-blur"
+              onClick={() => update((s) => void (s.yoga.place = (s.yoga.place ?? "studio") === "studio" ? "lawn" : "studio"))}
+              aria-label="Zmień miejsce ćwiczeń"
+            >
+              {(yoga.place ?? "studio") === "studio" ? "Sala" : "Trawnik"}
+            </button>
+          </div>
+        </div>
+      ) : (
+        /* a new pose fades in; on the second side the photo turns into its mirror image */
+        <div key={index} className="animate-fade-in">
+          <PoseImage pose={pose} className="mt-4" mirror={step.sides === 2 && status !== "ready" && st.side === 2} />
+        </div>
+      )}
 
       <p className="mt-5 text-[17px] leading-relaxed text-ink">{pose.cue}</p>
       {status !== "ready" && (
