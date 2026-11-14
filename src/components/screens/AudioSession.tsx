@@ -353,7 +353,7 @@ export default function AudioSession({ id }: { id: string }) {
         <div>
           <TextArea value={draft} onChange={(e) => setDraft(e.target.value)} rows={18} className="font-mono text-[16px]" aria-label="Scenariusz sesji" />
           <p className="mt-2 text-[12px] leading-relaxed text-ink-3">
-            Pusta linia = nowy fragment. „[pauza 8]” = 8 sekund ciszy. „[motyw start]” lub „[motyw close]” = motyw dźwiękowy w tym miejscu (zastępuje ustawienie sesji), „[motyw close 35%]” = cichy motyw w tle na 35% głośności. „[od 20]” … „[/od]” = fragment tylko w sesjach od 20 minut, „[do 15]” … „[/do]” = tylko do 15 minut. „{"{imię}"}” = zwrot po imieniu („{forms.voc}”), „{"{imię_m}"}” = „{forms.nom}”. {pathRef ? "„{echo}” = miejsce, w którym sesja przytacza Twoją poprzednią refleksję. " : ""}Znaczniki nie są wysyłane do syntezy mowy.
+            Pusta linia = nowy fragment. „[pauza 8]” = 8 sekund ciszy. „[oddech 5]” = 5 sekund na wykonanie wdechu lub wydechu (ta cisza nie skraca się ani nie wydłuża z długością sesji). „[motyw start]” lub „[motyw close]” = motyw dźwiękowy w tym miejscu (zastępuje ustawienie sesji), „[motyw close 35%]” = cichy motyw w tle na 35% głośności. „[od 20]” … „[/od]” = fragment tylko w sesjach od 20 minut, „[do 15]” … „[/do]” = tylko do 15 minut. „{"{imię}"}” = zwrot po imieniu („{forms.voc}”), „{"{imię_m}"}” = „{forms.nom}”. {pathRef ? "„{echo}” = miejsce, w którym sesja przytacza Twoją poprzednią refleksję. " : ""}Znaczniki nie są wysyłane do syntezy mowy.
           </p>
           <div className="mt-3 flex gap-2">
             <Button variant="primary" onClick={() => (setOv((o) => void (o.script = draft === def.script ? undefined : draft)), setEditing(false))}>
@@ -382,7 +382,7 @@ export default function AudioSession({ id }: { id: string }) {
               </div>
             ) : s.kind === "pause" ? (
               <p key={i} className="text-[12px] uppercase tracking-[0.15em] text-ink-3">
-                · cisza {s.seconds} s ·
+                · {s.fixed ? "czas na oddech" : "cisza"} {s.seconds} s ·
               </p>
             ) : (
               <p key={i} className="text-[15px] leading-relaxed text-ink">

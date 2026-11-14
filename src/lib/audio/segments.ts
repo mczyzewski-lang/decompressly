@@ -2,11 +2,13 @@
  * Script format (editable in the app):
  *  - paragraphs separated by a blank line are spoken as separate segments,
  *  - a line "[pauza 8]" (or "[pauza 8s]", "[cisza 60]") inserts real silence of N seconds,
- *  - a bare "[pauza]" means 5 seconds.
+ *  - a bare "[pauza]" means 5 seconds,
+ *  - a line "[oddech 5]" is silence for doing what was just said (a breath in, a breath out): unlike
+ *    "[pauza]" it is never stretched or shortened when the session is fitted to a length.
  * Pause markers are never sent to text-to-speech — they become silence in the montage.
  */
 /** level < 1 = a quiet echo that plays under the following silence (does not add time) */
-export type Segment = { kind: "speech"; text: string } | { kind: "pause"; seconds: number } | { kind: "motif"; which: "start" | "close"; level?: number };
+export type Segment = { kind: "speech"; text: string } | { kind: "pause"; seconds: number; /** time for a breath: keeps its length whatever the session length */ fixed?: boolean } | { kind: "motif"; which: "start" | "close"; level?: number };
 
 /** Quiet echoes of the motif in the second half (softest → a little louder), then the full motif at the end. */
 export const MOTIF_ECHO_MIN = 0.1;
@@ -42,7 +44,7 @@ export function selectLength(script: string, minutes: number): string {
 
 /** Pause multiplier that brings the whole session close to the chosen length (roughly — it is not a stopwatch). */
 export function fitPauseScale(segments: Segment[], minutes: number, gap = DEFAULT_GAP): number {
-  const pauses = segments.reduce((a, s) => a + (s.kind === "pause" ? s.seconds : 0), 0);
+  const pauses = segments.reduce((a, s) => a + (s.kind === "pause" && !s.fixed ? s.seconds : 0), 0);
   if (pauses <= 0) return 1;
   const fixed = estimateDuration(segments, gap) - pauses;
   const scale = (minutes * 60 - fixed) / pauses;
@@ -55,9 +57,10 @@ export const MOTIF_SECONDS = 17.5;
 export const DEFAULT_GAP = 1.2; // seconds between consecutive spoken paragraphs
 export const WORDS_PER_SECOND = 2.0; // calm Polish narration at speed ≈ 0.9
 
+const BREATH_RE = /^\[(?:oddech|wdech|wydech|breath)(?:\s+(\d+(?:[.,]\d+)?)\s*s?)?\]$/i;
 const PAUSE_RE = /^\[(?:pauza|cisza|pause)(?:\s+(\d+(?:[.,]\d+)?)\s*s?)?\]$/i;
 const MOTIF_RE = /^\[(?:motyw|motif|dźwięk|dzwiek)(?:\s+(start|close|stop|koniec|początek|poczatek))?(?:\s+(\d{1,3})\s*%)?\]$/i;
-const INLINE_PAUSE_RE = /\[(?:pauza|cisza|pause)(?:\s+\d+(?:[.,]\d+)?\s*s?)?\]/gi;
+const INLINE_PAUSE_RE = /\[(?:pauza|cisza|pause|oddech|wdech|wydech|breath)(?:\s+\d+(?:[.,]\d+)?\s*s?)?\]/gi;
 
 export function parseScript(script: string): Segment[] {
   const out: Segment[] = [];
@@ -81,13 +84,14 @@ export function parseScript(script: string): Segment[] {
       out.push({ kind: "motif", which: w === "close" || w === "stop" || w === "koniec" ? "close" : "start", ...(level < 1 ? { level } : {}) });
       continue;
     }
-    const m = line.match(PAUSE_RE);
+    const br = line.match(BREATH_RE);
+    const m = br ?? line.match(PAUSE_RE);
     if (m) {
       flush();
       const secs = m[1] ? Number(m[1].replace(",", ".")) : 5;
       const last = out[out.length - 1];
-      if (last?.kind === "pause") last.seconds += secs;
-      else out.push({ kind: "pause", seconds: secs });
+      if (last?.kind === "pause" && !!last.fixed === !!br) last.seconds += secs;
+      else out.push({ kind: "pause", seconds: secs, ...(br ? { fixed: true } : {}) });
       continue;
     }
     // inline markers inside a sentence are stripped defensively — never spoken
@@ -107,7 +111,7 @@ export const DEFAULT_PACING: Pacing = { pauseScale: 1, gap: DEFAULT_GAP };
 /** Longer (or shorter) silences without touching the spoken text — no new TTS needed. */
 export function applyPacing(segments: Segment[], pacing: Pacing): Segment[] {
   if (pacing.pauseScale === 1) return segments;
-  return segments.map((s) => (s.kind === "pause" ? { kind: "pause", seconds: Math.round(s.seconds * pacing.pauseScale * 10) / 10 } : s));
+  return segments.map((s) => (s.kind === "pause" && !s.fixed ? { kind: "pause", seconds: Math.round(s.seconds * pacing.pauseScale * 10) / 10 } : s));
 }
 
 export function wordCount(text: string): number {
@@ -189,7 +193,7 @@ export function hasScriptMotif(segments: Segment[]): boolean {
 
 /** Silences and motif positions — everything except the spoken words. */
 export function layoutKey(segments: Segment[]): string {
-  return segments.map((s) => (s.kind === "speech" ? "s" : s.kind === "pause" ? `p${s.seconds}` : `m${s.which}${s.level ?? ""}`)).join(",");
+  return segments.map((s) => (s.kind === "speech" ? "s" : s.kind === "pause" ? `p${s.seconds}${s.fixed ? "f" : ""}` : `m${s.which}${s.level ?? ""}`)).join(",");
 }
 
 export function speechSegments(segments: Segment[]): string[] {

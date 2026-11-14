@@ -24,11 +24,27 @@ Bardzo dobrze, {imię}.
 
 [pauza 3]
 
-Weź teraz głęboki wdech. Zatrzymaj go na krótką chwilę. I wypuść powoli, razem z całym napięciem, które jest już gotowe odejść.
+Weź teraz głęboki wdech.
+
+[oddech 4]
+
+Zatrzymaj go na krótką chwilę.
+
+[oddech 2]
+
+I wypuść powoli, razem z całym napięciem, które jest już gotowe odejść.
+
+[oddech 6]
 
 [pauza 7]
 
-Jeszcze raz. Głęboki wdech. I długi, powolny wydech, jak westchnienie ulgi.
+Jeszcze raz. Głęboki wdech.
+
+[oddech 4]
+
+I długi, powolny wydech, jak westchnienie ulgi.
+
+[oddech 7]
 
 [pauza 8]
 

@@ -84,7 +84,7 @@ export async function renderSessionFile(
   };
   const parts: MontagePart[] = [];
   for (const seg of segments) {
-    if (seg.kind === "pause") parts.push({ type: "silence", seconds: seg.seconds });
+    if (seg.kind === "pause") parts.push({ type: "silence", seconds: seg.seconds, fixed: seg.fixed });
     else if (seg.kind === "motif") {
       const buffer = await motifBuffer(seg.which);
       if (buffer) parts.push({ type: "motif", buffer, level: seg.level });
@@ -112,13 +112,15 @@ export function fitSilences(parts: MontagePart[], targetSec: number, gap: number
   let silence = 0;
   let fixed = 1.5;
   parts.forEach((p, i) => {
-    if (p.type === "silence") silence += p.seconds;
-    else if (p.type === "speech") fixed += p.buffer.duration + (parts[i + 1]?.type === "speech" ? gap : 0);
+    if (p.type === "silence") {
+      if (p.fixed) fixed += p.seconds;
+      else silence += p.seconds;
+    } else if (p.type === "speech") fixed += p.buffer.duration + (parts[i + 1]?.type === "speech" ? gap : 0);
     else if ((p.level ?? 1) >= 1) fixed += p.buffer.duration;
   });
   if (silence <= 0) return;
   const f = Math.min(1.6, Math.max(0.7, (targetSec - fixed) / silence));
-  for (const p of parts) if (p.type === "silence") p.seconds = Math.round(p.seconds * f * 10) / 10;
+  for (const p of parts) if (p.type === "silence" && !p.fixed) p.seconds = Math.round(p.seconds * f * 10) / 10;
 }
 
 /** Single short clip (voice cue, mantra, closing narration). */

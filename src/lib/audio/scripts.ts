@@ -142,15 +142,33 @@ To prosty sygnał dla ciała: jest bezpiecznie. Nic się nie dzieje. Możesz zwo
 
 [pauza 6]
 
-Teraz zrób podwójny wdech nosem. Jeden wdech, i na jego szczycie jeszcze jeden, krótki. A potem długi, powolny wydech ustami.
+Teraz zrób podwójny wdech nosem. Jeden wdech, i na jego szczycie jeszcze jeden, krótki.
+
+[oddech 4]
+
+A potem długi, powolny wydech ustami.
+
+[oddech 8]
 
 [pauza 9]
 
-Jeszcze raz. Podwójny wdech nosem. I długi wydech, aż do końca.
+Jeszcze raz. Podwójny wdech nosem.
+
+[oddech 4]
+
+I długi wydech, aż do końca.
+
+[oddech 8]
 
 [pauza 9]
 
-I trzeci raz. Wdech, dopełnienie. I bardzo długi wydech.
+I trzeci raz. Wdech, dopełnienie.
+
+[oddech 4]
+
+I bardzo długi wydech.
+
+[oddech 9]
 
 [pauza 10]
 
@@ -306,7 +324,21 @@ Od teraz postanawiasz nie poruszać ciałem. Ciało odpoczywa. Ty słuchasz moje
 
 [pauza 6]
 
-Weź głęboki wdech. I powoli wypuść powietrze. Jeszcze raz. Głęboki wdech. I długi wydech.
+Weź głęboki wdech.
+
+[oddech 4]
+
+I powoli wypuść powietrze.
+
+[oddech 7]
+
+Jeszcze raz. Głęboki wdech.
+
+[oddech 4]
+
+I długi wydech.
+
+[oddech 8]
 
 [pauza 10]
 

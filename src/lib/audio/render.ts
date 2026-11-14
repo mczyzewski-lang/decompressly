@@ -4,7 +4,7 @@ import { Mp3Encoder } from "@breezystack/lamejs";
 import { audioContext } from "./engine";
 import { DEFAULT_GAP } from "./segments";
 
-export type MontagePart = { type: "speech"; buffer: AudioBuffer } | { type: "silence"; seconds: number } | { type: "motif"; buffer: AudioBuffer; level?: number };
+export type MontagePart = { type: "speech"; buffer: AudioBuffer } | { type: "silence"; seconds: number; fixed?: boolean } | { type: "motif"; buffer: AudioBuffer; level?: number };
 
 const MOTIF_OVERLAP = 2.5; // the next words start while the motif is fading out
 

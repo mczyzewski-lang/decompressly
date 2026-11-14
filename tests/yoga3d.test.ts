@@ -59,3 +59,26 @@ describe("places", () => {
     }
   });
 });
+
+import { applyPacing, fitPauseScale, parseScript } from "@/lib/audio/segments";
+
+describe("time for a breath", () => {
+  const script = "Weź głęboki wdech.\n\n[oddech 4]\n\nI długi wydech.\n\n[oddech 8]\n\n[pauza 10]\n\nDalej.";
+  it("keeps its length while ordinary silence is stretched or shortened", () => {
+    const seg = parseScript(script);
+    expect(seg.filter((s) => s.kind === "pause")).toEqual([
+      { kind: "pause", seconds: 4, fixed: true },
+      { kind: "pause", seconds: 8, fixed: true },
+      { kind: "pause", seconds: 10 },
+    ]);
+    for (const scale of [0.6, 3]) {
+      const out = applyPacing(seg, { pauseScale: scale, gap: 1.2 }).filter((s) => s.kind === "pause");
+      expect(out.map((s) => s.kind === "pause" && s.seconds)).toEqual([4, 8, 10 * scale]);
+    }
+  });
+  it("is never spoken and does not count as stretchable silence", () => {
+    const seg = parseScript(script);
+    expect(seg.filter((s) => s.kind === "speech").map((s) => s.kind === "speech" && s.text).join(" ")).not.toMatch(/oddech \d|\[/);
+    expect(fitPauseScale(parseScript("Wdech.\n\n[oddech 4]\n\nWydech."), 10)).toBe(1);
+  });
+});
